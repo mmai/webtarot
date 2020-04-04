@@ -54,6 +54,20 @@ button.primary {
   color: white;
 }
 
+button.cancel {
+  background: rgb(113, 110, 107);
+  color: white;
+}
+
+input:disabled,
+button:disabled,
+input:disabled:hover,
+button:disabled:hover {
+  color: #888 !important;
+  background: #eee !important;
+  cursor: default;
+}
+
 button {
   padding: 0 14px;
 }
@@ -119,6 +133,10 @@ p.error {
   font-weight: 500;
 }
 
+div.toolbar {
+  clear: both;
+}
+
 div.toolbar * {
   margin: 8px 0 !important;
   border-top-right-radius: 0 !important;
@@ -134,6 +152,7 @@ div.toolbar * + * {
 div.toolbar *:last-child {
   border-top-right-radius: 4px !important;
   border-bottom-right-radius: 4px !important;
+  border-right: 2px solid black !important;
 }
 
 div.toolbar span {
@@ -146,10 +165,23 @@ div.players {
   margin-top: 0;
 }
 
+div.players li.team-red span.nickname {
+  color: red;
+}
+
+div.players li.team-blue span.nickname {
+  color: blue;
+}
+
 div.chat {
   font-family: "Courier Prime", monospace;
   margin-top: 0;
   margin-right: 330px;
+}
+
+div.chat ul {
+  max-height: 120px;
+  overflow-y: auto;
 }
 
 div.tiles {
@@ -178,8 +210,6 @@ div.tiles div.tile {
   font-weight: 700;
   cursor: default;
   background-image: url(paper.png);
-  /*background-size: cover;
-  background-position: 50% 30%;*/
   box-shadow: 5px 5px 25px -15px rgba(0, 0, 0, 0.75);
   text-transform: uppercase;
   color: black;
@@ -187,8 +217,7 @@ div.tiles div.tile {
   text-shadow: 0 0 5px rgba(255, 255, 255, 1);
 }
 
-div.tiles div.tile.unspotted:hover {
-  cursor: pointer;
+div.tiles div.tile.unspotted.can-guess:hover {
   border-color: black;
   text-shadow: 1px 1px 3px rgba(255, 255, 255, 1);
   background: white;
@@ -197,6 +226,7 @@ div.tiles div.tile.unspotted:hover {
   background-position: 50% 0;
   color: #555;
   box-shadow: 2px 2px 10px -2px rgba(0, 0, 0, 1);
+  cursor: pointer;
 }
 
 div.tiles div.tile.assassin {
@@ -206,13 +236,13 @@ div.tiles div.tile.assassin {
 }
 
 div.tiles div.tile.blue-agent {
-  background-image: url(blue-agent.png);
+  background-image: url(agent-blue.png);
   background-size: cover;
   background-position: 50% 30%;
 }
 
 div.tiles div.tile.red-agent {
-  background-image: url(red-agent.png);
+  background-image: url(agent-red.png);
   background-size: cover;
   background-position: 50% 30%;
 }
@@ -221,4 +251,8 @@ div.tiles div.tile.bystander {
   background-image: url(bystander.png);
   background-size: cover;
   background-position: 50% 30%;
+}
+
+p.turn-info {
+  float: right;
 }

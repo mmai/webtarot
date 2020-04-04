@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::game::{GameInfo, GameStateSnapshot, PlayerRole, Team};
+use crate::game::{GameInfo, GamePlayerState, GameStateSnapshot, PlayerRole, Team};
 use crate::player::PlayerInfo;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -9,11 +9,14 @@ use crate::player::PlayerInfo;
 pub enum Command {
     Authenticate(AuthenticateCommand),
     SendText(SendTextCommand),
+    ShareCodename(ShareCodenameCommand),
     NewGame,
     JoinGame(JoinGameCommand),
     LeaveGame,
+    MarkReady,
     SetPlayerRole(SetPlayerRoleCommand),
-    RequestGameStateSnapshot,
+    SetPlayerTeam(SetPlayerTeamCommand),
+    RevealCard(RevealCardCommand),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Hash)]
@@ -69,21 +72,36 @@ pub struct SendTextCommand {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ShareCodenameCommand {
+    pub codename: String,
+    pub number: usize,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct JoinGameCommand {
     pub join_code: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SetPlayerRoleCommand {
-    pub team: Option<Team>,
     pub role: PlayerRole,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct SetPlayerTeamCommand {
+    pub team: Option<Team>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RevealCardCommand {
+    pub index: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Message {
     Chat(ChatMessage),
-    PlayerConnected(PlayerInfo),
+    PlayerConnected(GamePlayerState),
     PlayerDisconnected(PlayerDisconnectedMessage),
     PregameStarted,
     GameJoined(GameInfo),

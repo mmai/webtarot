@@ -3,7 +3,7 @@ use std::iter;
 use lazy_static::lazy_static;
 use rand::prelude::*;
 
-use crate::protocol::{Character, PlayerRole, Team, Tile};
+use crate::protocol::{Character, Team, Tile, Turn};
 
 pub const SIZE: usize = 5;
 
@@ -11,7 +11,7 @@ lazy_static! {
     static ref WORDS: Vec<String> = include_str!("wordlist.txt")
         .lines()
         .map(|x| x.trim().to_string())
-        .filter(|x| x.len() > 0)
+        .filter(|x| !x.is_empty())
         .collect();
 }
 
@@ -53,27 +53,25 @@ impl Board {
         }
     }
 
-    /// Returns the starting team.
-    pub fn starting_team(&self) -> Team {
-        self.starting_team
-    }
-
-    /// Returns the tiles.
-    pub fn tiles(&self) -> &[Tile] {
-        &self.tiles
-    }
-
     /// Returns tiles with non spotted characters hidden.
-    pub fn tiles_for_role(&self, role: PlayerRole) -> Vec<Tile> {
+    pub fn tiles(&self, reveal: bool) -> Vec<Tile> {
         self.tiles
             .iter()
             .map(|tile| {
                 let mut tile = tile.clone();
-                if !tile.spotted && role != PlayerRole::Spymaster {
+                if !(tile.spotted || reveal) {
                     tile.character = Character::Unknown;
                 }
                 tile
             })
             .collect()
+    }
+
+    /// Returns the initial turn
+    pub fn initial_turn(&self) -> Turn {
+        match self.starting_team {
+            Team::Red => Turn::RedSpymasterThinking,
+            Team::Blue => Turn::BlueSpymasterThinking,
+        }
     }
 }

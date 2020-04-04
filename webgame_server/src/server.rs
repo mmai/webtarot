@@ -9,7 +9,8 @@ use warp::{ws, Filter};
 
 use crate::protocol::{
     AuthenticateCommand, ChatMessage, Command, JoinGameCommand, Message, ProtocolError,
-    ProtocolErrorKind, SendTextCommand, SetPlayerRoleCommand,
+    ProtocolErrorKind, RevealCardCommand, SendTextCommand, SetPlayerRoleCommand,
+    SetPlayerTeamCommand, ShareCodenameCommand,
 };
 use crate::universe::Universe;
 
@@ -77,6 +78,8 @@ async fn on_player_message(
         }
     };
 
+    log::debug!("command: {:?}", &cmd);
+
     if !universe.player_is_authenticated(player_id).await {
         match cmd {
             Command::Authenticate(data) => on_player_authenticate(universe, player_id, data).await,
@@ -88,13 +91,14 @@ async fn on_player_message(
     } else {
         match cmd {
             Command::NewGame => on_new_game(universe, player_id).await,
-            Command::JoinGame(data) => on_join_game(universe, player_id, data).await,
+            Command::JoinGame(cmd) => on_join_game(universe, player_id, cmd).await,
             Command::LeaveGame => on_leave_game(universe, player_id).await,
-            Command::SendText(data) => on_player_send_text(universe, player_id, data).await,
-            Command::SetPlayerRole(data) => on_player_set_role(universe, player_id, data).await,
-            Command::RequestGameStateSnapshot => {
-                on_player_request_game_state_snapshot(universe, player_id).await
-            }
+            Command::MarkReady => on_player_mark_ready(universe, player_id).await,
+            Command::SendText(cmd) => on_player_send_text(universe, player_id, cmd).await,
+            Command::ShareCodename(cmd) => on_player_share_codename(universe, player_id, cmd).await,
+            Command::SetPlayerRole(cmd) => on_player_set_role(universe, player_id, cmd).await,
+            Command::SetPlayerTeam(cmd) => on_player_set_team(universe, player_id, cmd).await,
+            Command::RevealCard(cmd) => on_player_reveal_card(universe, player_id, cmd).await,
 
             // this should not happen here.
             Command::Authenticate(..) => Err(ProtocolError::new(
@@ -112,12 +116,7 @@ async fn on_new_game(universe: Arc<Universe>, player_id: Uuid) -> Result<(), Pro
     universe
         .send(player_id, &Message::GameJoined(game.game_info()))
         .await;
-    universe
-        .send(
-            player_id,
-            &Message::GameStateSnapshot(game.snapshot_for(player_id).await),
-        )
-        .await;
+    game.broadcast_state().await;
     Ok(())
 }
 
@@ -130,12 +129,7 @@ async fn on_join_game(
     universe
         .send(player_id, &Message::GameJoined(game.game_info()))
         .await;
-    universe
-        .send(
-            player_id,
-            &Message::GameStateSnapshot(game.snapshot_for(player_id).await),
-        )
-        .await;
+    game.broadcast_state().await;
     Ok(())
 }
 
@@ -169,10 +163,19 @@ async fn on_player_authenticate(
         .send(player_id, &Message::Authenticated(player_info.clone()))
         .await;
 
-    if let Some(game) = universe.get_player_game(player_id).await {
-        game.broadcast(&Message::PlayerConnected(player_info)).await;
-    }
+    Ok(())
+}
 
+pub async fn on_player_mark_ready(
+    universe: Arc<Universe>,
+    player_id: Uuid,
+) -> Result<(), ProtocolError> {
+    if let Some(game) = universe.get_player_game(player_id).await {
+        if game.is_joinable().await {
+            game.mark_player_ready(player_id).await;
+            game.broadcast_state().await;
+        }
+    }
     Ok(())
 }
 
@@ -196,14 +199,17 @@ pub async fn on_player_send_text(
     }
 }
 
-pub async fn on_player_set_role(
+pub async fn on_player_share_codename(
     universe: Arc<Universe>,
     player_id: Uuid,
-    cmd: SetPlayerRoleCommand,
+    cmd: ShareCodenameCommand,
 ) -> Result<(), ProtocolError> {
     if let Some(game) = universe.get_player_game(player_id).await {
-        game.set_player_role_and_team(player_id, cmd.role, cmd.team)
-            .await;
+        game.broadcast(&Message::Chat(ChatMessage {
+            player_id,
+            text: format!("codename: {} {}", cmd.codename, cmd.number),
+        }))
+        .await;
         Ok(())
     } else {
         Err(ProtocolError::new(
@@ -213,17 +219,20 @@ pub async fn on_player_set_role(
     }
 }
 
-pub async fn on_player_request_game_state_snapshot(
+pub async fn on_player_set_role(
     universe: Arc<Universe>,
     player_id: Uuid,
+    cmd: SetPlayerRoleCommand,
 ) -> Result<(), ProtocolError> {
     if let Some(game) = universe.get_player_game(player_id).await {
-        universe
-            .send(
-                player_id,
-                &Message::GameStateSnapshot(game.snapshot_for(player_id).await),
-            )
-            .await;
+        if !game.is_joinable().await {
+            return Err(ProtocolError::new(
+                ProtocolErrorKind::BadState,
+                "cannot set role because game is not not joinable",
+            ));
+        }
+        game.set_player_role(player_id, cmd.role).await;
+        game.broadcast_state().await;
         Ok(())
     } else {
         Err(ProtocolError::new(
@@ -231,6 +240,40 @@ pub async fn on_player_request_game_state_snapshot(
             "not in a game",
         ))
     }
+}
+
+pub async fn on_player_set_team(
+    universe: Arc<Universe>,
+    player_id: Uuid,
+    cmd: SetPlayerTeamCommand,
+) -> Result<(), ProtocolError> {
+    if let Some(game) = universe.get_player_game(player_id).await {
+        if !game.is_joinable().await {
+            return Err(ProtocolError::new(
+                ProtocolErrorKind::BadState,
+                "cannot set team because game is not not joinable",
+            ));
+        }
+        game.set_player_team(player_id, cmd.team).await;
+        game.broadcast_state().await;
+        Ok(())
+    } else {
+        Err(ProtocolError::new(
+            ProtocolErrorKind::BadState,
+            "not in a game",
+        ))
+    }
+}
+
+pub async fn on_player_reveal_card(
+    universe: Arc<Universe>,
+    player_id: Uuid,
+    cmd: RevealCardCommand,
+) -> Result<(), ProtocolError> {
+    if let Some(game) = universe.get_player_game(player_id).await {
+        // reveal
+    }
+    Ok(())
 }
 
 pub async fn serve() {

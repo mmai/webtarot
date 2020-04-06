@@ -7,3 +7,4 @@ edition = "2018"
 [dependencies]
 serde = { version = "1.0.105", features = ["derive", "rc"] }
 uuid = { version = "0.8.1", features = ["serde"] }
+tarotgame = { path = "../tarotgame" }

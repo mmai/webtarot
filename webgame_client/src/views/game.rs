@@ -222,6 +222,7 @@ impl Component for GamePage {
                 <PlayerList game_state=self.game_state.clone()/>
                 <ChatBox log=self.chat_log.clone()/>
                 <div class="toolbar">
+                    <span>{format!("{:?} ", &self.my_state().pos)}</span>
                     <span>{format!("{}: ", &self.player_info.nickname)}</span>
                     <input value=&self.chat_line
                         placeholder="send some text"

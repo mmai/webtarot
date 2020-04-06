@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::player::PlayerInfo;
+use tarotgame::{bid, cards, pos, game, trick};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum Turn {
@@ -130,6 +131,7 @@ pub enum Character {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct GamePlayerState {
     pub player: PlayerInfo,
+    pub pos: pos::PlayerPos,
     pub team: Option<Team>,
     pub role: PlayerRole,
     pub ready: bool,

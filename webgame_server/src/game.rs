@@ -10,6 +10,7 @@ use crate::protocol::{
     Team, Turn,
 };
 use crate::universe::Universe;
+use tarotgame::{bid, cards, pos, game, trick};
 
 pub struct GameState {
     players: BTreeMap<Uuid, GamePlayerState>,
@@ -81,8 +82,10 @@ impl Game {
             None => return,
         };
 
+        let nb_players = game_state.players.len();
         let state = GamePlayerState {
             player: player_info,
+            pos: pos::PlayerPos::from_n(nb_players),
             role: PlayerRole::Spectator,
             team: None,
             ready: false,

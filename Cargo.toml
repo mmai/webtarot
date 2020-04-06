@@ -1,2 +1,2 @@
 [workspace]
-members = ["webgame_server", "webgame_protocol", "webgame_client"]
+members = ["webgame_server", "webgame_protocol", "webgame_client", "tarotgame"]

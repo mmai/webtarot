@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender};
 
-use crate::protocol::{GameStateSnapshot, PlayerRole, Team, Turn};
+use crate::protocol::{GameStateSnapshot, PlayerRole, Turn};
 
 #[derive(Clone, Properties)]
 pub struct Props {
@@ -43,20 +43,14 @@ impl Component for PlayerList {
                 <ul>
                 {
                     for self.game_state.players.iter().map(|state| html! {
-                        <li class={
-                            match state.team {
-                                None => "neutral",
-                                Some(Team::Red) => "team-red",
-                                Some(Team::Blue) => "team-blue",
-                            }
-                        }>
+                        <li>
                             <span class="nickname">{&state.player.nickname}</span>
                             {format!(
                                 " {}",
                                 match state.role {
-                                    PlayerRole::Spymaster => "(Spymaster)",
-                                    PlayerRole::Operative => "",
+                                    PlayerRole::Taker => "(Taker)",
                                     PlayerRole::Spectator => "(Spectator)",
+                                    _ => "",
                                 }
                             )}
                             {

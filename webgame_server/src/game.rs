@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::board::Board;
 use crate::protocol::{
     GameInfo, GamePlayerState, GameStateSnapshot, Message, PlayerDisconnectedMessage, PlayerRole,
-    Team, Turn,
+    Turn,
 };
 use crate::universe::Universe;
 use tarotgame::{bid, cards, pos, game, trick};
@@ -87,7 +87,6 @@ impl Game {
             player: player_info,
             pos: pos::PlayerPos::from_n(nb_players),
             role: PlayerRole::Spectator,
-            team: None,
             ready: false,
         };
         game_state.players.insert(state.player.id, state.clone());
@@ -115,47 +114,9 @@ impl Game {
 
     pub async fn set_player_role(&self, player_id: Uuid, role: PlayerRole) {
         let mut game_state = self.game_state.lock().await;
-        let mut my_team = None;
         if let Some(player_state) = game_state.players.get_mut(&player_id) {
-            // if we're not in a team, the player role cannot be set.
-            if player_state.team.is_none() {
-                return;
-            }
             player_state.role = role;
             player_state.ready = false;
-            my_team = player_state.team;
-        }
-
-        if role == PlayerRole::Spymaster {
-            for player_state in game_state.players.values_mut() {
-                if player_state.player.id != player_id
-                    && player_state.role == PlayerRole::Spymaster
-                    && player_state.team == my_team
-                {
-                    player_state.role = PlayerRole::Operative;
-                    player_state.ready = false;
-                }
-            }
-        }
-    }
-
-    pub async fn set_player_team(&self, player_id: Uuid, team: Option<Team>) {
-        let mut game_state = self.game_state.lock().await;
-        let have_spymaster = game_state
-            .players
-            .values()
-            .any(|x| x.role == PlayerRole::Spymaster && x.team == team);
-
-        if let Some(player_state) = game_state.players.get_mut(&player_id) {
-            player_state.team = team;
-            player_state.ready = false;
-            if team.is_none() {
-                player_state.role = PlayerRole::Spectator;
-            } else if have_spymaster {
-                player_state.role = PlayerRole::Operative;
-            } else {
-                player_state.role = PlayerRole::Spymaster;
-            }
         }
     }
 
@@ -163,20 +124,18 @@ impl Game {
         let mut game_state = self.game_state.lock().await;
         if let Some(player_state) = game_state.players.get_mut(&player_id) {
             player_state.ready = true;
+            player_state.role = PlayerRole::Unknown;
         }
 
-        let mut flags = HashSet::new();
+        let mut count = 0;
 
         for player in game_state.players.values() {
-            match (player.team, player.role) {
-                (None, _) | (_, PlayerRole::Spectator) => {}
-                (Some(team), role) => {
-                    flags.insert((team, role));
-                }
+            if player.role != PlayerRole::Spectator {
+                count = count + 1;
             }
         }
 
-        if flags.len() == 4 {
+        if count == 4 {
             game_state.turn = game_state.board.initial_turn();
         }
     }
@@ -197,13 +156,6 @@ impl Game {
             let mut players = vec![];
             let mut reveal = false;
             for (&other_player_id, player_state) in game_state.players.iter() {
-                if player_id == other_player_id
-                    && (player_state.role == PlayerRole::Spymaster
-                        || player_state.role == PlayerRole::Spectator)
-                    && game_state.turn != Turn::Pregame
-                {
-                    reveal = true;
-                }
                 players.push(player_state.clone());
             }
             universe

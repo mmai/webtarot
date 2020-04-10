@@ -10,7 +10,7 @@ use warp::{ws, Filter};
 use crate::protocol::{
     AuthenticateCommand, ChatMessage, Command, JoinGameCommand, Message, ProtocolError,
     ProtocolErrorKind, RevealCardCommand, SendTextCommand, SetPlayerRoleCommand,
-    SetPlayerTeamCommand, ShareCodenameCommand,
+    ShareCodenameCommand,
 };
 use crate::universe::Universe;
 
@@ -97,7 +97,6 @@ async fn on_player_message(
             Command::SendText(cmd) => on_player_send_text(universe, player_id, cmd).await,
             Command::ShareCodename(cmd) => on_player_share_codename(universe, player_id, cmd).await,
             Command::SetPlayerRole(cmd) => on_player_set_role(universe, player_id, cmd).await,
-            Command::SetPlayerTeam(cmd) => on_player_set_team(universe, player_id, cmd).await,
             Command::RevealCard(cmd) => on_player_reveal_card(universe, player_id, cmd).await,
 
             // this should not happen here.
@@ -245,7 +244,6 @@ pub async fn on_player_set_role(
 pub async fn on_player_set_team(
     universe: Arc<Universe>,
     player_id: Uuid,
-    cmd: SetPlayerTeamCommand,
 ) -> Result<(), ProtocolError> {
     if let Some(game) = universe.get_player_game(player_id).await {
         if !game.is_joinable().await {
@@ -254,7 +252,6 @@ pub async fn on_player_set_team(
                 "cannot set team because game is not not joinable",
             ));
         }
-        game.set_player_team(player_id, cmd.team).await;
         game.broadcast_state().await;
         Ok(())
     } else {

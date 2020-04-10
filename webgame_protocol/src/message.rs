@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::game::{GameInfo, GamePlayerState, GameStateSnapshot, PlayerRole, Team};
+use crate::game::{GameInfo, GamePlayerState, GameStateSnapshot, PlayerRole};
 use crate::player::PlayerInfo;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -15,7 +15,6 @@ pub enum Command {
     LeaveGame,
     MarkReady,
     SetPlayerRole(SetPlayerRoleCommand),
-    SetPlayerTeam(SetPlayerTeamCommand),
     RevealCard(RevealCardCommand),
 }
 
@@ -85,11 +84,6 @@ pub struct JoinGameCommand {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SetPlayerRoleCommand {
     pub role: PlayerRole,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SetPlayerTeamCommand {
-    pub team: Option<Team>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

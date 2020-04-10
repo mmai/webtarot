@@ -13,9 +13,9 @@ use crate::api::Api;
 use crate::components::chat_box::{ChatBox, ChatLine, ChatLineData};
 use crate::components::player_list::PlayerList;
 use crate::protocol::{
-    Character, Command, GameInfo, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
+    Command, GameInfo, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
     PlayerInfo, PlayerRole, RevealCardCommand, SendTextCommand, SetPlayerRoleCommand,
-    SetPlayerTeamCommand, Team, Tile, Turn,
+    Tile, Turn,
 };
 use crate::utils::format_join_code;
 
@@ -49,7 +49,6 @@ pub enum Msg {
     MarkReady,
     SetChatLine(String),
     ServerMessage(Message),
-    JoinTeam(Option<Team>),
     SetRole(PlayerRole),
     Reveal(usize),
 }
@@ -82,13 +81,6 @@ impl GamePage {
 
 fn get_tile_class(tile: &Tile, can_guess: bool) -> String {
     let mut rv = "tile ".to_string();
-    rv.push_str(match tile.character {
-        Character::BlueAgent => "blue-agent",
-        Character::RedAgent => "red-agent",
-        Character::Bystander => "bystander",
-        Character::Assassin => "assassin",
-        Character::Unknown => "unspotted",
-    });
     if can_guess {
         rv.push_str(" can-guess");
     }
@@ -146,10 +138,6 @@ impl Component for GamePage {
             Msg::SetChatLine(text) => {
                 self.chat_line = text;
             }
-            Msg::JoinTeam(team) => {
-                self.api
-                    .send(Command::SetPlayerTeam(SetPlayerTeamCommand { team }));
-            }
             Msg::SetRole(role) => {
                 self.api
                     .send(Command::SetPlayerRole(SetPlayerRoleCommand { role }));
@@ -162,7 +150,7 @@ impl Component for GamePage {
             }
             Msg::Reveal(index) => {
                 if self.my_state().get_turn_player_action(self.game_state.turn)
-                    == Some(PlayerAction::Guess)
+                    == Some(PlayerAction::Bid)
                 {
                     self.api
                         .send(Command::RevealCard(RevealCardCommand { index }));
@@ -179,17 +167,6 @@ impl Component for GamePage {
         }
 
         let state = self.my_state();
-
-        let team = state.team;
-        let team_button = |new_team: Option<Team>, title: &str| -> Html {
-            html! {
-                <button
-                    disabled=team == new_team
-                    onclick=self.link.callback(move |_| Msg::JoinTeam(new_team))>
-                    {title}
-                </button>
-            }
-        };
 
         let role = state.role;
         let role_button = |new_role: PlayerRole, title: &str| -> Html {
@@ -212,7 +189,7 @@ impl Component for GamePage {
                 {
                     for self.game_state.tiles.iter().enumerate().map(|(idx, tile)| html! {
                         <div
-                            class={get_tile_class(tile, player_action == Some(PlayerAction::Guess))}
+                            class={get_tile_class(tile, player_action == Some(PlayerAction::Bid))}
                             onclick=self.link.callback(move |_| Msg::Reveal(idx))>
                             <span>{&tile.codeword}</span>
                         </div>
@@ -235,10 +212,10 @@ impl Component for GamePage {
                             }
                         })
                         oninput=self.link.callback(|e: InputData| Msg::SetChatLine(e.value)) />
-                    {if player_action == Some(PlayerAction::ShareCodename) {
+                    {if player_action == Some(PlayerAction::Bid) {
                         html! {
                             <>
-                                <button class="primary" onclick=self.link.callback(|_| Msg::SendChat)>{"Share Codename"}</button>
+                                <button class="primary" onclick=self.link.callback(|_| Msg::SendChat)>{"Bid"}</button>
                                 <button onclick=self.link.callback(|_| Msg::SendChat)>{"Chat"}</button>
                             </>
                         }
@@ -251,28 +228,11 @@ impl Component for GamePage {
                 {if self.game_state.turn == Turn::Pregame {
                     html! {
                         <div class="toolbar">
-                            <span>{"Team:"}</span>
-                            {team_button(Some(Team::Red), "Red")}
-                            {team_button(Some(Team::Blue), "Blue")}
-                            {team_button(None, "Spectate")}
-                            {if team.is_some() {
-                                html! {
-                                    <>
-                                        <span>{"Role:"}</span>
-                                        {role_button(PlayerRole::Spymaster, "Spymaster")}
-                                        {role_button(PlayerRole::Operative, "Operative")}
-                                    </>
-                                }
-                            } else {
-                                html! {}
-                            }}
-                            {if state.team.is_some() {
-                                html! {
-                                    <button class="primary" onclick=self.link.callback(|_| Msg::MarkReady)>{"Ready!"}</button>
-                                }
-                            } else {
-                                html! {}
-                            }}
+                        {if !self.my_state().ready  {
+                            html! {<button class="primary" onclick=self.link.callback(|_| Msg::MarkReady)>{"Ready!"}</button>}
+                        } else {
+                            html! {}
+                        }}
                             <button class="cancel" onclick=self.link.callback(|_| Msg::Disconnect)>{"Disconnect"}</button>
                         </div>
                     }

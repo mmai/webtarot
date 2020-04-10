@@ -9,18 +9,35 @@ use tarotgame::{bid, cards, pos, game, trick};
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum Turn {
     Pregame,
-    Intermission,
-    RedSpymasterThinking,
-    BlueSpymasterThinking,
-    RedOperativesGuessing,
-    BlueOperativesGuessing,
+    Intergame,
+    BiddingP0,
+    BiddingP1,
+    BiddingP2,
+    BiddingP3,
+    BiddingP4,
+    PlayingP0,
+    PlayingP1,
+    PlayingP2,
+    PlayingP3,
+    PlayingP4,
     Endgame,
 }
+// pub enum Turn {
+//     Pregame,
+//     Intermission,
+//     RedSpymasterThinking,
+//     BlueSpymasterThinking,
+//     RedOperativesGuessing,
+//     BlueOperativesGuessing,
+//     Endgame,
+// }
+
+
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum PlayerAction {
-    ShareCodename,
-    Guess,
+    Bid,
+    Play,
 }
 
 impl fmt::Display for Turn {
@@ -30,35 +47,33 @@ impl fmt::Display for Turn {
             "{}",
             match *self {
                 Turn::Pregame => "pre-game",
-                Turn::Intermission => "intermission",
-                Turn::RedSpymasterThinking => "red spymaster",
-                Turn::RedOperativesGuessing => "red operatives",
-                Turn::BlueSpymasterThinking => "blue spymaster",
-                Turn::BlueOperativesGuessing => "blue operatives",
+                Turn::Intergame => "inter game",
+                Turn::BiddingP0 => "Player 0 bidding",
+                Turn::BiddingP1 => "Player 1 bidding",
+                Turn::BiddingP2 => "Player 2 bidding",
+                Turn::BiddingP3 => "Player 3 bidding",
+                Turn::BiddingP4 => "Player 4 bidding",
+                Turn::PlayingP0 => "Player 0 playing",
+                Turn::PlayingP1 => "Player 1 playing",
+                Turn::PlayingP2 => "Player 2 playing",
+                Turn::PlayingP3 => "Player 3 playing",
+                Turn::PlayingP4 => "Player 4 playing",
                 Turn::Endgame => "end",
             }
+            // match *self {
+            //     Turn::Pregame => "pre-game",
+            //     Turn::Intermission => "intermission",
+            //     Turn::RedSpymasterThinking => "red spymaster",
+            //     Turn::RedOperativesGuessing => "red operatives",
+            //     Turn::BlueSpymasterThinking => "blue spymaster",
+            //     Turn::BlueOperativesGuessing => "blue operatives",
+            //     Turn::Endgame => "end",
+            // }
         )
     }
 }
 
 impl Turn {
-    pub fn team(self) -> Option<Team> {
-        match self {
-            Turn::RedSpymasterThinking | Turn::RedOperativesGuessing => Some(Team::Red),
-            Turn::BlueSpymasterThinking | Turn::BlueOperativesGuessing => Some(Team::Blue),
-            _ => None,
-        }
-    }
-
-    pub fn role(self) -> Option<PlayerRole> {
-        match self {
-            Turn::RedSpymasterThinking | Turn::BlueSpymasterThinking => Some(PlayerRole::Spymaster),
-            Turn::RedOperativesGuessing | Turn::BlueOperativesGuessing => {
-                Some(PlayerRole::Operative)
-            }
-            _ => None,
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -84,17 +99,9 @@ pub struct GameInfo {
     pub join_code: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[serde(rename_all = "snake_case")]
-pub enum Team {
-    Red,
-    Blue,
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Tile {
     pub codeword: String,
-    pub character: Character,
     pub spotted: bool,
 }
 
@@ -102,7 +109,6 @@ impl Default for Tile {
     fn default() -> Tile {
         Tile {
             codeword: "".into(),
-            character: Character::Bystander,
             spotted: false,
         }
     }
@@ -111,42 +117,28 @@ impl Default for Tile {
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum PlayerRole {
-    Spymaster,
-    Operative,
-    Spectator,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
-#[serde(rename_all = "snake_case")]
-pub enum Character {
-    /// This is not a real character but it shows up for board projections
-    /// of non spymaster players.
+    Taker,
+    Partner,
+    Opponent,
     Unknown,
-    RedAgent,
-    BlueAgent,
-    Bystander,
-    Assassin,
+    Spectator,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct GamePlayerState {
     pub player: PlayerInfo,
     pub pos: pos::PlayerPos,
-    pub team: Option<Team>,
     pub role: PlayerRole,
     pub ready: bool,
 }
 
 impl GamePlayerState {
     pub fn get_turn_player_action(&self, turn: Turn) -> Option<PlayerAction> {
-        if self.team != turn.team() && Some(self.role) != turn.role() {
-            None
+        if self.role == PlayerRole::Spectator {
+            return None;
         } else {
-            match self.role {
-                PlayerRole::Operative => Some(PlayerAction::Guess),
-                PlayerRole::Spymaster => Some(PlayerAction::ShareCodename),
-                PlayerRole::Spectator => None,
-            }
+        // } else if (self.pos == {
+            return Some(PlayerAction::Bid);
         }
     }
 }

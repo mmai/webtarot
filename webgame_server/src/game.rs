@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::board::Board;
 use crate::protocol::{
-    GameInfo, GamePlayerState, GameStateSnapshot, Message, PlayerDisconnectedMessage, PlayerRole,
+    GameInfo, GamePlayerState, GameStateSnapshot, DealSnapshot, Message, PlayerDisconnectedMessage, PlayerRole,
     Turn,
 };
 use crate::universe::Universe;
@@ -16,6 +16,41 @@ pub struct GameState {
     players: BTreeMap<Uuid, GamePlayerState>,
     turn: Turn,
     board: Board,
+    deal: Deal,
+    first: pos::PlayerPos,
+    scores: [i32; 2],
+}
+
+
+/// Describe a single deal.
+pub enum Deal {
+    /// The deal is still in the auction phase
+    Bidding(bid::Auction),
+    /// The deal is in the main playing phase
+    Playing(game::GameState),
+}
+
+impl Deal {
+    fn next_player(&self) -> pos::PlayerPos {
+        match self {
+            &Deal::Bidding(ref auction) => auction.next_player(),
+            &Deal::Playing(ref deal) => deal.next_player(),
+        }
+    }
+
+    fn deal_state(&self) -> Option<&game::GameState> {
+        match self {
+            Deal::Bidding(bid) => None,
+            Deal::Playing(state) => Some(state),
+        }
+    }
+}
+
+// Creates a new deal, starting with an auction.
+// fn make_deal(first: pos::PlayerPos) -> bid::Auction {
+fn make_deal(first: pos::PlayerPos) -> Deal {
+    let auction = bid::Auction::new(first);
+    Deal::Bidding(auction)
 }
 
 pub struct Game {
@@ -27,6 +62,7 @@ pub struct Game {
 
 impl Game {
     pub fn new(join_code: String, universe: Arc<Universe>) -> Game {
+        let deal = make_deal(pos::PlayerPos::P0);
         Game {
             id: Uuid::new_v4(),
             join_code,
@@ -35,6 +71,10 @@ impl Game {
                 players: BTreeMap::new(),
                 turn: Turn::Pregame,
                 board: Board::new(),
+
+                deal,
+                first: pos::PlayerPos::P0,
+                scores: [0; 2],
             })),
         }
     }
@@ -158,6 +198,24 @@ impl Game {
             for (&other_player_id, player_state) in game_state.players.iter() {
                 players.push(player_state.clone());
             }
+            let deal = match game_state.deal.deal_state() {
+                Some(state) => {
+                    let points =  match state.get_game_result() {
+                        game::GameResult::Nothing => [0; 2],
+                        game::GameResult::GameOver {points, winners, scores } => points
+                    };
+                    DealSnapshot {
+                        hand: state.hands()[0],
+                        current: state.next_player(),
+                        points
+                    }
+                },
+                None => DealSnapshot {
+                    hand: cards::Hand::new(),
+                    current: pos::PlayerPos::P0,
+                    points: [0;2]
+                }
+            };
             universe
                 .send(
                     player_id,
@@ -165,6 +223,7 @@ impl Game {
                         players,
                         tiles: game_state.board.tiles(reveal),
                         turn: game_state.turn,
+                        deal
                     }),
                 )
                 .await;

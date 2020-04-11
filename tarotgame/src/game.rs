@@ -141,7 +141,7 @@ impl GameState {
         self.current
     }
 
-    fn get_game_result(&self) -> GameResult {
+    pub fn get_game_result(&self) -> GameResult {
         if !self.is_over() {
             return GameResult::Nothing;
         }

@@ -225,6 +225,10 @@ impl Component for GamePage {
                         }
                     }}
                 </div>
+                    <div> 
+
+                    <span>{format!("{:?} ", &self.game_state.deal.hand)}</span>
+                    </div>
                 {if self.game_state.turn == Turn::Pregame {
                     html! {
                         <div class="toolbar">

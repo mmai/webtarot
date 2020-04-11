@@ -77,10 +77,20 @@ impl Turn {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct DealSnapshot {
+    pub hand: cards::Hand,
+    pub current: pos::PlayerPos,
+    // pub contract: bid::Contract,
+    pub points: [i32; 2],
+    // pub tricks: Vec<trick::Trick>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct GameStateSnapshot {
     pub players: Vec<GamePlayerState>,
     pub tiles: Vec<Tile>,
     pub turn: Turn,
+    pub deal: DealSnapshot,
 }
 
 impl Default for GameStateSnapshot {
@@ -89,6 +99,11 @@ impl Default for GameStateSnapshot {
             players: vec![],
             tiles: vec![Tile::default(); 25],
             turn: Turn::Pregame,
+            deal: DealSnapshot {
+                hand: cards::Hand::new(),
+                current: pos::PlayerPos::P0,
+                points: [0;2]
+            }
         }
     }
 }

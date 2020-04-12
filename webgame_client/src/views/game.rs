@@ -185,18 +185,17 @@ impl Component for GamePage {
             <div>
                 <p class="turn-info">{format!("Turn: {}", self.game_state.turn)}</p>
                 <h1>{format!("Game ({})", format_join_code(&self.game_info.join_code))}</h1>
-                <div class="box tiles">
+                <PlayerList game_state=self.game_state.clone()/>
+                <section class="hand">
                 {
-                    for self.game_state.tiles.iter().enumerate().map(|(idx, tile)| html! {
-                        <div
-                            class={get_tile_class(tile, player_action == Some(PlayerAction::Bid))}
-                            onclick=self.link.callback(move |_| Msg::Reveal(idx))>
-                            <span>{&tile.codeword}</span>
-                        </div>
+                    for self.game_state.deal.hand.list().iter().map(| card| {
+                        let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                        html! {
+                            <div class="card" style={style}></div>
+                        }
                     })
                 }
-                </div>
-                <PlayerList game_state=self.game_state.clone()/>
+                </section>
                 <ChatBox log=self.chat_log.clone()/>
                 <div class="toolbar">
                     <span>{format!("{:?} ", &self.my_state().pos)}</span>
@@ -225,11 +224,6 @@ impl Component for GamePage {
                         }
                     }}
                 </div>
-                    <div> 
-
-                    <span>{"current player:"}{format!("{:?} ", &self.game_state.deal.current)}</span>
-                    <span>{format!("{:?} ", &self.game_state.deal.hand)}</span>
-                    </div>
                 {if self.game_state.turn == Turn::Pregame {
                     html! {
                         <div class="toolbar">

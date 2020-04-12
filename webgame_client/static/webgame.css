@@ -256,3 +256,21 @@ div.tiles div.tile.bystander {
 p.turn-info {
   float: right;
 }
+
+
+
+.hand{
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(auto-fit,  minmax(10px, max-content)) ;
+}
+
+.card{
+  width: 15vh;
+  height: 28vh;
+  background-image: var(--bg-image);
+  background-size: 15vh 28vh;
+}

@@ -53,6 +53,16 @@ impl Suit {
             Suit::Club => "♣",
         }.to_owned()
     }
+
+    /// Returns a character representing the suit (H, S, D or C).
+    pub fn to_safe_string(self) -> String {
+        match self {
+            Suit::Heart => "H",
+            Suit::Spade => "S",
+            Suit::Diamond => "D",
+            Suit::Club => "C",
+        }.to_owned()
+    }
 }
 
 impl FromStr for Suit {

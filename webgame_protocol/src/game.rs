@@ -101,7 +101,7 @@ impl Default for GameStateSnapshot {
             turn: Turn::Pregame,
             deal: DealSnapshot {
                 hand: cards::Hand::new(),
-                current: pos::PlayerPos::P0,
+                current: pos::PlayerPos::P2,
                 points: [0;2]
             }
         }

@@ -227,6 +227,7 @@ impl Component for GamePage {
                 </div>
                     <div> 
 
+                    <span>{"current player:"}{format!("{:?} ", &self.game_state.deal.current)}</span>
                     <span>{format!("{:?} ", &self.game_state.deal.hand)}</span>
                     </div>
                 {if self.game_state.turn == Turn::Pregame {

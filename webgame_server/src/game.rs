@@ -38,6 +38,13 @@ impl Deal {
         }
     }
 
+    fn hands(&self) -> [cards::Hand; 4] {
+        match self {
+            &Deal::Bidding(ref auction) => auction.hands(),
+            &Deal::Playing(ref deal) => deal.hands(),
+        }
+    }
+
     fn deal_state(&self) -> Option<&game::GameState> {
         match self {
             Deal::Bidding(bid) => None,
@@ -63,6 +70,7 @@ pub struct Game {
 impl Game {
     pub fn new(join_code: String, universe: Arc<Universe>) -> Game {
         let deal = make_deal(pos::PlayerPos::P0);
+        log::debug!("new deal: {:?}", deal.hands());
         Game {
             id: Uuid::new_v4(),
             join_code,
@@ -198,21 +206,23 @@ impl Game {
             for (&other_player_id, player_state) in game_state.players.iter() {
                 players.push(player_state.clone());
             }
+            let pos = game_state.players[&player_id].pos;
             let deal = match game_state.deal.deal_state() {
                 Some(state) => {
+                    log::debug!("hands: {:?}", state.hands());
                     let points =  match state.get_game_result() {
                         game::GameResult::Nothing => [0; 2],
                         game::GameResult::GameOver {points, winners, scores } => points
                     };
                     DealSnapshot {
-                        hand: state.hands()[0],
+                        hand: state.hands()[pos as usize],
                         current: state.next_player(),
                         points
                     }
                 },
                 None => DealSnapshot {
-                    hand: cards::Hand::new(),
-                    current: pos::PlayerPos::P0,
+                    hand: game_state.deal.hands()[pos as usize],
+                    current: game_state.deal.next_player(),
                     points: [0;2]
                 }
             };

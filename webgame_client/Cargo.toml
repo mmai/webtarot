@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["Armin Ronacher <armin.ronacher@active-4.com>"]
 edition = "2018"
 
+[package.metadata.wasm-pack.profile.dev.wasm-bindgen]
+dwarf-debug-info = true
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -19,6 +22,4 @@ uuid = "0.8.1"
 serde = { version = "1.0.105", features = ["derive"] }
 web-sys = { version = "0.3.36", features = ["Window", "Location", "HtmlDivElement"] }
 im-rc = "14.3.0"
-
-[package.metadata.wasm-pack.profile.dev.wasm-bindgen]
-dwarf-debug-info = true
+stdweb = "0.4.20"

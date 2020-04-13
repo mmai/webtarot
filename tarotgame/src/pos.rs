@@ -87,6 +87,17 @@ impl PlayerPos {
         }
     }
 
+    /// Returns the number corresponding to the position.
+    ///
+    pub fn to_n(self) -> usize {
+        match self {
+            PlayerPos::P0 => 0,
+            PlayerPos::P1 => 1,
+            PlayerPos::P2 => 2,
+            PlayerPos::P3 => 3,
+        }
+    }
+
     /// Returns `true` if `self` and `other` and in the same team
     pub fn is_partner(self, other: PlayerPos) -> bool {
         self.team() == other.team()

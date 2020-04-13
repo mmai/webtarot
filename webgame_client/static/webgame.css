@@ -6,7 +6,7 @@ html {
 }
 
 body {
-  padding: 1em;
+  /* padding: 1em; */
   font-family: "Inter", sans-serif;
   font-size: 18px;
   margin: 0;
@@ -86,8 +86,12 @@ h1 {
 }
 
 div.wrapper {
+  background: white;
+  border: 2px solid black;
+  padding: 20px;
+  border-radius: 3px;
   overflow: visible;
-  margin: 30px auto;
+  margin: 30px 20px auto 20px;
   box-shadow: 11px 10px 35px -14px rgba(0, 0, 0, 0.75);
 }
 
@@ -194,7 +198,8 @@ p.turn-info {
   grid-template-rows: [header] 50px [players] 1fr [action] 1fr [hand] 1fr [footer] 60px [bottom] 30px [end];
   grid-template-columns: [game] auto [chat] 400px [end];
   height:100%;
-  /* background-color:red; */
+  padding: 1em;
+  background: white;
 }
 
 .header {

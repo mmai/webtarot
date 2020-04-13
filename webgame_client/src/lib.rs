@@ -1,5 +1,9 @@
 #![recursion_limit = "1024"]
 
+#[macro_use]
+extern crate stdweb;
+use stdweb::js;
+
 mod api;
 mod app;
 mod components;

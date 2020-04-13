@@ -69,7 +69,7 @@ impl Component for StartPage {
 
     fn view(&self) -> Html {
         html! {
-            <div>
+            <div class="wrapper">
                 <h1>{"Let's play Tarot together"}</h1>
                 <p class="explanation">
                     {"Give yourself a name to play:"}

@@ -8,6 +8,7 @@ use yew::{
     html, Bridge, Callback, Component, ComponentLink, Html, InputData, KeyboardEvent, Properties,
     ShouldRender,
 };
+use yew::services::console::ConsoleService;
 
 use crate::api::Api;
 use crate::components::chat_box::{ChatBox, ChatLine, ChatLineData};
@@ -32,6 +33,7 @@ pub struct Props {
 }
 
 pub struct GamePage {
+    console: ConsoleService,
     link: ComponentLink<GamePage>,
     api: Box<dyn Bridge<Api>>,
     game_info: GameInfo,
@@ -95,6 +97,7 @@ impl Component for GamePage {
         let on_server_message = link.callback(Msg::ServerMessage);
         let api = Api::bridge(on_server_message);
         GamePage {
+            console: ConsoleService::new(),
             link,
             api,
             game_info: props.game_info,
@@ -166,9 +169,9 @@ impl Component for GamePage {
             return html! {};
         }
 
-        let state = self.my_state();
+        let my_state = self.my_state();
 
-        let role = state.role;
+        let role = my_state.role;
         let role_button = |new_role: PlayerRole, title: &str| -> Html {
             html! {
                 <button
@@ -179,7 +182,24 @@ impl Component for GamePage {
             }
         };
 
-        let player_action = state.get_turn_player_action(self.game_state.turn);
+        let player_action = my_state.get_turn_player_action(self.game_state.turn);
+
+        // display players in order of playing starting from the current player
+        let mut others_before = vec![];
+        let mut others = vec![];
+        let mypos = my_state.pos.to_n();
+        for pstate in self.game_state.players.iter() {
+            let pos = pstate.pos.to_n();
+            let str = format!("compare mypos {} to {}", mypos, pos);
+            // js!{console.log(str)};
+            if pos < mypos {
+                others_before.push(pstate.clone());
+            } else if mypos < pos{
+               others.push(pstate.clone());
+            }
+        }
+
+        others.append(&mut others_before);
 
         html! {
     <div class="game">
@@ -188,7 +208,7 @@ impl Component for GamePage {
         <h1>{format!("Game ({})", format_join_code(&self.game_info.join_code))}</h1>
       </header>
 
-      <PlayerList game_state=self.game_state.clone()/>
+      <PlayerList game_state=self.game_state.clone() players=others/>
 
         <section class="actions">
             {if self.game_state.turn == Turn::Pregame {

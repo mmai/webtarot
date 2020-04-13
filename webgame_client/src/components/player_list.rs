@@ -2,14 +2,16 @@ use std::rc::Rc;
 
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender};
 
-use crate::protocol::{GameStateSnapshot, PlayerRole, Turn};
+use crate::protocol::{GameStateSnapshot, PlayerRole, GamePlayerState, Turn};
 
 #[derive(Clone, Properties)]
 pub struct Props {
+    pub players: Vec<GamePlayerState>,
     pub game_state: Rc<GameStateSnapshot>,
 }
 
 pub struct PlayerList {
+    players: Vec<GamePlayerState>,
     game_state: Rc<GameStateSnapshot>,
 }
 
@@ -19,6 +21,7 @@ impl Component for PlayerList {
 
     fn create(props: Self::Properties, _link: ComponentLink<Self>) -> Self {
         PlayerList {
+            players: props.players,
             game_state: props.game_state,
         }
     }
@@ -40,11 +43,12 @@ impl Component for PlayerList {
         html! {
             <section class="players">
                 {
-                    for self.game_state.players.iter().map(|state| html! {
+                    for self.players.iter().map(|state| html! {
 
                         <div class="player">
                         <div class="nickname">
                         {&state.player.nickname}
+                        {format!("{:?}", &state.pos)}
                         {format!(
                             " {}",
                             match state.role {

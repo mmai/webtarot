@@ -79,7 +79,7 @@ impl Component for MenuPage {
 
     fn view(&self) -> Html {
         html! {
-            <div>
+            <div class="wrapper">
                 <h1>{"Let's get started"}</h1>
                 <p class="intro">{format!("Hello {}!", &self.player_info.nickname)}</p>
                 <p class="explanation">{"Start a new game or enter the code of a game to join."}</p>

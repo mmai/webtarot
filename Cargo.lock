@@ -1690,6 +1690,7 @@ dependencies = [
  "im-rc",
  "log 0.4.8",
  "serde",
+ "stdweb",
  "uuid 0.8.1",
  "wasm-bindgen",
  "web-sys",

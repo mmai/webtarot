@@ -38,34 +38,36 @@ impl Component for PlayerList {
 
     fn view(&self) -> Html {
         html! {
-            <div class="players box">
-                <h2>{"Players"}</h2>
-                <ul>
+            <section class="players">
                 {
                     for self.game_state.players.iter().map(|state| html! {
-                        <li>
-                            <span class="nickname">{&state.player.nickname}</span>
-                            {format!(
-                                " {}",
-                                match state.role {
-                                    PlayerRole::Taker => "(Taker)",
-                                    PlayerRole::Spectator => "(Spectator)",
-                                    _ => "",
-                                }
-                            )}
-                            {
-                                if self.game_state.turn == Turn::Pregame &&
-                                    state.ready {
-                                    html! { " — ready" }
-                                } else {
-                                    html!{}
-                                }
+
+                        <div class="player">
+                        <div class="nickname">
+                        {&state.player.nickname}
+                        {format!(
+                            " {}",
+                            match state.role {
+                                PlayerRole::Taker => "(Taker)",
+                                PlayerRole::Spectator => "(Spectator)",
+                                _ => "",
                             }
-                        </li>
+                        )}
+                        {
+                            if self.game_state.turn == Turn::Pregame &&
+                                state.ready {
+                                html! { " — ready" }
+                            } else {
+                                html!{}
+                            }
+                        }
+                        </div>
+                        <div class="action">
+                        </div>
+                        </div>
                     })
                 }
-                </ul>
-            </div>
+            </section>
         }
     }
 }

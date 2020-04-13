@@ -182,63 +182,83 @@ impl Component for GamePage {
         let player_action = state.get_turn_player_action(self.game_state.turn);
 
         html! {
-            <div>
-                <p class="turn-info">{format!("Turn: {}", self.game_state.turn)}</p>
-                <h1>{format!("Game ({})", format_join_code(&self.game_info.join_code))}</h1>
-                <PlayerList game_state=self.game_state.clone()/>
-                <section class="hand">
-                {
-                    for self.game_state.deal.hand.list().iter().map(| card| {
-                        let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
-                        html! {
-                            <div class="card" style={style}></div>
+    <div class="game">
+      <header>
+        <p class="turn-info">{format!("Turn: {}", self.game_state.turn)}</p>
+        <h1>{format!("Game ({})", format_join_code(&self.game_info.join_code))}</h1>
+      </header>
+
+      <PlayerList game_state=self.game_state.clone()/>
+
+        <section class="actions">
+            {if self.game_state.turn == Turn::Pregame {
+                html! {
+                    <div class="toolbar">
+                    {if !self.my_state().ready  {
+                        html! {<button class="primary" onclick=self.link.callback(|_| Msg::MarkReady)>{"Ready!"}</button>}
+                    } else {
+                        html! {}
+                    }}
+                        <button class="cancel" onclick=self.link.callback(|_| Msg::Disconnect)>{"Disconnect"}</button>
+                    </div>
+                }
+            } else if player_action == Some(PlayerAction::Bid) {
+                    html! {
+                        <>
+                            <button class="primary" onclick=self.link.callback(|_| Msg::SendChat)>{"Bid"}</button>
+                            <button onclick=self.link.callback(|_| Msg::SendChat)>{"Chat"}</button>
+                        </>
+                    }
+            } else {
+                html! {}
+            }}
+        </section>
+
+        <section class="hand">
+        {
+            for self.game_state.deal.hand.list().iter().map(| card| {
+                let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                html! {
+                    <div class="card" style={style}></div>
+                }
+            })
+        }
+        </section>
+
+        <ChatBox log=self.chat_log.clone()/>
+
+        <div class="footer">
+            <div class="toolbar">
+                <span>{format!("{:?} ", &self.my_state().pos)}</span>
+                <span>{format!("{}: ", &self.player_info.nickname)}</span>
+                <input value=&self.chat_line
+                    placeholder="send some text"
+                    size="30"
+                    onkeypress=self.link.callback(|event: KeyboardEvent| {
+                        if event.key() == "Enter" {
+                            Msg::SendChat
+                        } else {
+                            Msg::Ignore
                         }
                     })
-                }
-                </section>
-                <ChatBox log=self.chat_log.clone()/>
-                <div class="toolbar">
-                    <span>{format!("{:?} ", &self.my_state().pos)}</span>
-                    <span>{format!("{}: ", &self.player_info.nickname)}</span>
-                    <input value=&self.chat_line
-                        placeholder="send some text"
-                        size="30"
-                        onkeypress=self.link.callback(|event: KeyboardEvent| {
-                            if event.key() == "Enter" {
-                                Msg::SendChat
-                            } else {
-                                Msg::Ignore
-                            }
-                        })
-                        oninput=self.link.callback(|e: InputData| Msg::SetChatLine(e.value)) />
-                    {if player_action == Some(PlayerAction::Bid) {
-                        html! {
-                            <>
-                                <button class="primary" onclick=self.link.callback(|_| Msg::SendChat)>{"Bid"}</button>
-                                <button onclick=self.link.callback(|_| Msg::SendChat)>{"Chat"}</button>
-                            </>
-                        }
-                    } else {
-                        html! {
-                            <button class="primary" onclick=self.link.callback(|_| Msg::SendChat)>{"Chat"}</button>
-                        }
-                    }}
-                </div>
-                {if self.game_state.turn == Turn::Pregame {
+                    oninput=self.link.callback(|e: InputData| Msg::SetChatLine(e.value)) />
+                {if player_action == Some(PlayerAction::Bid) {
                     html! {
-                        <div class="toolbar">
-                        {if !self.my_state().ready  {
-                            html! {<button class="primary" onclick=self.link.callback(|_| Msg::MarkReady)>{"Ready!"}</button>}
-                        } else {
-                            html! {}
-                        }}
-                            <button class="cancel" onclick=self.link.callback(|_| Msg::Disconnect)>{"Disconnect"}</button>
-                        </div>
+                        <>
+                            <button class="primary" onclick=self.link.callback(|_| Msg::SendChat)>{"Bid"}</button>
+                            <button onclick=self.link.callback(|_| Msg::SendChat)>{"Chat"}</button>
+                        </>
                     }
                 } else {
-                    html! {}
+                    html! {
+                        <button class="primary" onclick=self.link.callback(|_| Msg::SendChat)>{"Chat"}</button>
+                    }
                 }}
             </div>
+        </div>
+
+    </div>
+
         }
     }
 }

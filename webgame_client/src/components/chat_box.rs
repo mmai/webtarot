@@ -73,7 +73,7 @@ impl Component for ChatBox {
 
     fn view(&self) -> Html {
         html! {
-            <div class="chat box">
+            <aside class="chat box">
                 <h2>{"Chat"}</h2>
                 <ul id="chat-log" ref=self.log_ref.clone()>
                 {
@@ -82,7 +82,7 @@ impl Component for ChatBox {
                     })
                 }
                 </ul>
-            </div>
+            </aside>
         }
     }
 }

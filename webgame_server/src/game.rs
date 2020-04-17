@@ -21,6 +21,12 @@ pub struct GameState {
     scores: [i32; 2],
 }
 
+impl GameState {
+    fn position_taken(&self, position: &pos::PlayerPos) -> bool {
+        self.players.iter().find(|(uuid, player)| &player.pos == position) != None
+    }
+}
+
 
 /// Describe a single deal.
 pub enum Deal {
@@ -130,10 +136,26 @@ impl Game {
             None => return,
         };
 
+        //Default pos
         let nb_players = game_state.players.len();
+        let mut newpos = pos::PlayerPos::from_n(nb_players);
+
+        //TODO rendre générique
+        for p in &[ pos::PlayerPos::P0,
+        pos::PlayerPos::P1,
+        pos::PlayerPos::P2,
+        pos::PlayerPos::P3,
+        ] {
+            if (!game_state.position_taken(p)){
+                newpos = p.clone();
+                break;
+            }
+        }
+
         let state = GamePlayerState {
             player: player_info,
-            pos: pos::PlayerPos::from_n(nb_players),
+            // pos: pos::PlayerPos::from_n(nb_players),
+            pos: newpos,
             role: PlayerRole::Spectator,
             ready: false,
         };
@@ -206,6 +228,7 @@ impl Game {
             for (&other_player_id, player_state) in game_state.players.iter() {
                 players.push(player_state.clone());
             }
+            log::debug!("with players {:?}", players);
             let pos = game_state.players[&player_id].pos;
             let deal = match game_state.deal.deal_state() {
                 Some(state) => {

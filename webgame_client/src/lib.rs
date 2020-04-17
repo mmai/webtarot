@@ -4,6 +4,15 @@
 extern crate stdweb;
 use stdweb::js;
 
+use web_sys;
+
+#[macro_use]
+macro_rules! log {
+    ( $( $t:tt )* ) => {
+        web_sys::console::log_1(&format!( $( $t )* ).into());
+    }
+}
+
 mod api;
 mod app;
 mod components;
@@ -13,6 +22,8 @@ mod views;
 use wasm_bindgen::prelude::*;
 
 pub(crate) use webgame_protocol as protocol;
+
+// A macro to provide `println!(..)`-style syntax for `console.log` logging.
 
 #[wasm_bindgen]
 pub fn run_app() -> Result<(), JsValue> {

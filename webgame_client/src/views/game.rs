@@ -1,6 +1,6 @@
 use std::mem;
 use std::rc::Rc;
-
+    use std::iter::FromIterator;
 use im_rc::Vector;
 use uuid::Uuid;
 use yew::agent::Bridged;
@@ -188,10 +188,13 @@ impl Component for GamePage {
         let mut others_before = vec![];
         let mut others = vec![];
         let mypos = my_state.pos.to_n();
-        for pstate in self.game_state.players.iter() {
+
+        let mut positioned = Vec::from_iter(self.game_state.players.clone());
+        positioned.sort_by(|a, b| a.pos.to_n().cmp(&b.pos.to_n()));
+        for pstate in positioned.iter() {
+        // for pstate in self.game_state.players.iter() {
             let pos = pstate.pos.to_n();
-            let str = format!("compare mypos {} to {}", mypos, pos);
-            // js!{console.log(str)};
+            log!("compare mypos {} to {}", mypos, pos);
             if pos < mypos {
                 others_before.push(pstate.clone());
             } else if mypos < pos{
@@ -199,6 +202,7 @@ impl Component for GamePage {
             }
         }
 
+        log!("others: {:?} others_before: {:?}", others, others_before);
         others.append(&mut others_before);
 
         html! {

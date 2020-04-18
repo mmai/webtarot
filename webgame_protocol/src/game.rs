@@ -6,74 +6,76 @@ use uuid::Uuid;
 use crate::player::PlayerInfo;
 use tarotgame::{bid, cards, pos, game, trick};
 
+/// Describe a single deal.
+pub enum Deal {
+    /// The deal is still in the auction phase
+    Bidding(bid::Auction),
+    /// The deal is in the main playing phase
+    Playing(game::GameState),
+}
+
+impl Deal {
+    pub fn next_player(&self) -> pos::PlayerPos {
+        match self {
+            &Deal::Bidding(ref auction) => auction.next_player(),
+            &Deal::Playing(ref deal) => deal.next_player(),
+        }
+    }
+
+    pub fn hands(&self) -> [cards::Hand; 4] {
+        match self {
+            &Deal::Bidding(ref auction) => auction.hands(),
+            &Deal::Playing(ref deal) => deal.hands(),
+        }
+    }
+
+    pub fn deal_state(&self) -> Option<&game::GameState> {
+        match self {
+            Deal::Bidding(bid) => None,
+            Deal::Playing(state) => Some(state),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum Turn {
     Pregame,
-    Intergame,
-    BiddingP0,
-    BiddingP1,
-    BiddingP2,
-    BiddingP3,
-    BiddingP4,
-    PlayingP0,
-    PlayingP1,
-    PlayingP2,
-    PlayingP3,
-    PlayingP4,
+    Interdeal,
+    Bidding((bid::AuctionState, pos::PlayerPos)),
+    Playing(pos::PlayerPos),
     Endgame,
-}
-// pub enum Turn {
-//     Pregame,
-//     Intermission,
-//     RedSpymasterThinking,
-//     BlueSpymasterThinking,
-//     RedOperativesGuessing,
-//     BlueOperativesGuessing,
-//     Endgame,
-// }
-
-
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
-pub enum PlayerAction {
-    Bid,
-    Play,
 }
 
 impl fmt::Display for Turn {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let strpos;
         write!(
             f,
             "{}",
             match *self {
                 Turn::Pregame => "pre-game",
-                Turn::Intergame => "inter game",
-                Turn::BiddingP0 => "Player 0 bidding",
-                Turn::BiddingP1 => "Player 1 bidding",
-                Turn::BiddingP2 => "Player 2 bidding",
-                Turn::BiddingP3 => "Player 3 bidding",
-                Turn::BiddingP4 => "Player 4 bidding",
-                Turn::PlayingP0 => "Player 0 playing",
-                Turn::PlayingP1 => "Player 1 playing",
-                Turn::PlayingP2 => "Player 2 playing",
-                Turn::PlayingP3 => "Player 3 playing",
-                Turn::PlayingP4 => "Player 4 playing",
+                Turn::Interdeal => "inter deal",
+                Turn::Bidding((_, pos)) => {
+                    strpos = format!("{:?} to bid", pos);
+                    &strpos
+                }
+                Turn::Playing(pos) => {
+                    strpos = format!("{:?} to play", pos);
+                    &strpos
+                }
                 Turn::Endgame => "end",
             }
-            // match *self {
-            //     Turn::Pregame => "pre-game",
-            //     Turn::Intermission => "intermission",
-            //     Turn::RedSpymasterThinking => "red spymaster",
-            //     Turn::RedOperativesGuessing => "red operatives",
-            //     Turn::BlueSpymasterThinking => "blue spymaster",
-            //     Turn::BlueOperativesGuessing => "blue operatives",
-            //     Turn::Endgame => "end",
-            // }
         )
     }
 }
 
 impl Turn {
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+pub enum PlayerAction {
+    Bid,
+    Play,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -88,7 +90,6 @@ pub struct DealSnapshot {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct GameStateSnapshot {
     pub players: Vec<GamePlayerState>,
-    pub tiles: Vec<Tile>,
     pub turn: Turn,
     pub deal: DealSnapshot,
 }
@@ -97,7 +98,6 @@ impl Default for GameStateSnapshot {
     fn default() -> GameStateSnapshot {
         GameStateSnapshot {
             players: vec![],
-            tiles: vec![Tile::default(); 25],
             turn: Turn::Pregame,
             deal: DealSnapshot {
                 hand: cards::Hand::new(),

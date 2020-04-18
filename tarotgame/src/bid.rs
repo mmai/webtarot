@@ -133,7 +133,7 @@ impl Contract {
 }
 
 /// Current state of an auction
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum AuctionState {
     /// Players are still bidding for the highest contract
     Bidding,

@@ -31,12 +31,8 @@ impl Component for PlayerList {
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        if self.game_state != props.game_state {
-            self.game_state = props.game_state;
-            true
-        } else {
-            false
-        }
+        self.players = props.players;
+        true
     }
 
     fn view(&self) -> Html {

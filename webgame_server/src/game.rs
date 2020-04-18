@@ -4,10 +4,9 @@ use tokio::sync::Mutex;
 
 use uuid::Uuid;
 
-use crate::board::Board;
 use crate::protocol::{
     GameInfo, GamePlayerState, GameStateSnapshot, DealSnapshot, Message, PlayerDisconnectedMessage, PlayerRole,
-    Turn,
+    Deal, Turn
 };
 use crate::universe::Universe;
 use tarotgame::{bid, cards, pos, game, trick};
@@ -15,7 +14,6 @@ use tarotgame::{bid, cards, pos, game, trick};
 pub struct GameState {
     players: BTreeMap<Uuid, GamePlayerState>,
     turn: Turn,
-    board: Board,
     deal: Deal,
     first: pos::PlayerPos,
     scores: [i32; 2],
@@ -27,37 +25,6 @@ impl GameState {
     }
 }
 
-
-/// Describe a single deal.
-pub enum Deal {
-    /// The deal is still in the auction phase
-    Bidding(bid::Auction),
-    /// The deal is in the main playing phase
-    Playing(game::GameState),
-}
-
-impl Deal {
-    fn next_player(&self) -> pos::PlayerPos {
-        match self {
-            &Deal::Bidding(ref auction) => auction.next_player(),
-            &Deal::Playing(ref deal) => deal.next_player(),
-        }
-    }
-
-    fn hands(&self) -> [cards::Hand; 4] {
-        match self {
-            &Deal::Bidding(ref auction) => auction.hands(),
-            &Deal::Playing(ref deal) => deal.hands(),
-        }
-    }
-
-    fn deal_state(&self) -> Option<&game::GameState> {
-        match self {
-            Deal::Bidding(bid) => None,
-            Deal::Playing(state) => Some(state),
-        }
-    }
-}
 
 // Creates a new deal, starting with an auction.
 // fn make_deal(first: pos::PlayerPos) -> bid::Auction {
@@ -84,7 +51,6 @@ impl Game {
             game_state: Arc::new(Mutex::new(GameState {
                 players: BTreeMap::new(),
                 turn: Turn::Pregame,
-                board: Board::new(),
 
                 deal,
                 first: pos::PlayerPos::P0,
@@ -198,15 +164,13 @@ impl Game {
         }
 
         let mut count = 0;
-
         for player in game_state.players.values() {
             if player.role != PlayerRole::Spectator {
                 count = count + 1;
             }
         }
-
         if count == 4 {
-            game_state.turn = game_state.board.initial_turn();
+            game_state.turn = Turn::Bidding((bid::AuctionState::Bidding, pos::PlayerPos::P0));
         }
     }
 
@@ -254,7 +218,6 @@ impl Game {
                     player_id,
                     &Message::GameStateSnapshot(GameStateSnapshot {
                         players,
-                        tiles: game_state.board.tiles(reveal),
                         turn: game_state.turn,
                         deal
                     }),

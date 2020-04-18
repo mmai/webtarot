@@ -215,6 +215,12 @@ impl Component for GamePage {
       <PlayerList game_state=self.game_state.clone() players=others/>
 
         <section class="actions">
+            {if self.game_state.deal.current == self.my_state().pos {
+                 html! {<strong>{"It's your turn"}</strong>}
+            } else {
+                 html! {}
+            }
+            }
             {if self.game_state.turn == Turn::Pregame {
                 html! {
                     <div class="toolbar">

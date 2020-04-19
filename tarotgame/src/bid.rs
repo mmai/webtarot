@@ -1,11 +1,11 @@
-//! Auctions and bidding during the first phase of the game.
+//! Auctions and bidding during the first phase of the deal.
 
 use std::fmt;
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 
 use super::cards;
-use super::game;
+use super::deal;
 use super::pos;
 
 /// Goal set by a contract.
@@ -109,7 +109,7 @@ impl ToString for Target {
 pub struct Contract {
     /// Initial author of the contract.
     pub author: pos::PlayerPos,
-    /// Trump suit for this game.
+    /// Trump suit for this deal.
     pub trump: cards::Suit,
     /// Target for the contract.
     pub target: Target,
@@ -139,9 +139,9 @@ pub enum AuctionState {
     Bidding,
     /// One player coinched, maybe another one will surcoinche?
     Coinching,
-    /// Auction is over, game will begin
+    /// Auction is over, deal will begin
     Over,
-    /// No contract was taken, a new game will start
+    /// No contract was taken, a new deal will start
     Cancelled,
 }
 
@@ -319,16 +319,16 @@ impl Auction {
         Ok(self.state)
     }
 
-    /// Consumes a complete auction to enter the second game phase.
+    /// Consumes a complete auction to enter the second deal phase.
     ///
-    /// If the auction was ready, returns `Ok<GameState>`
-    pub fn complete(&mut self) -> Result<game::GameState, BidError> {
+    /// If the auction was ready, returns `Ok<DealState>`
+    pub fn complete(&mut self) -> Result<deal::DealState, BidError> {
         if self.state != AuctionState::Over {
             Err(BidError::AuctionRunning)
         } else if self.history.is_empty() {
             Err(BidError::NoContract)
         } else {
-            Ok(game::GameState::new(
+            Ok(deal::DealState::new(
                 self.first,
                 self.players,
                 self.history.pop().expect("contract history empty"),

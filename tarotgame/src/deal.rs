@@ -1,4 +1,4 @@
-//! Module for the card game, after auctions are complete.
+//! Module for the card deal, after auctions are complete.
 use std::fmt;
 
 use super::bid;
@@ -7,9 +7,9 @@ use super::points;
 use super::pos;
 use super::trick;
 
-/// Describes the state of a coinche game, ready to play a card.
+/// Describes the state of a coinche deal, ready to play a card.
 #[derive(Clone)]
-pub struct GameState {
+pub struct DealState {
     players: [cards::Hand; 4],
 
     current: pos::PlayerPos,
@@ -20,19 +20,19 @@ pub struct GameState {
     tricks: Vec<trick::Trick>,
 }
 
-/// Result of a game.
+/// Result of a deal.
 #[derive(PartialEq, Debug)]
-pub enum GameResult {
-    /// The game is still playing
+pub enum DealResult {
+    /// The deal is still playing
     Nothing,
 
-    /// The game is over
+    /// The deal is over
     GameOver {
         /// Worth of won tricks
         points: [i32; 2],
         /// Winning team
         winners: pos::Team,
-        /// Score for this game
+        /// Score for this deal
         scores: [i32; 2],
     },
 }
@@ -41,7 +41,7 @@ pub enum GameResult {
 #[derive(PartialEq, Debug)]
 pub enum TrickResult {
     Nothing,
-    TrickOver(pos::PlayerPos, GameResult),
+    TrickOver(pos::PlayerPos, DealResult),
 }
 
 /// Error that can occur during play
@@ -75,10 +75,10 @@ impl fmt::Display for PlayError {
     }
 }
 
-impl GameState {
-    /// Creates a new GameState, with the given cards, first player and contract.
+impl DealState {
+    /// Creates a new DealState, with the given cards, first player and contract.
     pub fn new(first: pos::PlayerPos, hands: [cards::Hand; 4], contract: bid::Contract) -> Self {
-        GameState {
+        DealState {
             players: hands,
             current: first,
             contract,
@@ -87,7 +87,7 @@ impl GameState {
         }
     }
 
-    /// Returns the contract used for this game
+    /// Returns the contract used for this deal
     pub fn contract(&self) -> &bid::Contract {
         &self.contract
     }
@@ -127,7 +127,7 @@ impl GameState {
                 self.tricks.push(trick::Trick::new(winner));
             }
             self.current = winner;
-            TrickResult::TrickOver(winner, self.get_game_result())
+            TrickResult::TrickOver(winner, self.get_deal_result())
         } else {
             self.current = self.current.next();
             TrickResult::Nothing
@@ -141,9 +141,9 @@ impl GameState {
         self.current
     }
 
-    pub fn get_game_result(&self) -> GameResult {
+    pub fn get_deal_result(&self) -> DealResult {
         if !self.is_over() {
-            return GameResult::Nothing;
+            return DealResult::Nothing;
         }
 
         let taking_team = self.contract.author.team();
@@ -167,7 +167,7 @@ impl GameState {
             scores[winners as usize] = 160;
         }
 
-        GameResult::GameOver {
+        DealResult::GameOver {
             points: self.points,
             winners,
             scores,
@@ -336,18 +336,18 @@ mod tests {
             coinche_level: 0,
         };
 
-        let mut game = GameState::new(pos::PlayerPos::P0, hands, contract);
+        let mut deal = DealState::new(pos::PlayerPos::P0, hands, contract);
 
         // Wrong turn
         assert_eq!(
-            game.play_card(
+            deal.play_card(
                 pos::PlayerPos::P1,
                 cards::Card::new(cards::Suit::Club, cards::Rank::RankX)
             ).err(),
             Some(PlayError::TurnError)
         );
         assert_eq!(
-            game.play_card(
+            deal.play_card(
                 pos::PlayerPos::P0,
                 cards::Card::new(cards::Suit::Club, cards::Rank::Rank7)
             ).ok(),
@@ -355,7 +355,7 @@ mod tests {
         );
         // Card missing
         assert_eq!(
-            game.play_card(
+            deal.play_card(
                 pos::PlayerPos::P1,
                 cards::Card::new(cards::Suit::Heart, cards::Rank::Rank7)
             ).err(),
@@ -363,14 +363,14 @@ mod tests {
         );
         // Wrong color
         assert_eq!(
-            game.play_card(
+            deal.play_card(
                 pos::PlayerPos::P1,
                 cards::Card::new(cards::Suit::Spade, cards::Rank::Rank7)
             ).err(),
             Some(PlayError::IncorrectSuit)
         );
         assert_eq!(
-            game.play_card(
+            deal.play_card(
                 pos::PlayerPos::P1,
                 cards::Card::new(cards::Suit::Club, cards::Rank::RankQ)
             ).ok(),
@@ -378,14 +378,14 @@ mod tests {
         );
         // Invalid piss
         assert_eq!(
-            game.play_card(
+            deal.play_card(
                 pos::PlayerPos::P2,
                 cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank7)
             ).err(),
             Some(PlayError::InvalidPiss)
         );
         assert_eq!(
-            game.play_card(
+            deal.play_card(
                 pos::PlayerPos::P2,
                 cards::Card::new(cards::Suit::Heart, cards::Rank::RankQ)
             ).ok(),
@@ -393,20 +393,20 @@ mod tests {
         );
         // UnderTrump
         assert_eq!(
-            game.play_card(
+            deal.play_card(
                 pos::PlayerPos::P3,
                 cards::Card::new(cards::Suit::Heart, cards::Rank::Rank7)
             ).err(),
             Some(PlayError::NonRaisedTrump)
         );
         assert_eq!(
-            game.play_card(
+            deal.play_card(
                 pos::PlayerPos::P3,
                 cards::Card::new(cards::Suit::Heart, cards::Rank::RankJ)
             ).ok(),
             Some(TrickResult::TrickOver(
                 pos::PlayerPos::P3,
-                game.get_game_result()
+                deal.get_deal_result()
             ))
         );
     }
@@ -493,14 +493,14 @@ mod benchs {
 
     #[bench]
     fn bench_can_play(b: &mut Bencher) {
-        fn try_deeper(game: &GameState, depth: usize) {
-            let player = game.next_player();
-            for c in game.hands()[player as usize].list() {
-                let mut new_game = game.clone();
-                match new_game.play_card(player, c) {
+        fn try_deeper(deal: &DealState, depth: usize) {
+            let player = deal.next_player();
+            for c in deal.hands()[player as usize].list() {
+                let mut new_deal = deal.clone();
+                match new_deal.play_card(player, c) {
                     Ok(_) => {
                         if depth > 0 {
-                            try_deeper(&new_game, depth - 1);
+                            try_deeper(&new_deal, depth - 1);
                         }
                     }
                     _ => (),
@@ -510,7 +510,7 @@ mod benchs {
 
         let seed = &[3, 32, 654, 1, 844];
         let hands = deal_seeded_hands(seed);
-        let game = GameState::new(
+        let deal = DealState::new(
             pos::PlayerPos::P0,
             hands,
             bid::Contract {
@@ -520,6 +520,6 @@ mod benchs {
                 coinche_level: 0,
             },
         );
-        b.iter(|| try_deeper(&game, 4));
+        b.iter(|| try_deeper(&deal, 4));
     }
 }

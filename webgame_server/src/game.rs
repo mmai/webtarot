@@ -9,7 +9,7 @@ use crate::protocol::{
     Deal, Turn
 };
 use crate::universe::Universe;
-use tarotgame::{bid, cards, pos, game, trick};
+use tarotgame::{bid, cards, pos, deal, trick};
 
 pub struct GameState {
     players: BTreeMap<Uuid, GamePlayerState>,
@@ -197,9 +197,9 @@ impl Game {
             let deal = match game_state.deal.deal_state() {
                 Some(state) => {
                     log::debug!("hands: {:?}", state.hands());
-                    let points =  match state.get_game_result() {
-                        game::GameResult::Nothing => [0; 2],
-                        game::GameResult::GameOver {points, winners, scores } => points
+                    let points =  match state.get_deal_result() {
+                        deal::DealResult::Nothing => [0; 2],
+                        deal::DealResult::GameOver {points, winners, scores } => points
                     };
                     DealSnapshot {
                         hand: state.hands()[pos as usize],

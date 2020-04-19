@@ -27,10 +27,10 @@
 //!     };
 //!
 //!     // Complete the auction to enter the second phase
-//!     let mut game = auction.complete().unwrap();
+//!     let mut deal = auction.complete().unwrap();
 //!
 //!     // Play some cards
-//!     game.play_card(pos::PlayerPos::P0, hands[0].get_card());
+//!     deal.play_card(pos::PlayerPos::P0, hands[0].get_card());
 //!     // ...
 //! }
 //! ```
@@ -41,7 +41,7 @@ extern crate test;
 
 pub mod bid;
 pub mod cards;
-pub mod game;
+pub mod deal;
 pub mod points;
 pub mod pos;
 pub mod trick;
@@ -50,7 +50,7 @@ pub mod trick;
 
 // pub use bid::*;
 // pub use cards::*;
-// pub use game::*;
+// pub use deal::*;
 // pub use points::*;
 // pub use pos::*;
 // pub use trick::*;

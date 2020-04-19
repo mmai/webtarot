@@ -4,14 +4,14 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::player::PlayerInfo;
-use tarotgame::{bid, cards, pos, game, trick};
+use tarotgame::{bid, cards, pos, deal, trick};
 
 /// Describe a single deal.
 pub enum Deal {
     /// The deal is still in the auction phase
     Bidding(bid::Auction),
     /// The deal is in the main playing phase
-    Playing(game::GameState),
+    Playing(deal::DealState),
 }
 
 impl Deal {
@@ -29,7 +29,7 @@ impl Deal {
         }
     }
 
-    pub fn deal_state(&self) -> Option<&game::GameState> {
+    pub fn deal_state(&self) -> Option<&deal::DealState> {
         match self {
             Deal::Bidding(bid) => None,
             Deal::Playing(state) => Some(state),

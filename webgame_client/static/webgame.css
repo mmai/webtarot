@@ -226,6 +226,11 @@ p.turn-info {
   grid-row-start: 1;
 }
 
+.current-player {
+  border: 2px solid teal;
+  border-radius: 4px;
+}
+
 .actions {
   grid-column-start: game;
   grid-row-start: action;

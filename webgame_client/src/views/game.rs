@@ -189,12 +189,11 @@ impl Component for GamePage {
         let mut others = vec![];
         let mypos = my_state.pos.to_n();
 
-        let mut positioned = Vec::from_iter(self.game_state.players.clone());
-        positioned.sort_by(|a, b| a.pos.to_n().cmp(&b.pos.to_n()));
-        for pstate in positioned.iter() {
-        // for pstate in self.game_state.players.iter() {
+        // let mut positioned = Vec::from_iter(self.game_state.players.clone());
+        // positioned.sort_by(|a, b| a.pos.to_n().cmp(&b.pos.to_n()));
+        // for pstate in positioned.iter() {
+        for pstate in self.game_state.players.iter() {
             let pos = pstate.pos.to_n();
-            log!("compare mypos {} to {}", mypos, pos);
             if pos < mypos {
                 others_before.push(pstate.clone());
             } else if mypos < pos{
@@ -202,8 +201,15 @@ impl Component for GamePage {
             }
         }
 
-        log!("others: {:?} others_before: {:?}", others, others_before);
+        // log!("others: {:?} others_before: {:?}", others, others_before);
         others.append(&mut others_before);
+
+        let is_my_turn = self.game_state.get_playing_pos() == Some(self.my_state().pos);
+        // let is_my_turn = self.game_state.turn.has_player_pos() && self.game_state.deal.current == self.my_state().pos;
+        let mut actions_classes = vec!["actions"];
+        if is_my_turn {
+            actions_classes.push("current-player");
+        }
 
         html! {
     <div class="game">
@@ -214,8 +220,8 @@ impl Component for GamePage {
 
       <PlayerList game_state=self.game_state.clone() players=others/>
 
-        <section class="actions">
-            {if self.game_state.deal.current == self.my_state().pos {
+        <section class=actions_classes>
+            {if is_my_turn {
                  html! {<strong>{"It's your turn"}</strong>}
             } else {
                  html! {}

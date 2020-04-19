@@ -70,6 +70,14 @@ impl fmt::Display for Turn {
 }
 
 impl Turn {
+    pub fn has_player_pos(&self) -> bool {
+        match self {
+            Self::Pregame => false,
+            Self::Interdeal => false,
+            Self::Endgame => false,
+            _ => true
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
@@ -92,6 +100,25 @@ pub struct GameStateSnapshot {
     pub players: Vec<GamePlayerState>,
     pub turn: Turn,
     pub deal: DealSnapshot,
+}
+
+impl GameStateSnapshot {
+    // pub fn get_current_player(self) -> Option<PlayerInfo> {
+    //     let player_info;
+    //     match self.turn {
+    //         Turn::Playing(pos) => player_info = Some(self.players[pos.to_n()].player.clone()),
+    //         Turn::Bidding((_, pos)) => player_info = Some(self.players[pos.to_n()].player.clone()),
+    //         _ => player_info = None
+    //     }
+    //     player_info
+    // }
+    pub fn get_playing_pos(&self) -> Option<pos::PlayerPos> {
+        match self.turn {
+            Turn::Playing(pos) => Some(pos),
+            Turn::Bidding((_, pos)) => Some(pos),
+            _ => None
+        }
+    }
 }
 
 impl Default for GameStateSnapshot {

@@ -192,7 +192,8 @@ impl Game {
             for (&other_player_id, player_state) in game_state.players.iter() {
                 players.push(player_state.clone());
             }
-            log::debug!("with players {:?}", players);
+            players.sort_by(|a, b| a.pos.to_n().cmp(&b.pos.to_n()));
+            log::debug!("with sorted players {:?}", players);
             let pos = game_state.players[&player_id].pos;
             let deal = match game_state.deal.deal_state() {
                 Some(state) => {

@@ -32,6 +32,7 @@ impl Component for PlayerList {
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
         self.players = props.players;
+        self.game_state = props.game_state;
         true
     }
 
@@ -39,9 +40,16 @@ impl Component for PlayerList {
         html! {
             <section class="players">
                 {
-                    for self.players.iter().map(|state| html! {
+                    for self.players.iter().map(|state| {
+                        let is_my_turn = self.game_state.get_playing_pos() == Some(state.pos);
+                        let mut player_classes = vec!["player"];
+                        if is_my_turn {
+                            player_classes.push("current-player");
+                        }
 
-                        <div class="player">
+                        html! {
+
+                        <div class=player_classes>
                         <div class="nickname">
                         {&state.player.nickname}
                         {format!("{:?}", &state.pos)}
@@ -65,7 +73,7 @@ impl Component for PlayerList {
                         <div class="action">
                         </div>
                         </div>
-                    })
+                    }})
                 }
             </section>
         }

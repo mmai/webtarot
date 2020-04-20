@@ -185,6 +185,7 @@ impl Game {
     pub async fn broadcast_state(&self) {
         let universe = self.universe();
         let game_state = self.game_state.lock().await;
+        let contract = game_state.deal.deal_auction().and_then(|auction| auction.current_contract());
         for player_id in game_state.players.keys().copied() {
             log::debug!("broadcast game state to {}", player_id);
             let mut players = vec![];
@@ -193,11 +194,11 @@ impl Game {
                 players.push(player_state.clone());
             }
             players.sort_by(|a, b| a.pos.to_n().cmp(&b.pos.to_n()));
-            log::debug!("with sorted players {:?}", players);
+            // log::debug!("with sorted players {:?}", players);
             let pos = game_state.players[&player_id].pos;
+            let contract = contract.cloned();
             let deal = match game_state.deal.deal_state() {
                 Some(state) => {
-                    log::debug!("hands: {:?}", state.hands());
                     let points =  match state.get_deal_result() {
                         deal::DealResult::Nothing => [0; 2],
                         deal::DealResult::GameOver {points, winners, scores } => points
@@ -205,12 +206,14 @@ impl Game {
                     DealSnapshot {
                         hand: state.hands()[pos as usize],
                         current: state.next_player(),
+                        contract,
                         points
                     }
                 },
                 None => DealSnapshot {
                     hand: game_state.deal.hands()[pos as usize],
                     current: game_state.deal.next_player(),
+                    contract,
                     points: [0;2]
                 }
             };

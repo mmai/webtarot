@@ -13,6 +13,7 @@ use yew::services::console::ConsoleService;
 use crate::api::Api;
 use crate::components::chat_box::{ChatBox, ChatLine, ChatLineData};
 use crate::components::player_list::PlayerList;
+use crate::components::bidding_actions::BiddingActions;
 use crate::protocol::{
     Command, GameInfo, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
     PlayerInfo, PlayerRole, RevealCardCommand, SendTextCommand, SetPlayerRoleCommand,
@@ -241,8 +242,8 @@ impl Component for GamePage {
             } else if player_action == Some(PlayerAction::Bid) {
                     html! {
                         <>
+                            <BiddingActions game_state=self.game_state.clone()/>
                             <button class="primary" onclick=self.link.callback(|_| Msg::SendChat)>{"Bid"}</button>
-                            <button onclick=self.link.callback(|_| Msg::SendChat)>{"Chat"}</button>
                         </>
                     }
             } else {
@@ -278,18 +279,7 @@ impl Component for GamePage {
                         }
                     })
                     oninput=self.link.callback(|e: InputData| Msg::SetChatLine(e.value)) />
-                {if player_action == Some(PlayerAction::Bid) {
-                    html! {
-                        <>
-                            <button class="primary" onclick=self.link.callback(|_| Msg::SendChat)>{"Bid"}</button>
-                            <button onclick=self.link.callback(|_| Msg::SendChat)>{"Chat"}</button>
-                        </>
-                    }
-                } else {
-                    html! {
-                        <button class="primary" onclick=self.link.callback(|_| Msg::SendChat)>{"Chat"}</button>
-                    }
-                }}
+                    <button class="primary" onclick=self.link.callback(|_| Msg::SendChat)>{"Chat"}</button>
             </div>
         </div>
 

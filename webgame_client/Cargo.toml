@@ -13,6 +13,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 yew = { version = "0.14.1", features = ["web_sys"] }
 webgame_protocol = { path = "../webgame_protocol" }
+tarotgame = { path = "../tarotgame" }
 wasm-bindgen = "0.2.59"
 web_logger = "0.2.0"
 log = "0.4.8"
@@ -23,3 +24,4 @@ serde = { version = "1.0.105", features = ["derive"] }
 web-sys = { version = "0.3.36", features = ["Window", "Location", "HtmlDivElement", "console"] }
 im-rc = "14.3.0"
 stdweb = "0.4.20"
+strum = "0.18.0"

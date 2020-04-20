@@ -3,6 +3,7 @@
 use std::fmt;
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
+use strum_macros::EnumIter;
 
 use super::cards;
 use super::deal;
@@ -11,7 +12,7 @@ use super::pos;
 /// Goal set by a contract.
 ///
 /// Determines the winning conditions and the score on success.
-#[derive(PartialEq, Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(EnumIter, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Target {
     /// Team must get 80 points
     Contract80,
@@ -105,7 +106,7 @@ impl ToString for Target {
 /// Contract taken by a team.
 ///
 /// Composed of a trump suit and a target to reach.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Contract {
     /// Initial author of the contract.
     pub author: pos::PlayerPos,

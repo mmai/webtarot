@@ -29,9 +29,16 @@ impl Deal {
         }
     }
 
+    pub fn deal_auction(&self) -> Option<&bid::Auction> {
+        match self {
+            Deal::Bidding(bid) => Some(bid),
+            Deal::Playing(_) => None,
+        }
+    }
+
     pub fn deal_state(&self) -> Option<&deal::DealState> {
         match self {
-            Deal::Bidding(bid) => None,
+            Deal::Bidding(_) => None,
             Deal::Playing(state) => Some(state),
         }
     }
@@ -90,7 +97,7 @@ pub enum PlayerAction {
 pub struct DealSnapshot {
     pub hand: cards::Hand,
     pub current: pos::PlayerPos,
-    // pub contract: bid::Contract,
+    pub contract: Option<bid::Contract>,
     pub points: [i32; 2],
     // pub tricks: Vec<trick::Trick>,
 }
@@ -129,6 +136,7 @@ impl Default for GameStateSnapshot {
             deal: DealSnapshot {
                 hand: cards::Hand::new(),
                 current: pos::PlayerPos::P2,
+                contract: None,
                 points: [0;2]
             }
         }
@@ -180,6 +188,8 @@ impl GamePlayerState {
             return None;
         } else {
         // } else if (self.pos == {
+            // match turn {
+                // turn::
             return Some(PlayerAction::Bid);
         }
     }

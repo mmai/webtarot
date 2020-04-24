@@ -4,7 +4,7 @@ A online game of tarot in rust / webassembly
 
 WIP
 
-/!\ For now it is essentially a copy of https://github.com/mitsuhiko/webgame
+Inspired by https://github.com/mitsuhiko/webgame and https://github.com/gyscos/libcoinche
 
 ```
 make client

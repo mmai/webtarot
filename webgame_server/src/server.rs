@@ -9,8 +9,9 @@ use warp::{ws, Filter};
 
 use crate::protocol::{
     AuthenticateCommand, ChatMessage, Command, JoinGameCommand, Message, ProtocolError,
-    ProtocolErrorKind, RevealCardCommand, SendTextCommand, SetPlayerRoleCommand,
+    ProtocolErrorKind, SendTextCommand, SetPlayerRoleCommand,
     ShareCodenameCommand,
+    PlayCommand, BidCommand
 };
 use crate::universe::Universe;
 
@@ -97,7 +98,9 @@ async fn on_player_message(
             Command::SendText(cmd) => on_player_send_text(universe, player_id, cmd).await,
             Command::ShareCodename(cmd) => on_player_share_codename(universe, player_id, cmd).await,
             Command::SetPlayerRole(cmd) => on_player_set_role(universe, player_id, cmd).await,
-            Command::RevealCard(cmd) => on_player_reveal_card(universe, player_id, cmd).await,
+            Command::Bid(cmd) => on_player_bid(universe, player_id, cmd).await,
+            Command::Play(cmd) => on_player_play(universe, player_id, cmd).await,
+            Command::Surcoinche => on_player_surcoinche(universe, player_id).await,
 
             // this should not happen here.
             Command::Authenticate(..) => Err(ProtocolError::new(
@@ -241,18 +244,17 @@ pub async fn on_player_set_role(
     }
 }
 
-pub async fn on_player_set_team(
+pub async fn on_player_bid(
     universe: Arc<Universe>,
     player_id: Uuid,
+    cmd: BidCommand,
 ) -> Result<(), ProtocolError> {
     if let Some(game) = universe.get_player_game(player_id).await {
-        if !game.is_joinable().await {
-            return Err(ProtocolError::new(
-                ProtocolErrorKind::BadState,
-                "cannot set team because game is not not joinable",
-            ));
-        }
-        game.broadcast_state().await;
+        game.broadcast(&Message::Chat(ChatMessage {
+            player_id,
+            text: format!("bid: {:?} {:?}", cmd.target, cmd.trump),
+        }))
+        .await;
         Ok(())
     } else {
         Err(ProtocolError::new(
@@ -262,16 +264,47 @@ pub async fn on_player_set_team(
     }
 }
 
-pub async fn on_player_reveal_card(
+
+pub async fn on_player_play(
     universe: Arc<Universe>,
     player_id: Uuid,
-    cmd: RevealCardCommand,
+    cmd: PlayCommand,
 ) -> Result<(), ProtocolError> {
     if let Some(game) = universe.get_player_game(player_id).await {
-        // reveal
+        game.broadcast(&Message::Chat(ChatMessage {
+            player_id,
+            text: format!("play: {:?}", cmd.card),
+        }))
+        .await;
+        Ok(())
+    } else {
+        Err(ProtocolError::new(
+            ProtocolErrorKind::BadState,
+            "not in a game",
+        ))
     }
-    Ok(())
 }
+
+
+pub async fn on_player_surcoinche(
+    universe: Arc<Universe>,
+    player_id: Uuid,
+) -> Result<(), ProtocolError> {
+    if let Some(game) = universe.get_player_game(player_id).await {
+        game.broadcast(&Message::Chat(ChatMessage {
+            player_id,
+            text: format!("surcoinche"),
+        }))
+        .await;
+        Ok(())
+    } else {
+        Err(ProtocolError::new(
+            ProtocolErrorKind::BadState,
+            "not in a game",
+        ))
+    }
+}
+
 
 pub async fn serve() {
     let universe = Arc::new(Universe::new());

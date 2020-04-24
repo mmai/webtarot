@@ -102,6 +102,31 @@ pub struct DealSnapshot {
     // pub tricks: Vec<trick::Trick>,
 }
 
+impl DealSnapshot {
+    pub fn contract_target(&self) -> Option<bid::Target> {
+        //let target = &self.contract.map(|c| c.target); // INFO : doesn't work...(2h to get the solution below)
+        self.contract.as_ref().map(|c| c.target)
+        // match &self.contract {
+        //     None => None,
+        //     Some(contract) => Some(contract.target)
+        // }
+    }
+
+    pub fn contract_trump(&self) -> Option<cards::Suit> {
+        match &self.contract {
+            None => None,
+            Some(contract) => Some(contract.trump)
+        }
+    }
+
+    pub fn contract_coinche(&self) -> i32 {
+        match &self.contract {
+            None => 0,
+            Some(contract) => contract.coinche_level
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct GameStateSnapshot {
     pub players: Vec<GamePlayerState>,
@@ -184,13 +209,10 @@ pub struct GamePlayerState {
 
 impl GamePlayerState {
     pub fn get_turn_player_action(&self, turn: Turn) -> Option<PlayerAction> {
-        if self.role == PlayerRole::Spectator {
-            return None;
-        } else {
-        // } else if (self.pos == {
-            // match turn {
-                // turn::
-            return Some(PlayerAction::Bid);
+        match turn {
+            Turn::Bidding((_, pos)) if pos == self.pos => Some(PlayerAction::Bid),
+            Turn::Playing(pos) if pos == self.pos => Some(PlayerAction::Play),
+            _ => None
         }
     }
 }

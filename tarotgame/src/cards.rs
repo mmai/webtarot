@@ -70,10 +70,10 @@ impl FromStr for Suit {
 
     fn from_str(s: &str) -> Result<Self, String> {
         match s {
-            "H" | "h" | "heart" | "Suit::Heart" | "Heart" => Ok(Suit::Heart),
-            "C" | "c" | "club" | "Suit::Club" | "Club" => Ok(Suit::Club),
-            "S" | "s" | "spade" | "Suit::Spade" | "Spade" => Ok(Suit::Spade),
-            "D" | "d" | "diamond" | "Suit::Diamond" | "Diamond" => Ok(Suit::Diamond),
+            "♥" | "H" | "h" | "heart" | "Suit::Heart" | "Heart" => Ok(Suit::Heart),
+            "♣" | "C" | "c" | "club" | "Suit::Club" | "Club" => Ok(Suit::Club),
+            "♠" | "S" | "s" | "spade" | "Suit::Spade" | "Spade" => Ok(Suit::Spade),
+            "♦" | "D" | "d" | "diamond" | "Suit::Diamond" | "Diamond" => Ok(Suit::Diamond),
             _ => Err(format!("invalid suit: {}", s)),
         }
     }

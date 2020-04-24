@@ -1,6 +1,5 @@
 use std::mem;
 use std::rc::Rc;
-    use std::iter::FromIterator;
 use im_rc::Vector;
 use uuid::Uuid;
 use yew::agent::Bridged;
@@ -16,9 +15,12 @@ use crate::components::player_list::PlayerList;
 use crate::components::bidding_actions::BiddingActions;
 use crate::protocol::{
     Command, GameInfo, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
-    PlayerInfo, PlayerRole, RevealCardCommand, SendTextCommand, SetPlayerRoleCommand,
-    Tile, Turn,
+    PlayerInfo, PlayerRole,
+    SendTextCommand, SetPlayerRoleCommand,
+    BidCommand, PlayCommand,
+    Turn,
 };
+use tarotgame::{bid, cards};
 use crate::utils::format_join_code;
 
 #[derive(Clone, Debug)]
@@ -50,10 +52,12 @@ pub enum Msg {
     SendChat,
     Disconnect,
     MarkReady,
+    Bid((bid::Target, cards::Suit)),
+    Surcoinche,
+    Play(cards::Card),
     SetChatLine(String),
     ServerMessage(Message),
     SetRole(PlayerRole),
-    Reveal(usize),
 }
 
 impl GamePage {
@@ -80,14 +84,6 @@ impl GamePage {
             .find(|state| state.player.id == self.player_info.id)
             .unwrap()
     }
-}
-
-fn get_tile_class(tile: &Tile, can_guess: bool) -> String {
-    let mut rv = "tile ".to_string();
-    if can_guess {
-        rv.push_str(" can-guess");
-    }
-    rv
 }
 
 impl Component for GamePage {
@@ -152,13 +148,15 @@ impl Component for GamePage {
             Msg::Disconnect => {
                 self.api.send(Command::LeaveGame);
             }
-            Msg::Reveal(index) => {
-                if self.my_state().get_turn_player_action(self.game_state.turn)
-                    == Some(PlayerAction::Bid)
-                {
-                    self.api
-                        .send(Command::RevealCard(RevealCardCommand { index }));
-                }
+            Msg::Bid((target, trump)) => {
+                log!("received bid {:?} {:?}", target, trump);
+                self.api.send(Command::Bid(BidCommand { target, trump }));
+            }
+            Msg::Surcoinche => {
+                self.api.send(Command::Surcoinche);
+            }
+            Msg::Play(card) => {
+                self.api.send(Command::Play(PlayCommand { card }));
             }
             Msg::Ignore => {}
         }
@@ -241,10 +239,10 @@ impl Component for GamePage {
                 }
             } else if player_action == Some(PlayerAction::Bid) {
                     html! {
-                        <>
-                            <BiddingActions game_state=self.game_state.clone()/>
-                            <button class="primary" onclick=self.link.callback(|_| Msg::SendChat)>{"Bid"}</button>
-                        </>
+                        <BiddingActions
+                            game_state=self.game_state.clone()
+                            on_bid=self.link.callback(|contract| Msg::Bid(contract))
+                            on_surcoinche=self.link.callback(|_| Msg::Surcoinche) />
                     }
             } else {
                 html! {}

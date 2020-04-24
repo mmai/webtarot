@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::game::{GameInfo, GamePlayerState, GameStateSnapshot, PlayerRole};
 use crate::player::PlayerInfo;
+use tarotgame::{cards, bid};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
@@ -14,8 +15,10 @@ pub enum Command {
     JoinGame(JoinGameCommand),
     LeaveGame,
     MarkReady,
+    Bid(BidCommand),
+    Play(PlayCommand),
+    Surcoinche,
     SetPlayerRole(SetPlayerRoleCommand),
-    RevealCard(RevealCardCommand),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Hash)]
@@ -87,8 +90,14 @@ pub struct SetPlayerRoleCommand {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct RevealCardCommand {
-    pub index: usize,
+pub struct BidCommand {
+    pub target: bid::Target,
+    pub trump: cards::Suit,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PlayCommand {
+    pub card: cards::Card,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

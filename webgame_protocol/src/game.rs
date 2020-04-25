@@ -36,6 +36,13 @@ impl Deal {
         }
     }
 
+    pub fn deal_auction_mut(&mut self) -> Option<&mut bid::Auction> {
+        match self {
+            Deal::Bidding(ref mut auction) => Some(auction),
+            Deal::Playing(_) => None,
+        }
+    }
+
     pub fn deal_state(&self) -> Option<&deal::DealState> {
         match self {
             Deal::Bidding(_) => None,
@@ -83,6 +90,17 @@ impl Turn {
             Self::Interdeal => false,
             Self::Endgame => false,
             _ => true
+        }
+    }
+
+    pub fn from_deal(deal: &Deal) -> Self {
+        match deal {
+            Deal::Bidding(auction) => {
+                Self::Bidding((auction.get_state(), auction.next_player()))
+            },
+            Deal::Playing(deal_state) => {
+                Self::Playing(deal_state.next_player())
+            },
         }
     }
 }
@@ -172,21 +190,6 @@ impl Default for GameStateSnapshot {
 pub struct GameInfo {
     pub game_id: Uuid,
     pub join_code: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct Tile {
-    pub codeword: String,
-    pub spotted: bool,
-}
-
-impl Default for Tile {
-    fn default() -> Tile {
-        Tile {
-            codeword: "".into(),
-            spotted: false,
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]

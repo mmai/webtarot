@@ -255,6 +255,8 @@ pub async fn on_player_bid(
             text: format!("bid: {:?} {:?}", cmd.target, cmd.trump),
         }))
         .await;
+        game.set_bid(player_id, cmd.target, cmd.trump).await;
+        game.broadcast_state().await;
         Ok(())
     } else {
         Err(ProtocolError::new(
@@ -263,7 +265,6 @@ pub async fn on_player_bid(
         ))
     }
 }
-
 
 pub async fn on_player_play(
     universe: Arc<Universe>,

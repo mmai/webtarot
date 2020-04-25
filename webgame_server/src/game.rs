@@ -23,6 +23,10 @@ impl GameState {
     fn position_taken(&self, position: &pos::PlayerPos) -> bool {
         self.players.iter().find(|(uuid, player)| &player.pos == position) != None
     }
+
+    pub fn update_turn(&mut self){
+        self.turn = Turn::from_deal(&self.deal);
+    }
 }
 
 
@@ -186,10 +190,10 @@ impl Game {
         let universe = self.universe();
         let game_state = self.game_state.lock().await;
         let contract = game_state.deal.deal_auction().and_then(|auction| auction.current_contract());
+        log::debug!("contract broadcasted {:?}", contract);
         for player_id in game_state.players.keys().copied() {
             log::debug!("broadcast game state to {}", player_id);
             let mut players = vec![];
-            let mut reveal = false;
             for (&other_player_id, player_state) in game_state.players.iter() {
                 players.push(player_state.clone());
             }
@@ -233,4 +237,32 @@ impl Game {
     pub async fn is_empty(&self) -> bool {
         self.game_state.lock().await.players.is_empty()
     }
+
+
+    pub async fn set_bid(&self, pid: Uuid, target: bid::Target, trump: cards::Suit){
+        let mut game_state = self.game_state.lock().await;
+        let pos = game_state.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
+        let auction = game_state.deal.deal_auction_mut().unwrap();
+        if Ok(bid::AuctionState::Over) == auction.bid(pos, trump, target) {
+            self.complete_auction().await;
+        }
+        log::info!("contract after bid : {:?}", auction.current_contract());
+        log::info!("auction next player : {:?}", auction.next_player());
+        game_state.update_turn();
+    }
+
+    async fn complete_auction(&self) {
+        let mut game_state = self.game_state.lock().await;
+        let deal_state = match &mut game_state.deal {
+            &mut Deal::Playing(_) => unreachable!(),
+            &mut Deal::Bidding(ref mut auction) => {
+                match auction.complete() {
+                    Ok(deal_state) => deal_state,
+                    Err(err) => panic!(err),
+                }
+            }
+        };
+        game_state.deal = Deal::Playing(deal_state);
+    }
+
 }

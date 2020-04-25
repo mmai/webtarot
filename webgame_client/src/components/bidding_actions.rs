@@ -94,7 +94,7 @@ impl Component for BiddingActions {
                 </select>
                 {
                     for bid::Target::iter()
-                        .filter(|bidtarget| !curr_target.lt(&Some(*bidtarget)))
+                        .filter(|bidtarget| !curr_target.gt(&Some(*bidtarget)))
                         .map(|bidtarget| {
                             html! {
                                 <button onclick=self.link.callback(move |_| Msg::Bid(bidtarget))>

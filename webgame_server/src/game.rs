@@ -251,7 +251,40 @@ impl Game {
         game_state.update_turn();
     }
 
+    pub async fn set_pass(&self, pid: Uuid){
+        let mut game_state = self.game_state.lock().await;
+        let pos = game_state.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
+        let auction = game_state.deal.deal_auction_mut().unwrap();
+        let pass_result = auction.pass(pos);
+        log::info!("auction state: {:?}", &pass_result);
+        if Ok(bid::AuctionState::Over) == pass_result  {
+            self.complete_auction().await;
+        }
+        game_state.update_turn();
+    }
+
+    pub async fn set_coinche(&self, pid: Uuid){
+        let mut game_state = self.game_state.lock().await;
+        let pos = game_state.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
+        let auction = game_state.deal.deal_auction_mut().unwrap();
+        if Ok(bid::AuctionState::Over) == auction.coinche(pos) {
+            self.complete_auction().await;
+        }
+        game_state.update_turn();
+    }
+
+    pub async fn set_play(&self, pid: Uuid, card: cards::Card){
+        let mut game_state = self.game_state.lock().await;
+        let pos = game_state.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
+        // let state = game_state.deal.deal_auction_mut().unwrap();
+        // if Ok(bid::AuctionState::Over) == auction.bid(pos, trump, target) {
+        //     self.complete_auction().await;
+        // }
+        game_state.update_turn();
+    }
+
     async fn complete_auction(&self) {
+        log::info!("auction complete");
         let mut game_state = self.game_state.lock().await;
         let deal_state = match &mut game_state.deal {
             &mut Deal::Playing(_) => unreachable!(),

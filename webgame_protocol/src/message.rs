@@ -17,7 +17,8 @@ pub enum Command {
     MarkReady,
     Bid(BidCommand),
     Play(PlayCommand),
-    Surcoinche,
+    Pass,
+    Coinche,
     SetPlayerRole(SetPlayerRoleCommand),
 }
 

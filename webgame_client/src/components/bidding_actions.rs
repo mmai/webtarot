@@ -10,7 +10,8 @@ use tarotgame::{bid, cards};
 pub enum Msg {
     SelectTrump(String),
     Bid(bid::Target),
-    Surcoinche,
+    Coinche,
+    Pass,
     Empty,
 }
 
@@ -18,13 +19,15 @@ pub enum Msg {
 pub struct Props {
     pub game_state: Rc<GameStateSnapshot>,
     pub on_bid: Callback<(bid::Target, cards::Suit)>,
-    pub on_surcoinche: Callback<()>,
+    pub on_coinche: Callback<()>,
+    pub on_pass: Callback<()>,
 }
 
 pub struct BiddingActions {
     link: ComponentLink<Self>,
     on_bid: Callback<(bid::Target, cards::Suit)>,
-    on_surcoinche: Callback<()>,
+    on_coinche: Callback<()>,
+    on_pass: Callback<()>,
     game_state: Rc<GameStateSnapshot>,
     selected_trump: cards::Suit,
 }
@@ -38,7 +41,8 @@ impl Component for BiddingActions {
             link,
             game_state: props.game_state,
             on_bid: props.on_bid,
-            on_surcoinche: props.on_surcoinche,
+            on_coinche: props.on_coinche,
+            on_pass: props.on_pass,
             selected_trump: cards::Suit::Heart,
         }
     }
@@ -51,8 +55,11 @@ impl Component for BiddingActions {
             Msg::Bid(target) => {
                 self.on_bid.emit((target, self.selected_trump));
             },
-            Msg::Surcoinche => {
-                self.on_surcoinche.emit(());
+            Msg::Coinche => {
+                self.on_coinche.emit(());
+            },
+            Msg::Pass => {
+                self.on_pass.emit(());
             },
             _ => {}
         }
@@ -67,7 +74,6 @@ impl Component for BiddingActions {
     fn view(&self) -> Html {
         let curr_target = self.game_state.deal.contract_target();
         // let curr_trump = self.game_state.deal.contract_trump();
-        let curr_coinche = self.game_state.deal.contract_coinche();
         let trumps = vec![
             cards::Suit::Heart,
             cards::Suit::Spade,
@@ -76,6 +82,9 @@ impl Component for BiddingActions {
         ];
         html! {
             <section class="bidding">
+                <button onclick=self.link.callback(move |_| Msg::Pass)>
+                {"Pass"}
+                </button>
                 <select name="trump"
                         onchange=self.link.callback(move |data| {
                             if let ChangeData::Select(sel_value) = data {
@@ -105,10 +114,12 @@ impl Component for BiddingActions {
 
                 }
                 {
-                if curr_coinche == 1 {
+                if curr_target.is_some() {
+                    let curr_coinche = self.game_state.deal.contract_coinche();
+                    let str_coinche = if curr_coinche == 1 { "Surcoinche" } else { "Coinche" };
                     html! {
-                        <button onclick=self.link.callback(move |_| Msg::Surcoinche)>
-                            {"Surcoinche"}
+                        <button onclick=self.link.callback(move |_| Msg::Coinche)>
+                            {str_coinche}
                         </button>
                     }
                 } else { html! {} }

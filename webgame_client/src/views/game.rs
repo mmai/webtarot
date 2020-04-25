@@ -8,6 +8,7 @@ use yew::{
     ShouldRender,
 };
 use yew::services::console::ConsoleService;
+use std::str::FromStr;
 
 use crate::api::Api;
 use crate::components::chat_box::{ChatBox, ChatLine, ChatLineData};
@@ -53,7 +54,8 @@ pub enum Msg {
     Disconnect,
     MarkReady,
     Bid((bid::Target, cards::Suit)),
-    Surcoinche,
+    Coinche,
+    Pass,
     Play(cards::Card),
     SetChatLine(String),
     ServerMessage(Message),
@@ -152,8 +154,11 @@ impl Component for GamePage {
                 log!("received bid {:?} {:?}", target, trump);
                 self.api.send(Command::Bid(BidCommand { target, trump }));
             }
-            Msg::Surcoinche => {
-                self.api.send(Command::Surcoinche);
+            Msg::Pass => {
+                self.api.send(Command::Pass);
+            }
+            Msg::Coinche => {
+                self.api.send(Command::Coinche);
             }
             Msg::Play(card) => {
                 self.api.send(Command::Play(PlayCommand { card }));
@@ -242,7 +247,8 @@ impl Component for GamePage {
                         <BiddingActions
                             game_state=self.game_state.clone()
                             on_bid=self.link.callback(|contract| Msg::Bid(contract))
-                            on_surcoinche=self.link.callback(|_| Msg::Surcoinche) />
+                            on_pass=self.link.callback(|contract| Msg::Pass)
+                            on_coinche=self.link.callback(|_| Msg::Coinche) />
                     }
             } else {
                 html! {}
@@ -251,10 +257,11 @@ impl Component for GamePage {
 
         <section class="hand">
         {
-            for self.game_state.deal.hand.list().iter().map(| card| {
+            for self.game_state.deal.hand.list().iter().map(|card| {
                 let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                let clicked = card.clone();
                 html! {
-                    <div class="card" style={style}></div>
+                    <div class="card" style={style} onclick=self.link.callback(move |_| Msg::Play(clicked))></div>
                 }
             })
         }

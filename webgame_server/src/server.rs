@@ -100,7 +100,8 @@ async fn on_player_message(
             Command::SetPlayerRole(cmd) => on_player_set_role(universe, player_id, cmd).await,
             Command::Bid(cmd) => on_player_bid(universe, player_id, cmd).await,
             Command::Play(cmd) => on_player_play(universe, player_id, cmd).await,
-            Command::Surcoinche => on_player_surcoinche(universe, player_id).await,
+            Command::Coinche => on_player_coinche(universe, player_id).await,
+            Command::Pass => on_player_pass(universe, player_id).await,
 
             // this should not happen here.
             Command::Authenticate(..) => Err(ProtocolError::new(
@@ -277,6 +278,8 @@ pub async fn on_player_play(
             text: format!("play: {:?}", cmd.card),
         }))
         .await;
+        game.set_play(player_id, cmd.card).await;
+        game.broadcast_state().await;
         Ok(())
     } else {
         Err(ProtocolError::new(
@@ -287,16 +290,40 @@ pub async fn on_player_play(
 }
 
 
-pub async fn on_player_surcoinche(
+pub async fn on_player_pass(
     universe: Arc<Universe>,
     player_id: Uuid,
 ) -> Result<(), ProtocolError> {
     if let Some(game) = universe.get_player_game(player_id).await {
         game.broadcast(&Message::Chat(ChatMessage {
             player_id,
-            text: format!("surcoinche"),
+            text: format!("pass"),
         }))
         .await;
+        game.set_pass(player_id).await;
+        game.broadcast_state().await;
+        Ok(())
+    } else {
+        Err(ProtocolError::new(
+            ProtocolErrorKind::BadState,
+            "not in a game",
+        ))
+    }
+}
+
+
+pub async fn on_player_coinche(
+    universe: Arc<Universe>,
+    player_id: Uuid,
+) -> Result<(), ProtocolError> {
+    if let Some(game) = universe.get_player_game(player_id).await {
+        game.broadcast(&Message::Chat(ChatMessage {
+            player_id,
+            text: format!("coinche"),
+        }))
+        .await;
+        game.set_coinche(player_id).await;
+        game.broadcast_state().await;
         Ok(())
     } else {
         Err(ProtocolError::new(

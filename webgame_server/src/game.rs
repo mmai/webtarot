@@ -191,6 +191,7 @@ impl Game {
         let game_state = self.game_state.lock().await;
         let contract = game_state.deal.deal_auction().and_then(|auction| auction.current_contract());
         log::debug!("contract broadcasted {:?}", contract);
+        log::debug!("turn broadcasted {:?}", game_state.turn);
         for player_id in game_state.players.keys().copied() {
             log::debug!("broadcast game state to {}", player_id);
             let mut players = vec![];
@@ -244,10 +245,8 @@ impl Game {
         let pos = game_state.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
         let auction = game_state.deal.deal_auction_mut().unwrap();
         if Ok(bid::AuctionState::Over) == auction.bid(pos, trump, target) {
-            self.complete_auction().await;
+            Self::complete_auction(&mut game_state);
         }
-        log::info!("contract after bid : {:?}", auction.current_contract());
-        log::info!("auction next player : {:?}", auction.next_player());
         game_state.update_turn();
     }
 
@@ -258,9 +257,10 @@ impl Game {
         let pass_result = auction.pass(pos);
         log::info!("auction state: {:?}", &pass_result);
         if Ok(bid::AuctionState::Over) == pass_result  {
-            self.complete_auction().await;
+            Self::complete_auction(&mut game_state);
         }
         game_state.update_turn();
+        log::debug!("turn after pass {:?}", game_state.turn);
     }
 
     pub async fn set_coinche(&self, pid: Uuid){
@@ -268,7 +268,7 @@ impl Game {
         let pos = game_state.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
         let auction = game_state.deal.deal_auction_mut().unwrap();
         if Ok(bid::AuctionState::Over) == auction.coinche(pos) {
-            self.complete_auction().await;
+            Self::complete_auction(&mut game_state);
         }
         game_state.update_turn();
     }
@@ -283,15 +283,14 @@ impl Game {
         game_state.update_turn();
     }
 
-    async fn complete_auction(&self) {
+    fn complete_auction(game_state: &mut GameState) {
         log::info!("auction complete");
-        let mut game_state = self.game_state.lock().await;
         let deal_state = match &mut game_state.deal {
             &mut Deal::Playing(_) => unreachable!(),
             &mut Deal::Bidding(ref mut auction) => {
                 match auction.complete() {
                     Ok(deal_state) => deal_state,
-                    Err(err) => panic!(err),
+                    Err(err) => panic!(err)
                 }
             }
         };

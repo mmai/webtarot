@@ -255,6 +255,12 @@ p.turn-info {
   height: 28vh;
   background-image: var(--bg-image);
   background-size: 15vh 28vh;
+	cursor: pointer;
+}
+.card:hover{
+  width: 23vh;
+  height: 42vh;
+  background-size: 23vh 42vh;
 }
 
 .chat {

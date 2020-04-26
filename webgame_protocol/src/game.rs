@@ -49,6 +49,13 @@ impl Deal {
             Deal::Playing(state) => Some(state),
         }
     }
+
+    pub fn deal_state_mut(&mut self) -> Option<&mut deal::DealState> {
+        match self {
+            Deal::Bidding(_) => None,
+            Deal::Playing(ref mut state) => Some(state),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]

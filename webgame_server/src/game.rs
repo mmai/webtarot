@@ -255,12 +255,10 @@ impl Game {
         let pos = game_state.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
         let auction = game_state.deal.deal_auction_mut().unwrap();
         let pass_result = auction.pass(pos);
-        log::info!("auction state: {:?}", &pass_result);
         if Ok(bid::AuctionState::Over) == pass_result  {
             Self::complete_auction(&mut game_state);
         }
         game_state.update_turn();
-        log::debug!("turn after pass {:?}", game_state.turn);
     }
 
     pub async fn set_coinche(&self, pid: Uuid){
@@ -276,10 +274,26 @@ impl Game {
     pub async fn set_play(&self, pid: Uuid, card: cards::Card){
         let mut game_state = self.game_state.lock().await;
         let pos = game_state.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
-        // let state = game_state.deal.deal_auction_mut().unwrap();
-        // if Ok(bid::AuctionState::Over) == auction.bid(pos, trump, target) {
-        //     self.complete_auction().await;
-        // }
+        let state = game_state.deal.deal_state_mut().unwrap();
+        match state.play_card(pos, card) { // TODO -> RESULT
+            Err(e) => {
+                log::debug!("erreur play card: {:?}", e);
+                ()
+            },
+            Ok(deal::TrickResult::Nothing) => (),
+            Ok(deal::TrickResult::TrickOver(winner, game_result)) => {
+                match game_result {
+                    deal::DealResult::Nothing => (),
+                    deal::DealResult::GameOver{points, winners, scores} => {
+                        log::debug!("results: {:?} {:?}", points, winners);
+                        for i in 0..2 {
+                            game_state.scores[i] += scores[i];
+                        }
+                        Self::next_game(&mut game_state);
+                    }
+                }
+            }
+        }
         game_state.update_turn();
     }
 
@@ -297,4 +311,10 @@ impl Game {
         game_state.deal = Deal::Playing(deal_state);
     }
 
+    fn next_game(game_state: &mut GameState) {
+        // TODO: Maybe keep the current game in the history?
+        let auction = bid::Auction::new(game_state.first);
+        game_state.first = game_state.first.next();
+        game_state.deal = Deal::Bidding(auction);
+    }
 }

@@ -174,7 +174,7 @@ impl Component for GamePage {
         }
 
         let my_state = self.my_state();
-
+        let card_played = self.game_state.deal.last_trick.card_played(my_state.pos);
         let role = my_state.role;
         let role_button = |new_role: PlayerRole, title: &str| -> Html {
             html! {
@@ -251,7 +251,14 @@ impl Component for GamePage {
                             on_coinche=self.link.callback(|_| Msg::Coinche) />
                     }
             } else {
-                html! {}
+                if let Some(card) = card_played {
+                    let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                    html! {
+                        <div class="card" style={style}></div>
+                    }
+                } else {
+                    html!{}
+                }
             }}
         </section>
 

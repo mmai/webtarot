@@ -1,13 +1,13 @@
 //! This module implements a trick in a game of coinche.
 
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 use super::cards;
 use super::points;
 use super::pos;
 
 /// The current cards on the table.
-#[derive(Clone, Serialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Trick {
     /// Cards currently on the table (they are `None` until played).
     pub cards: [Option<cards::Card>; 4],
@@ -27,12 +27,33 @@ impl Trick {
         }
     }
 
+    /// Creates a default trick
+    pub fn default() -> Self {
+        let default = pos::PlayerPos::P0;
+        Trick {
+            first: default,
+            winner: default,
+            cards: [None; 4],
+        }
+    }
+
     /// Returns the points value of this trick.
     pub fn score(&self, trump: cards::Suit) -> i32 {
         self.cards
             .iter()
             .map(|c| c.map_or(0, |c| points::score(c, trump)))
             .sum()
+    }
+
+    pub fn card_played(&self, pos: pos::PlayerPos) -> Option<cards::Card> {
+        let first_pos = self.first.to_n();
+        let player_pos = pos.to_n();
+        let trick_pos = if player_pos < first_pos {
+            player_pos + 4 - first_pos
+        } else {
+            player_pos - first_pos
+        };
+        self.cards[trick_pos]
     }
 
     /// Plays a card.

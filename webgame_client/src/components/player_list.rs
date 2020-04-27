@@ -27,7 +27,7 @@ impl Component for PlayerList {
     }
 
     fn update(&mut self, _: Self::Message) -> ShouldRender {
-        true
+        false
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
@@ -41,6 +41,7 @@ impl Component for PlayerList {
             <section class="players">
                 {
                     for self.players.iter().map(|state| {
+                        let card_played = self.game_state.deal.last_trick.card_played(state.pos);
                         let is_my_turn = self.game_state.get_playing_pos() == Some(state.pos);
                         let mut player_classes = vec!["player"];
                         if is_my_turn {
@@ -71,6 +72,16 @@ impl Component for PlayerList {
                         }
                         </div>
                         <div class="action">
+                        {
+                            if let Some(card) = card_played {
+                                let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                                html! {
+                                    <div class="card" style={style}></div>
+                                }
+                            } else {
+                                html!{}
+                            }
+                        }
                         </div>
                         </div>
                     }})

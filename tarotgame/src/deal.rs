@@ -115,6 +115,9 @@ impl DealState {
         let trump = self.contract.trump;
         let trick_over = self.current_trick_mut().play_card(player, card, trump);
 
+        // Remove card from player hand
+        self.players[player as usize].remove(card);
+
         // Is the trick over?
         let result = if trick_over {
             let winner = self.current_trick().winner;

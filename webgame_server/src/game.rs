@@ -203,23 +203,27 @@ impl Game {
             let pos = game_state.players[&player_id].pos;
             let contract = contract.cloned();
             let deal = match game_state.deal.deal_state() {
-                Some(state) => {
+                Some(state) => { // In Playing phase
                     let points =  match state.get_deal_result() {
                         deal::DealResult::Nothing => [0; 2],
                         deal::DealResult::GameOver {points, winners, scores } => points
                     };
+                    let last_trick = state.current_trick().clone();
                     DealSnapshot {
                         hand: state.hands()[pos as usize],
                         current: state.next_player(),
                         contract,
-                        points
+                        points,
+                        // last_trick: state.tricks.last().unwrap_or(trick::Trick::default()),
+                        last_trick,
                     }
                 },
-                None => DealSnapshot {
+                None => DealSnapshot { // In bidding phase
                     hand: game_state.deal.hands()[pos as usize],
                     current: game_state.deal.next_player(),
                     contract,
-                    points: [0;2]
+                    points: [0;2],
+                    last_trick: trick::Trick::default(),
                 }
             };
             universe

@@ -124,6 +124,7 @@ pub struct DealSnapshot {
     pub current: pos::PlayerPos,
     pub contract: Option<bid::Contract>,
     pub points: [i32; 2],
+    pub last_trick: trick::Trick,
     // pub tricks: Vec<trick::Trick>,
 }
 
@@ -180,14 +181,16 @@ impl GameStateSnapshot {
 
 impl Default for GameStateSnapshot {
     fn default() -> GameStateSnapshot {
+        let pos = pos::PlayerPos::P0; // could be anything
         GameStateSnapshot {
             players: vec![],
             turn: Turn::Pregame,
             deal: DealSnapshot {
                 hand: cards::Hand::new(),
-                current: pos::PlayerPos::P2,
+                current: pos,
                 contract: None,
-                points: [0;2]
+                points: [0;2],
+                last_trick: trick::Trick::new(pos),
             }
         }
     }

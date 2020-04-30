@@ -275,7 +275,7 @@ pub async fn on_player_play(
     if let Some(game) = universe.get_player_game(player_id).await {
         game.broadcast(&Message::Chat(ChatMessage {
             player_id,
-            text: format!("play: {:?}", cmd.card),
+            text: format!("play: {}", cmd.card.to_string()),
         }))
         .await;
         game.set_play(player_id, cmd.card).await;

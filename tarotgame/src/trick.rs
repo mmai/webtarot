@@ -46,14 +46,15 @@ impl Trick {
     }
 
     pub fn card_played(&self, pos: pos::PlayerPos) -> Option<cards::Card> {
-        let first_pos = self.first.to_n();
-        let player_pos = pos.to_n();
-        let trick_pos = if player_pos < first_pos {
-            player_pos + 4 - first_pos
-        } else {
-            player_pos - first_pos
-        };
-        self.cards[trick_pos]
+        self.cards[pos.to_n()]
+        // let first_pos = self.first.to_n();
+        // let player_pos = pos.to_n();
+        // let trick_pos = if player_pos < first_pos {
+        //     player_pos + 4 - first_pos
+        // } else {
+        //     player_pos - first_pos
+        // };
+        // self.cards[trick_pos]
     }
 
     /// Plays a card.

@@ -177,15 +177,14 @@ div.toolbar span {
 /*   color: blue;                                               */
 /* }                                                            */
 
-div.chat {
+.chat {
   font-family: "Courier Prime", monospace;
-/* margin-top: 0; */
-/* margin-right: 330px; */
+  max-height: 100%;
 }
 
-div.chat ul {
-  max-height: 120px;
+.chat ul {
   overflow-y: auto;
+  max-height: 95%;
 }
 
 p.turn-info {
@@ -219,34 +218,42 @@ p.turn-info {
   display: grid;
   grid-template-rows: 100%;
   justify-content: space-between;
+  padding: 1vh;
   /* background-color:green; */
 }
 
 .player {
   grid-row-start: 1;
+  width: 16vh;
+  height: 30vh;
 }
 
 .current-player {
-  border: 2px solid teal;
+  border-top: 2px solid teal;
   border-radius: 4px;
 }
 
 .actions {
   grid-column-start: game;
   grid-row-start: action;
-  text-align: center;
+  display:grid;
+  justify-content:center;
+  padding: 1vh;
   /* background-color:orange; */
 }
 
 .hand{
   grid-column-start: game;
-  grid-row-start: hand;
+  grid-row-end: footer;
   display: grid;
   grid-template-columns: repeat(auto-fit,  minmax(10px, max-content)) ;
   justify-content: center;
   width: 90%;
+  height: 30vh;
   margin-left: auto;
   margin-right: auto;
+  min-width: 0;
+  min-height: 0;
   /* background-color:pink; */
 }
 
@@ -255,18 +262,17 @@ p.turn-info {
   height: 28vh;
   background-image: var(--bg-image);
   background-size: 15vh 28vh;
-	cursor: pointer;
+  cursor: pointer;
 }
-.card:hover{
-  width: 23vh;
-  height: 42vh;
-  background-size: 23vh 42vh;
+
+.hand > .card:hover{
+  transform: scale(1.3);
 }
 
 .chat {
   grid-row-start: players;
+  grid-row-end: footer;
   grid-column-start: chat;
-  /* background-color:grey; */
 }
 
 .footer {

@@ -209,6 +209,7 @@ impl Game {
                         deal::DealResult::GameOver {points, winners, scores } => points
                     };
                     let last_trick = state.current_trick().clone();
+                    // log::debug!("trick {:?}", last_trick.cards);
                     DealSnapshot {
                         hand: state.hands()[pos as usize],
                         current: state.next_player(),

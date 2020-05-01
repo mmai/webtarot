@@ -53,6 +53,7 @@ pub enum Msg {
     SendChat,
     Disconnect,
     MarkReady,
+    Continue,
     Bid((bid::Target, cards::Suit)),
     Coinche,
     Pass,
@@ -143,6 +144,9 @@ impl Component for GamePage {
             Msg::SetRole(role) => {
                 self.api
                     .send(Command::SetPlayerRole(SetPlayerRoleCommand { role }));
+            }
+            Msg::Continue => {
+                self.api.send(Command::Continue);
             }
             Msg::MarkReady => {
                 self.api.send(Command::MarkReady);
@@ -240,6 +244,22 @@ impl Component for GamePage {
                         html! {}
                     }}
                         <button class="cancel" onclick=self.link.callback(|_| Msg::Disconnect)>{"Disconnect"}</button>
+                    </div>
+                }
+            } else if self.game_state.turn == Turn::Interdeal {
+                html! {
+                    <div>
+                        <div class="results">
+                            {format!("scores : {:?}", self.game_state.deal.points)}
+
+                        </div>
+                        <div class="toolbar">
+                        {if !self.my_state().ready  {
+                            html! {<button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>}
+                        } else {
+                            html! {}
+                        }}
+                        </div>
                     </div>
                 }
             } else if player_action == Some(PlayerAction::Bid) {

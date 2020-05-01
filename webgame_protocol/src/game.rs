@@ -209,6 +209,7 @@ pub enum PlayerRole {
     Partner,
     Opponent,
     Unknown,
+    PreDeal,
     Spectator,
 }
 

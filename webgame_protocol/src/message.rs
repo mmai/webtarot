@@ -15,6 +15,7 @@ pub enum Command {
     JoinGame(JoinGameCommand),
     LeaveGame,
     MarkReady,
+    Continue,
     Bid(BidCommand),
     Play(PlayCommand),
     Pass,

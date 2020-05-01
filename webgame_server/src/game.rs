@@ -25,7 +25,9 @@ impl GameState {
     }
 
     pub fn update_turn(&mut self){
-        self.turn = Turn::from_deal(&self.deal);
+        if !(self.turn == Turn::Interdeal) {
+            self.turn = Turn::from_deal(&self.deal);
+        }
     }
 }
 
@@ -174,7 +176,11 @@ impl Game {
             }
         }
         if count == 4 {
-            game_state.turn = Turn::Bidding((bid::AuctionState::Bidding, pos::PlayerPos::P0));
+            if game_state.turn == Turn::Interdeal { // ongoing game
+                Self::next_deal(&mut game_state);
+            } else { // new game
+                game_state.turn = Turn::Bidding((bid::AuctionState::Bidding, pos::PlayerPos::P0));
+            }
         }
     }
 
@@ -290,11 +296,12 @@ impl Game {
                 match game_result {
                     deal::DealResult::Nothing => (),
                     deal::DealResult::GameOver{points, winners, scores} => {
+
                         log::debug!("results: {:?} {:?}", points, winners);
                         for i in 0..2 {
                             game_state.scores[i] += scores[i];
                         }
-                        Self::next_game(&mut game_state);
+                        Self::end_deal(&mut game_state);
                     }
                 }
             }
@@ -316,7 +323,17 @@ impl Game {
         game_state.deal = Deal::Playing(deal_state);
     }
 
-    fn next_game(game_state: &mut GameState) {
+    fn end_deal(game_state: &mut GameState) {
+        game_state.turn = Turn::Interdeal;
+        for player in game_state.players.values_mut() {
+            if player.role != PlayerRole::Spectator {
+                player.ready = false;
+                player.role = PlayerRole::Unknown;
+            }
+        }
+    }
+
+    fn next_deal(game_state: &mut GameState) {
         // TODO: Maybe keep the current game in the history?
         let auction = bid::Auction::new(game_state.first);
         game_state.first = game_state.first.next();

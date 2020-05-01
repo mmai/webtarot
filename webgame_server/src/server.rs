@@ -95,6 +95,7 @@ async fn on_player_message(
             Command::JoinGame(cmd) => on_join_game(universe, player_id, cmd).await,
             Command::LeaveGame => on_leave_game(universe, player_id).await,
             Command::MarkReady => on_player_mark_ready(universe, player_id).await,
+            Command::Continue => on_player_continue(universe, player_id).await,
             Command::SendText(cmd) => on_player_send_text(universe, player_id, cmd).await,
             Command::ShareCodename(cmd) => on_player_share_codename(universe, player_id, cmd).await,
             Command::SetPlayerRole(cmd) => on_player_set_role(universe, player_id, cmd).await,
@@ -166,6 +167,17 @@ async fn on_player_authenticate(
         .send(player_id, &Message::Authenticated(player_info.clone()))
         .await;
 
+    Ok(())
+}
+
+pub async fn on_player_continue(
+    universe: Arc<Universe>,
+    player_id: Uuid,
+) -> Result<(), ProtocolError> {
+    if let Some(game) = universe.get_player_game(player_id).await {
+        game.mark_player_ready(player_id).await;
+        game.broadcast_state().await;
+    }
     Ok(())
 }
 

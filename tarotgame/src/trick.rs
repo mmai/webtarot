@@ -79,7 +79,7 @@ impl Trick {
             self.winner = player
         }
 
-        (player == self.first.prev())
+        player == self.first.prev()
     }
 
     /// Returns the starting suit for this trick.

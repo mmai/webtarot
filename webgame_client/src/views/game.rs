@@ -271,13 +271,26 @@ impl Component for GamePage {
                             on_coinche=self.link.callback(|_| Msg::Coinche) />
                     }
             } else {
-                if let Some(card) = card_played {
-                    let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
-                    html! {
-                        <div class="card" style={style}></div>
-                    }
-                } else {
-                    html!{}
+                html! {
+                    <div>
+                        <div class="toolbar">
+                        {if !self.my_state().ready  {
+                            html! {<button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>}
+                        } else {
+                            html! {}
+                        }}
+                        </div>
+                        {
+                            if let Some(card) = card_played {
+                                let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                                html! {
+                                    <div class="card" style={style}></div>
+                                }
+                            } else {
+                                html!{}
+                            }
+                        }
+                    </div>
                 }
             }}
         </section>

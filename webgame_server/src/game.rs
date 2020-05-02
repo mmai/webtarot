@@ -166,12 +166,12 @@ impl Game {
         let mut game_state = self.game_state.lock().await;
         if let Some(player_state) = game_state.players.get_mut(&player_id) {
             player_state.ready = true;
-            player_state.role = PlayerRole::Unknown;
+            player_state.role = PlayerRole::PreDeal;
         }
 
         let mut count = 0;
         for player in game_state.players.values() {
-            if player.role != PlayerRole::Spectator {
+            if player.role == PlayerRole::PreDeal {
                 count = count + 1;
             }
         }
@@ -294,7 +294,7 @@ impl Game {
             Ok(deal::TrickResult::Nothing) => (),
             Ok(deal::TrickResult::TrickOver(winner, game_result)) => {
                 match game_result {
-                    deal::DealResult::Nothing => (),
+                    deal::DealResult::Nothing => Self::end_trick(&mut game_state),
                     deal::DealResult::GameOver{points, winners, scores} => {
 
                         log::debug!("results: {:?} {:?}", points, winners);
@@ -321,6 +321,14 @@ impl Game {
             }
         };
         game_state.deal = Deal::Playing(deal_state);
+    }
+
+    fn end_trick(game_state: &mut GameState) {
+        for player in game_state.players.values_mut() {
+            if player.role != PlayerRole::Spectator {
+                player.ready = false;
+            }
+        }
     }
 
     fn end_deal(game_state: &mut GameState) {

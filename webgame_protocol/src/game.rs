@@ -61,6 +61,7 @@ impl Deal {
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum Turn {
     Pregame,
+    Intertrick,
     Interdeal,
     Bidding((bid::AuctionState, pos::PlayerPos)),
     Playing(pos::PlayerPos),
@@ -75,6 +76,7 @@ impl fmt::Display for Turn {
             "{}",
             match *self {
                 Turn::Pregame => "pre-game",
+                Turn::Intertrick => "inter trick",
                 Turn::Interdeal => "inter deal",
                 Turn::Bidding((_, pos)) => {
                     strpos = format!("{:?} to bid", pos);

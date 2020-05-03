@@ -24,10 +24,18 @@ impl GameState {
         self.players.iter().find(|(uuid, player)| &player.pos == position) != None
     }
 
+    fn players_ready(&self) -> bool {
+        !(self.players.iter().find(|(_, player)| player.ready == false) != None)
+    }
+
     pub fn update_turn(&mut self){
-        if !(self.turn == Turn::Interdeal) {
-            self.turn = Turn::from_deal(&self.deal);
-        }
+        // if !(self.turn == Turn::Interdeal) {
+            self.turn = if self.players_ready() {
+                Turn::from_deal(&self.deal)
+            } else {
+                Turn::Intertrick
+            }
+        // }
     }
 }
 
@@ -164,24 +172,33 @@ impl Game {
 
     pub async fn mark_player_ready(&self, player_id: Uuid) {
         let mut game_state = self.game_state.lock().await;
+        let turn = game_state.turn.clone();
         if let Some(player_state) = game_state.players.get_mut(&player_id) {
             player_state.ready = true;
-            player_state.role = PlayerRole::PreDeal;
+            if turn == Turn::Intertrick {
+                game_state.update_turn();
+            } else {
+                player_state.role = PlayerRole::PreDeal;
+
+                // Check if we start the next deal
+                let mut count = 0;
+                for player in game_state.players.values() {
+                    if player.role == PlayerRole::PreDeal {
+                        count = count + 1;
+                    }
+                }
+                if count == 4 {
+                    if game_state.turn == Turn::Interdeal { // ongoing game
+                        Self::next_deal(&mut game_state);
+                        game_state.update_turn();
+                    } else { // new game
+                        game_state.turn = Turn::Bidding((bid::AuctionState::Bidding, pos::PlayerPos::P0));
+                    }
+                }
+
+            }
         }
 
-        let mut count = 0;
-        for player in game_state.players.values() {
-            if player.role == PlayerRole::PreDeal {
-                count = count + 1;
-            }
-        }
-        if count == 4 {
-            if game_state.turn == Turn::Interdeal { // ongoing game
-                Self::next_deal(&mut game_state);
-            } else { // new game
-                game_state.turn = Turn::Bidding((bid::AuctionState::Bidding, pos::PlayerPos::P0));
-            }
-        }
     }
 
     pub async fn broadcast(&self, message: &Message) {
@@ -214,7 +231,13 @@ impl Game {
                         deal::DealResult::Nothing => [0; 2],
                         deal::DealResult::GameOver {points, winners, scores } => points
                     };
-                    let last_trick = state.current_trick().clone();
+                    let last_trick = if game_state.turn == Turn::Intertrick {
+                        // intertrick : there is at least a trick done
+                        // (current_trick() returns the new empty one)
+                        state.last_trick().unwrap().clone()
+                    } else {
+                        state.current_trick().clone()
+                    };
                     // log::debug!("trick {:?}", last_trick.cards);
                     DealSnapshot {
                         hand: state.hands()[pos as usize],

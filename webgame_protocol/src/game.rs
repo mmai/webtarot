@@ -15,6 +15,12 @@ pub enum Deal {
 }
 
 impl Deal {
+    // Creates a new deal, starting with an auction.
+    pub fn new(first: pos::PlayerPos) -> Self {
+        let auction = bid::Auction::new(first);
+        Deal::Bidding(auction)
+    }
+
     pub fn next_player(&self) -> pos::PlayerPos {
         match self {
             &Deal::Bidding(ref auction) => auction.next_player(),

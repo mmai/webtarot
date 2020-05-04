@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 use std::sync::{Arc, Weak};
 use tokio::sync::Mutex;
 
@@ -21,7 +21,7 @@ pub struct GameState {
 
 impl GameState {
     fn position_taken(&self, position: &pos::PlayerPos) -> bool {
-        self.players.iter().find(|(uuid, player)| &player.pos == position) != None
+        self.players.iter().find(|(_uuid, player)| &player.pos == position) != None
     }
 
     fn players_ready(&self) -> bool {
@@ -39,14 +39,6 @@ impl GameState {
     }
 }
 
-
-// Creates a new deal, starting with an auction.
-// fn make_deal(first: pos::PlayerPos) -> bid::Auction {
-fn make_deal(first: pos::PlayerPos) -> Deal {
-    let auction = bid::Auction::new(first);
-    Deal::Bidding(auction)
-}
-
 pub struct Game {
     id: Uuid,
     join_code: String,
@@ -56,7 +48,7 @@ pub struct Game {
 
 impl Game {
     pub fn new(join_code: String, universe: Arc<Universe>) -> Game {
-        let deal = make_deal(pos::PlayerPos::P0);
+        let deal = Deal::new(pos::PlayerPos::P0);
         log::debug!("new deal: {:?}", deal.hands());
         Game {
             id: Uuid::new_v4(),
@@ -369,5 +361,17 @@ impl Game {
         let auction = bid::Auction::new(game_state.first);
         game_state.first = game_state.first.next();
         game_state.deal = Deal::Bidding(auction);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // use super::*;
+    // use crate::universe::Universe;
+    // use tarotgame::{bid, cards, pos, deal, trick};
+
+    #[test]
+    fn test_init_game() {
+        assert_eq!("a", "a");
     }
 }

@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::game::{GameInfo, GamePlayerState, GameStateSnapshot, PlayerRole};
-use crate::player::PlayerInfo;
+use crate::game::{GameInfo, GameStateSnapshot};
+use crate::player::{PlayerInfo, GamePlayerState, PlayerRole};
 use tarotgame::{cards, bid};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

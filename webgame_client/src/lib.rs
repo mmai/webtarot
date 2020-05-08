@@ -1,12 +1,6 @@
 #![recursion_limit = "1024"]
 
 #[macro_use]
-extern crate stdweb;
-use stdweb::js;
-
-use web_sys;
-
-#[macro_use]
 macro_rules! log {
     ( $( $t:tt )* ) => {
         web_sys::console::log_1(&format!( $( $t )* ).into());

@@ -4,11 +4,9 @@ use im_rc::Vector;
 use uuid::Uuid;
 use yew::agent::Bridged;
 use yew::{
-    html, Bridge, Callback, Component, ComponentLink, Html, InputData, KeyboardEvent, Properties,
+    html, Bridge, Component, ComponentLink, Html, InputData, KeyboardEvent, Properties,
     ShouldRender,
 };
-use yew::services::console::ConsoleService;
-use std::str::FromStr;
 
 use crate::api::Api;
 use crate::components::chat_box::{ChatBox, ChatLine, ChatLineData};
@@ -16,28 +14,21 @@ use crate::components::player_list::PlayerList;
 use crate::components::bidding_actions::BiddingActions;
 use crate::protocol::{
     Command, GameInfo, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
-    PlayerInfo, PlayerRole,
-    SendTextCommand, SetPlayerRoleCommand,
+    PlayerInfo,
+    SendTextCommand,
     BidCommand, PlayCommand,
     Turn,
 };
 use tarotgame::{bid, cards};
 use crate::utils::format_join_code;
 
-#[derive(Clone, Debug)]
-pub enum GamePageCommand {
-    Quit,
-}
-
 #[derive(Clone, Properties)]
 pub struct Props {
     pub player_info: PlayerInfo,
     pub game_info: GameInfo,
-    pub on_game_command: Callback<GamePageCommand>,
 }
 
 pub struct GamePage {
-    console: ConsoleService,
     link: ComponentLink<GamePage>,
     api: Box<dyn Bridge<Api>>,
     game_info: GameInfo,
@@ -45,7 +36,6 @@ pub struct GamePage {
     game_state: Rc<GameStateSnapshot>,
     chat_line: String,
     chat_log: Vector<Rc<ChatLine>>,
-    on_game_command: Callback<GamePageCommand>,
 }
 
 pub enum Msg {
@@ -60,7 +50,6 @@ pub enum Msg {
     Play(cards::Card),
     SetChatLine(String),
     ServerMessage(Message),
-    SetRole(PlayerRole),
 }
 
 impl GamePage {
@@ -97,7 +86,6 @@ impl Component for GamePage {
         let on_server_message = link.callback(Msg::ServerMessage);
         let api = Api::bridge(on_server_message);
         GamePage {
-            console: ConsoleService::new(),
             link,
             api,
             game_info: props.game_info,
@@ -108,7 +96,6 @@ impl Component for GamePage {
             })),
             game_state: Rc::new(GameStateSnapshot::default()),
             player_info: props.player_info,
-            on_game_command: props.on_game_command,
         }
     }
 
@@ -140,10 +127,6 @@ impl Component for GamePage {
             }
             Msg::SetChatLine(text) => {
                 self.chat_line = text;
-            }
-            Msg::SetRole(role) => {
-                self.api
-                    .send(Command::SetPlayerRole(SetPlayerRoleCommand { role }));
             }
             Msg::Continue => {
                 self.api.send(Command::Continue);
@@ -179,17 +162,6 @@ impl Component for GamePage {
 
         let my_state = self.my_state();
         let card_played = self.game_state.deal.last_trick.card_played(my_state.pos);
-        let role = my_state.role;
-        let role_button = |new_role: PlayerRole, title: &str| -> Html {
-            html! {
-                <button
-                    disabled=role == new_role
-                    onclick=self.link.callback(move |_| Msg::SetRole(new_role))>
-                    {title}
-                </button>
-            }
-        };
-
         let player_action = my_state.get_turn_player_action(self.game_state.turn);
 
         // display players in order of playing starting from the current player

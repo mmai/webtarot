@@ -3,7 +3,7 @@ use yew::{html, Bridge, Component, ComponentLink, Html, ShouldRender};
 
 use crate::api::Api;
 use crate::protocol::{GameInfo, Message, PlayerInfo};
-use crate::views::game::{GamePage, GamePageCommand};
+use crate::views::game::GamePage;
 use crate::views::menu::MenuPage;
 use crate::views::start::StartPage;
 
@@ -25,7 +25,6 @@ enum AppState {
 pub enum Msg {
     Authenticated(PlayerInfo),
     GameJoined(GameInfo),
-    GamePageCommand(GamePageCommand),
     ServerMessage(Message),
 }
 
@@ -54,7 +53,7 @@ impl Component for App {
                 self.state = AppState::InGame;
                 self.game_info = Some(game_info);
             }
-            Msg::ServerMessage(Message::GameLeft) | Msg::GamePageCommand(GamePageCommand::Quit) => {
+            Msg::ServerMessage(Message::GameLeft) => {
                 self.state = AppState::Authenticated;
                 self.game_info = None;
             }
@@ -78,7 +77,7 @@ impl Component for App {
                     <GamePage
                         player_info=self.player_info.as_ref().unwrap().clone(),
                         game_info=self.game_info.as_ref().unwrap().clone(),
-                        on_game_command=self.link.callback(Msg::GamePageCommand) />
+                         />
                 }
             }}
         }

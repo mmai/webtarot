@@ -4,7 +4,7 @@ use std::str::FromStr;
 use strum::IntoEnumIterator;
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender, Callback, ChangeData};
 
-use crate::protocol::{GameStateSnapshot, PlayerRole, GamePlayerState, Turn};
+use crate::protocol::GameStateSnapshot;
 use tarotgame::{bid, cards};
 
 pub enum Msg {

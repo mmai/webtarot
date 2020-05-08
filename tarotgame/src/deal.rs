@@ -192,7 +192,7 @@ impl DealState {
         self.players
     }
 
-    fn is_over(&self) -> bool {
+    pub fn is_over(&self) -> bool {
         self.tricks.len() == 8 && !self.tricks[7].cards.iter().any(|&c| c.is_none())
     }
 

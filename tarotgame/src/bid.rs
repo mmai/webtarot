@@ -197,6 +197,11 @@ impl Auction {
         }
     }
 
+    /// Override Auction hands (for tests)
+    pub fn set_hands(&mut self, hands: [cards::Hand; 4]) {
+        self.players = hands;
+    }
+
     /// Returns the current state of the auctions.
     pub fn get_state(&self) -> AuctionState {
         self.state

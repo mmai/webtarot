@@ -67,8 +67,9 @@ impl Game {
 
         let mut game_state = self.game_state.lock().await;
         let pos = game_state.add_player(player_info);
-        let player = game_state.player_by_pos(pos).unwrap();
-        self.broadcast(&Message::PlayerConnected(player.clone())).await;
+        let player = game_state.player_by_pos(pos).unwrap().clone();
+        drop(game_state);
+        self.broadcast(&Message::PlayerConnected(player)).await;
     }
 
     pub async fn remove_player(&self, player_id: Uuid) {
@@ -111,7 +112,6 @@ impl Game {
         let universe = self.universe();
         let game_state = self.game_state.lock().await;
         for player_id in game_state.get_players().keys().copied() {
-            log::debug!("broadcast game state to {}", player_id);
             let snapshot = game_state.make_snapshot(player_id);
             universe
                 .send(

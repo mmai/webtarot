@@ -324,6 +324,7 @@ pub struct GameInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tarotgame::{bid, cards};
     // use tarotgame::{bid, cards, pos, deal, trick};
 
     #[test]
@@ -344,8 +345,15 @@ mod tests {
         game.set_player_ready(id1);
         game.set_player_ready(id2);
         game.set_player_ready(id3);
-
         assert_eq!(false, game.is_joinable());
+        assert_eq!(game.get_turn(), Turn::Bidding((bid::AuctionState::Bidding, pos0)));
+
+        game.set_bid(id0, bid::Target::Contract80, cards::Suit::Heart);
+        game.set_pass(id1);
+        game.set_pass(id2);
+        game.set_pass(id3);
+        assert_eq!(game.get_turn(), Turn::Playing(pos0));
+
 
     }
 }

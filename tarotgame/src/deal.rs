@@ -228,7 +228,7 @@ pub fn can_play(
 ) -> Result<(), PlayError> {
     // First, we need the card to be able to play
     if !hand.has(card) {
-        return Err(PlayError::CardMissing);;
+        return Err(PlayError::CardMissing);
     }
 
     if p == trick.first {
@@ -254,7 +254,7 @@ pub fn can_play(
     if card_suit == trump {
         let highest = highest_trump(trick, trump, p);
         if points::trump_strength(card.rank()) < highest && has_higher(hand, card_suit, highest) {
-            return Err(PlayError::NonRaisedTrump);;
+            return Err(PlayError::NonRaisedTrump);
         }
     }
 

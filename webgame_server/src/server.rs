@@ -351,12 +351,14 @@ pub async fn serve() {
 
     let make_svc = make_service_fn(move |_| {
         let universe = universe.clone();
-        let routes = warp::path("ws")
+
+        let routes = warp::path("ws") // Websockets on /ws entry point
             .and(warp::ws())
             .and(warp::any().map(move || universe.clone()))
             .map(|ws: warp::ws::Ws, universe: Arc<Universe>| {
                 ws.on_upgrade(move |ws| on_player_connected(universe, ws))
-            });
+            })
+        .or(warp::fs::dir("public/")); // Static files
         let svc = warp::service(routes);
         async move { Ok::<_, Infallible>(svc) }
     });

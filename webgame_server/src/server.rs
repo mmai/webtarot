@@ -346,11 +346,12 @@ pub async fn on_player_coinche(
 }
 
 
-pub async fn serve() {
+pub async fn serve(public_dir: String, port: u16) {
     let universe = Arc::new(Universe::new());
 
     let make_svc = make_service_fn(move |_| {
         let universe = universe.clone();
+        let pdir = public_dir.clone();
 
         let routes = warp::path("ws") // Websockets on /ws entry point
             .and(warp::ws())
@@ -358,7 +359,8 @@ pub async fn serve() {
             .map(|ws: warp::ws::Ws, universe: Arc<Universe>| {
                 ws.on_upgrade(move |ws| on_player_connected(universe, ws))
             })
-        .or(warp::fs::dir("public/")); // Static files
+        // .or(warp::fs::dir("public/")); // Static files
+        .or(warp::fs::dir(pdir)); // Static files
         let svc = warp::service(routes);
         async move { Ok::<_, Infallible>(svc) }
     });
@@ -367,7 +369,7 @@ pub async fn serve() {
     let server = if let Some(l) = listenfd.take_tcp_listener(0).unwrap() {
         Server::from_tcp(l).unwrap()
     } else {
-        Server::bind(&([127, 0, 0, 1], 8002).into())
+        Server::bind(&([127, 0, 0, 1], port).into())
     };
     server.serve(make_svc).await.unwrap();
 }

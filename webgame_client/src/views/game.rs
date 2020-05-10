@@ -206,14 +206,8 @@ impl Component for GamePage {
       <PlayerList game_state=self.game_state.clone() players=others/>
 
         <section class=actions_classes>
-            {if is_my_turn {
-                 html! {<strong>{"It's your turn"}</strong>}
-            } else {
-                 html! {}
-            }
-            }
-            {if self.game_state.turn == Turn::Pregame {
-                html! {
+            {match self.game_state.turn {
+               Turn::Pregame => html! {
                     <div class="toolbar">
                     {if !self.my_state().ready  {
                         html! {<button class="primary" onclick=self.link.callback(|_| Msg::MarkReady)>{"Ready!"}</button>}
@@ -222,24 +216,34 @@ impl Component for GamePage {
                     }}
                         <button class="cancel" onclick=self.link.callback(|_| Msg::Disconnect)>{"Disconnect"}</button>
                     </div>
-                }
-            } else if self.game_state.turn == Turn::Interdeal {
-                html! {
-                    <div>
+                },
+               Turn::Intertrick => 
+                   if !self.my_state().ready  { html! {
+                       <div>
+                           <div class="results">
+                               {format!("trick for : {:?}", self.game_state.deal.last_trick.winner)}
+                           </div>
+                           <div class="toolbar">
+                               <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
+                           </div>
+                       </div>
+                   }} else {
+                       html! {}
+                },
+               Turn::Interdeal => 
+                   if !self.my_state().ready  { html! {
+                     <div>
                         <div class="results">
                             {format!("scores : {:?}", self.game_state.deal.points)}
-
                         </div>
                         <div class="toolbar">
-                        {if !self.my_state().ready  {
-                            html! {<button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>}
-                        } else {
-                            html! {}
-                        }}
+                            <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
                         </div>
-                    </div>
-                }
-            } else if player_action == Some(PlayerAction::Bid) {
+                     </div>
+                   }} else {
+                     html! {}
+                },
+                _ => if player_action == Some(PlayerAction::Bid) {
                     html! {
                         <BiddingActions
                             game_state=self.game_state.clone()
@@ -247,29 +251,21 @@ impl Component for GamePage {
                             on_pass=self.link.callback(|contract| Msg::Pass)
                             on_coinche=self.link.callback(|_| Msg::Coinche) />
                     }
-            } else {
-                html! {
-                    <div>
-                        <div class="toolbar">
-                        {if !self.my_state().ready  {
-                            html! {<button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>}
-                        } else {
-                            html! {}
-                        }}
-                        </div>
-                        {
-                            if let Some(card) = card_played {
+                } else {
+                    html! {
+                        <div>
+                            {if let Some(card) = card_played {
                                 let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
                                 html! {
                                     <div class="card" style={style}></div>
                                 }
                             } else {
                                 html!{}
-                            }
-                        }
-                    </div>
+                            }}
+                        </div>
+                    }
                 }
-            }}
+             }}
         </section>
 
         <section class="hand">

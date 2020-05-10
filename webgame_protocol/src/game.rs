@@ -142,22 +142,22 @@ impl GameState {
     }
 
     pub fn update_turn(&mut self){
-        self.turn = if self.players_ready() {
+        self.turn = if !self.players_ready() {
+            Turn::Intertrick
+        } else if self.was_last_trick() {
+            self.end_deal();
+            Turn::Interdeal
+        } else {
             if self.turn == Turn::Interdeal {
                 self.next_deal();
             }
             Turn::from_deal(&self.deal)
-        } else {
-            if let Some(deal) = self.deal.deal_state() {
-                if deal.is_over() {
-                    Turn::Interdeal
-                } else {
-                    Turn::Intertrick
-                }
-            } else {
-                Turn::Intertrick
-            }
         }
+    }
+
+    fn was_last_trick(&self) -> bool {
+        let p0 = self.player_by_pos(pos::PlayerPos::P0).unwrap();
+        self.turn == Turn::Intertrick && p0.role == PlayerRole::Unknown
     }
 
     pub fn set_player_ready(&mut self, player_id: Uuid){
@@ -234,7 +234,7 @@ impl GameState {
                         for i in 0..2 {
                             self.scores[i] += scores[i];
                         }
-                        self.end_deal();
+                        self.end_last_trick();
                     }
                 }
             }
@@ -263,12 +263,21 @@ impl GameState {
         }
     }
 
-    fn end_deal(&mut self) {
-        self.turn = Turn::Interdeal;
+    fn end_last_trick(&mut self) {
         for player in self.players.values_mut() {
             if player.role != PlayerRole::Spectator {
                 player.ready = false;
                 player.role = PlayerRole::Unknown;
+            }
+        }
+    }
+
+    fn end_deal(&mut self) {
+        println!("end deal...");
+        self.turn = Turn::Interdeal;
+        for player in self.players.values_mut() {
+            if player.role != PlayerRole::Spectator {
+                player.ready = false;
             }
         }
     }
@@ -477,6 +486,11 @@ mod tests {
         game.set_play(id3, cards::Card::new(cards::Suit::Spade, cards::Rank::RankK));
         game.set_play(id0, cards::Card::new(cards::Suit::Club, cards::Rank::RankQ));
         game.set_play(id1, cards::Card::new(cards::Suit::Spade, cards::Rank::RankJ));
+        assert_eq!(game.get_turn(), Turn::Intertrick);
+        game.set_player_ready(id0);
+        game.set_player_ready(id1);
+        game.set_player_ready(id2);
+        game.set_player_ready(id3);
         assert_eq!(game.get_turn(), Turn::Interdeal);
         game.set_player_ready(id0);
         game.set_player_ready(id1);

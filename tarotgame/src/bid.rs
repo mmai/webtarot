@@ -133,6 +133,14 @@ impl Contract {
     }
 }
 
+impl ToString for Contract {
+    fn to_string(&self) -> String {
+        format!("{} {}", self.trump.to_string(), self.target.to_str())
+        // self.to_str().to_owned()
+    }
+}
+
+
 /// Current state of an auction
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum AuctionState {

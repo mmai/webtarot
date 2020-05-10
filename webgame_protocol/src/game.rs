@@ -92,7 +92,7 @@ impl GameState {
 
     // Creates a view of the game for a player
     pub fn make_snapshot(&self, player_id: Uuid) -> GameStateSnapshot {
-        let contract = self.deal.deal_auction().and_then(|auction| auction.current_contract()).cloned();
+        let contract = self.deal.deal_contract().cloned();
         let mut players = vec![];
         for (&_other_player_id, player_state) in self.players.iter() {
             players.push(player_state.clone());

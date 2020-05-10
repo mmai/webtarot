@@ -31,6 +31,13 @@ impl Deal {
         }
     }
 
+    pub fn deal_contract(&self) -> Option<&bid::Contract> {
+        match self {
+            Deal::Bidding(auction) => auction.current_contract(),
+            Deal::Playing(deal_state) => Some(deal_state.contract()),
+        }
+    }
+
     pub fn deal_auction(&self) -> Option<&bid::Auction> {
         match self {
             Deal::Bidding(bid) => Some(bid),

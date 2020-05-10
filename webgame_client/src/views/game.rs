@@ -195,6 +195,11 @@ impl Component for GamePage {
     <div class="game">
       <header>
         <p class="turn-info">{format!("Turn: {}", self.game_state.turn)}</p>
+        {if let Some(contract) = &self.game_state.deal.contract {
+             html! {<p class="deal-info">{format!("Contract: {}", contract.to_string())}</p>}
+        } else {
+             html! {}
+        }}
         <h1>{format!("Game ({})", format_join_code(&self.game_info.join_code))}</h1>
       </header>
 

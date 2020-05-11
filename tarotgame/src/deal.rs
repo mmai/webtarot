@@ -297,8 +297,8 @@ mod tests {
     fn test_play_card() {
         let mut hands = [cards::Hand::new(); 4];
         hands[0].add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank8));
-        hands[0].add(cards::Card::new(cards::Suit::Heart, cards::Rank::RankX));
-        hands[0].add(cards::Card::new(cards::Suit::Heart, cards::Rank::RankA));
+        hands[0].add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank10));
+        hands[0].add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank1));
         hands[0].add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank9));
         hands[0].add(cards::Card::new(cards::Suit::Club, cards::Rank::Rank7));
         hands[0].add(cards::Card::new(cards::Suit::Club, cards::Rank::Rank8));
@@ -307,8 +307,8 @@ mod tests {
 
         hands[1].add(cards::Card::new(cards::Suit::Club, cards::Rank::RankQ));
         hands[1].add(cards::Card::new(cards::Suit::Club, cards::Rank::RankK));
-        hands[1].add(cards::Card::new(cards::Suit::Club, cards::Rank::RankX));
-        hands[1].add(cards::Card::new(cards::Suit::Club, cards::Rank::RankA));
+        hands[1].add(cards::Card::new(cards::Suit::Club, cards::Rank::Rank10));
+        hands[1].add(cards::Card::new(cards::Suit::Club, cards::Rank::Rank1));
         hands[1].add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank7));
         hands[1].add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank8));
         hands[1].add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank9));
@@ -325,10 +325,10 @@ mod tests {
 
         hands[3].add(cards::Card::new(cards::Suit::Diamond, cards::Rank::RankQ));
         hands[3].add(cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK));
-        hands[3].add(cards::Card::new(cards::Suit::Diamond, cards::Rank::RankX));
-        hands[3].add(cards::Card::new(cards::Suit::Diamond, cards::Rank::RankA));
-        hands[3].add(cards::Card::new(cards::Suit::Spade, cards::Rank::RankX));
-        hands[3].add(cards::Card::new(cards::Suit::Spade, cards::Rank::RankA));
+        hands[3].add(cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank10));
+        hands[3].add(cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank1));
+        hands[3].add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank10));
+        hands[3].add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank1));
         hands[3].add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank7));
         hands[3].add(cards::Card::new(cards::Suit::Heart, cards::Rank::RankJ));
 
@@ -345,7 +345,7 @@ mod tests {
         assert_eq!(
             deal.play_card(
                 pos::PlayerPos::P1,
-                cards::Card::new(cards::Suit::Club, cards::Rank::RankX)
+                cards::Card::new(cards::Suit::Club, cards::Rank::Rank10)
             ).err(),
             Some(PlayError::TurnError)
         );
@@ -416,11 +416,11 @@ mod tests {
 
     #[test]
     fn test_has_higher_1() {
-        // Simple case: X is always higher than Q.
+        // Simple case: K is always higher than Q.
         let mut hand = cards::Hand::new();
 
         hand.add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank8));
-        hand.add(cards::Card::new(cards::Suit::Spade, cards::Rank::RankX));
+        hand.add(cards::Card::new(cards::Suit::Spade, cards::Rank::RankK));
         assert!(has_higher(
             hand,
             cards::Suit::Spade,
@@ -434,7 +434,7 @@ mod tests {
         let mut hand = cards::Hand::new();
 
         hand.add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank8));
-        hand.add(cards::Card::new(cards::Suit::Spade, cards::Rank::RankX));
+        hand.add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank10));
         assert!(!has_higher(
             hand,
             cards::Suit::Heart,
@@ -448,7 +448,7 @@ mod tests {
         let mut hand = cards::Hand::new();
 
         hand.add(cards::Card::new(cards::Suit::Heart, cards::Rank::RankJ));
-        hand.add(cards::Card::new(cards::Suit::Spade, cards::Rank::RankX));
+        hand.add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank10));
         assert!(!has_higher(
             hand,
             cards::Suit::Spade,
@@ -466,7 +466,7 @@ mod tests {
         assert!(has_higher(
             hand,
             cards::Suit::Spade,
-            points::trump_strength(cards::Rank::RankA)
+            points::trump_strength(cards::Rank::Rank1)
         ));
     }
 

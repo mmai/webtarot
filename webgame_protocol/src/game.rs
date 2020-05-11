@@ -384,9 +384,9 @@ mod tests {
         game.set_pass(id3);
         assert_eq!(game.get_turn(), Turn::Playing(pos0));
 
-        game.set_play(id0, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankA));
+        game.set_play(id0, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank1));
         game.set_play(id1, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK));
-        game.set_play(id2, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankX));
+        game.set_play(id2, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank10));
         game.set_play(id3, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank7));
         game.set_player_ready(id0);
         game.set_player_ready(id1);
@@ -397,7 +397,7 @@ mod tests {
         // [7♥,9♥,7♠,8♠,J♠,A♠,8♦,]
         // [K♥,X♥,A♥,9♠,X♠,Q♦,7♣,]
         // [Q♠,K♠,9♦,J♦,9♣,K♣,A♣,]
-        game.set_play(id0, cards::Card::new(cards::Suit::Club, cards::Rank::RankX));
+        game.set_play(id0, cards::Card::new(cards::Suit::Club, cards::Rank::Rank10));
         game.set_play(id1, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank7));
         game.set_play(id2, cards::Card::new(cards::Suit::Club, cards::Rank::Rank7));
         game.set_play(id3, cards::Card::new(cards::Suit::Club, cards::Rank::Rank9));
@@ -411,8 +411,8 @@ mod tests {
         // [9♥,7♠,8♠,J♠,A♠,8♦,]
         // [K♥,X♥,A♥,9♠,X♠,Q♦,]
         // [Q♠,K♠,9♦,J♦,K♣,A♣,]
-        game.set_play(id1, cards::Card::new(cards::Suit::Spade, cards::Rank::RankA));
-        game.set_play(id2, cards::Card::new(cards::Suit::Spade, cards::Rank::RankX));
+        game.set_play(id1, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank1));
+        game.set_play(id2, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank10));
         game.set_play(id3, cards::Card::new(cards::Suit::Spade, cards::Rank::RankQ));
         game.set_play(id0, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank8));
         game.set_player_ready(id0);
@@ -427,7 +427,7 @@ mod tests {
         // [K♠,9♦,J♦,K♣,A♣,]
         game.set_play(id0, cards::Card::new(cards::Suit::Club, cards::Rank::Rank8));
         game.set_play(id1, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank9));
-        game.set_play(id2, cards::Card::new(cards::Suit::Heart, cards::Rank::RankX));
+        game.set_play(id2, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank10));
         game.set_play(id3, cards::Card::new(cards::Suit::Club, cards::Rank::RankK));
         game.set_player_ready(id0);
         game.set_player_ready(id1);
@@ -456,7 +456,7 @@ mod tests {
         game.set_play(id0, cards::Card::new(cards::Suit::Club, cards::Rank::RankJ));
         game.set_play(id1, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank7));
         game.set_play(id2, cards::Card::new(cards::Suit::Heart, cards::Rank::RankK));
-        game.set_play(id3, cards::Card::new(cards::Suit::Club, cards::Rank::RankA));
+        game.set_play(id3, cards::Card::new(cards::Suit::Club, cards::Rank::Rank1));
         game.set_player_ready(id0);
         game.set_player_ready(id1);
         game.set_player_ready(id2);
@@ -467,7 +467,7 @@ mod tests {
         // [8♠,J♠,]
         // [A♥,9♠,]
         // [K♠,J♦,]
-        game.set_play(id2, cards::Card::new(cards::Suit::Heart, cards::Rank::RankA));
+        game.set_play(id2, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank1));
         game.set_play(id3, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankJ));
         game.set_play(id0, cards::Card::new(cards::Suit::Heart, cards::Rank::RankQ));
         game.set_play(id1, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank8));

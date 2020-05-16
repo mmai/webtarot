@@ -38,10 +38,10 @@ impl Trick {
     }
 
     /// Returns the points value of this trick.
-    pub fn score(&self, trump: cards::Suit) -> i32 {
+    pub fn score(&self) -> f32 {
         self.cards
             .iter()
-            .map(|c| c.map_or(0, |c| points::score(c, trump)))
+            .map(|c| c.map_or(0.0, |c| points::score(c)))
             .sum()
     }
 
@@ -66,15 +66,14 @@ impl Trick {
         &mut self,
         player: pos::PlayerPos,
         card: cards::Card,
-        trump: cards::Suit,
     ) -> bool {
         self.cards[player as usize] = Some(card);
         if player == self.first {
             return false;
         }
 
-        if points::strength(card, trump)
-            > points::strength(self.cards[self.winner as usize].unwrap(), trump)
+        if points::strength(card)
+            > points::strength(self.cards[self.winner as usize].unwrap())
         {
             self.winner = player
         }

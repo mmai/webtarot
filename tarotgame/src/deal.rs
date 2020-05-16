@@ -10,13 +10,11 @@ use super::trick;
 /// Describes the state of a coinche deal, ready to play a card.
 #[derive(Clone)]
 pub struct DealState {
-    players: [cards::Hand; 4],
-
+    players: [cards::Hand; super::NB_PLAYERS],
+    dog: cards::Hand,
     current: pos::PlayerPos,
-
     contract: bid::Contract,
-
-    points: [i32; 2],
+    points: [i32; super::NB_PLAYERS],
     tricks: Vec<trick::Trick>,
 }
 
@@ -29,11 +27,11 @@ pub enum DealResult {
     /// The deal is over
     GameOver {
         /// Worth of won tricks
-        points: [i32; 2],
+        points: [i32; super::NB_PLAYERS],
         /// Winning team
-        winners: pos::Team,
+        taker_won: bool,
         /// Score for this deal
-        scores: [i32; 2],
+        scores: [i32; super::NB_PLAYERS],
     },
 }
 
@@ -77,13 +75,14 @@ impl fmt::Display for PlayError {
 
 impl DealState {
     /// Creates a new DealState, with the given cards, first player and contract.
-    pub fn new(first: pos::PlayerPos, hands: [cards::Hand; 4], contract: bid::Contract) -> Self {
+    pub fn new(first: pos::PlayerPos, hands: [cards::Hand; super::NB_PLAYERS], dog: cards::Hand, contract: bid::Contract) -> Self {
         DealState {
             players: hands,
+            dog,
             current: first,
             contract,
             tricks: vec![trick::Trick::new(first)],
-            points: [0; 2],
+            points: [0; 5],
         }
     }
 
@@ -108,12 +107,10 @@ impl DealState {
             card,
             self.players[player as usize],
             self.current_trick(),
-            self.contract.trump
         )?;
 
         // Play the card
-        let trump = self.contract.trump;
-        let trick_over = self.current_trick_mut().play_card(player, card, trump);
+        let trick_over = self.current_trick_mut().play_card(player, card);
 
         // Remove card from player hand
         self.players[player as usize].remove(card);
@@ -121,10 +118,10 @@ impl DealState {
         // Is the trick over?
         let result = if trick_over {
             let winner = self.current_trick().winner;
-            let score = self.current_trick().score(trump);
+            let score = self.current_trick().score();
             self.points[winner.team() as usize] += score;
             if self.tricks.len() == 8 {
-                // 10 de der
+                // petit au bout ?
                 self.points[winner.team() as usize] += 10;
             } else {
                 self.tricks.push(trick::Trick::new(winner));
@@ -224,7 +221,6 @@ pub fn can_play(
     card: cards::Card,
     hand: cards::Hand,
     trick: &trick::Trick,
-    trump: cards::Suit,
 ) -> Result<(), PlayError> {
     // First, we need the card to be able to play
     if !hand.has(card) {
@@ -242,18 +238,15 @@ pub fn can_play(
             return Err(PlayError::IncorrectSuit);
         }
 
-        if card_suit != trump {
-            let partner_winning = p.is_partner(trick.winner);
-            if !partner_winning && hand.has_any(trump) {
+        if card_suit != cards::Suit::Trump && hand.has_any(cards::Suit::Trump) {
                 return Err(PlayError::InvalidPiss);
-            }
         }
     }
 
     // One must raise when playing trump
-    if card_suit == trump {
-        let highest = highest_trump(trick, trump, p);
-        if points::trump_strength(card.rank()) < highest && has_higher(hand, card_suit, highest) {
+    if card_suit == cards::Suit::Trump {
+        let highest = highest_trump(trick, p);
+        if points::strength(card) < highest && has_higher(hand, highest) {
             return Err(PlayError::NonRaisedTrump);
         }
     }
@@ -261,23 +254,21 @@ pub fn can_play(
     Ok(())
 }
 
-fn has_higher(hand: cards::Hand, trump: cards::Suit, strength: i32) -> bool {
-    for ri in 0..8 {
-        let rank = cards::Rank::from_n(ri);
-        if points::trump_strength(rank) > strength && hand.has(cards::Card::new(trump, rank)) {
+fn has_higher(hand: cards::Hand, strength: i32) -> bool {
+    for c in hand.list() {
+        if points::strength(c) > strength {
             return true;
         }
     }
-
     false
 }
 
-fn highest_trump(trick: &trick::Trick, trump: cards::Suit, player: pos::PlayerPos) -> i32 {
+fn highest_trump(trick: &trick::Trick, player: pos::PlayerPos) -> i32 {
     let mut highest = -1;
 
     for p in trick.first.until(player) {
-        if trick.cards[p as usize].unwrap().suit() == trump {
-            let str = points::trump_strength(trick.cards[p as usize].unwrap().rank());
+        if trick.cards[p as usize].unwrap().suit() == cards::Suit::Trump {
+            let str = points::strength(trick.cards[p as usize].unwrap());
             if str > highest {
                 highest = str;
             }

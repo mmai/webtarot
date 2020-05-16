@@ -490,9 +490,9 @@ impl Deck {
     /// Deal `n` cards to each hand.
     ///
     /// # Panics
-    /// If `self.len() < 4 * n`
-    pub fn deal_each(&mut self, hands: &mut [Hand; 4], n: usize) {
-        if self.len() < 4 * n {
+    /// If `self.len() < 5 * n`
+    pub fn deal_each(&mut self, hands: &mut [Hand; super::NB_PLAYERS], n: usize) {
+        if self.len() < super::NB_PLAYERS * n {
             panic!("Deck has too few cards!");
         }
 

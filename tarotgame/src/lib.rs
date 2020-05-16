@@ -46,6 +46,8 @@ pub mod points;
 pub mod pos;
 pub mod trick;
 
+const NB_PLAYERS:usize = 5;
+
 // Expose the module or their content directly? Still unsure.
 
 // pub use bid::*;
@@ -57,41 +59,54 @@ pub mod trick;
 
 /// Quick method to get cards for 4 players.
 ///
-/// Deals cards to 4 players randomly.
-pub fn deal_hands() -> [cards::Hand; 4] {
-    let mut hands = [cards::Hand::new(); 4];
+/// Deals cards to 5 players randomly.
+pub fn deal_hands() -> ([cards::Hand; NB_PLAYERS], cards::Hand) {
+    let mut hands = [cards::Hand::new(); NB_PLAYERS];
+    let mut dog = cards::Hand::new();
 
     let mut d = cards::Deck::new();
     d.shuffle();
 
     d.deal_each(&mut hands, 3);
-    d.deal_each(&mut hands, 2);
+    d.deal_each(&mut hands, 3);
+    dog.add(d.draw());
+    d.deal_each(&mut hands, 3);
+    dog.add(d.draw());
+    d.deal_each(&mut hands, 3);
+    dog.add(d.draw());
     d.deal_each(&mut hands, 3);
 
-    hands
+    (hands, dog)
 }
 
-/// Deal cards for 4 players deterministically.
-pub fn deal_seeded_hands(seed: [u8; 32]) -> [cards::Hand; 4] {
-    let mut hands = [cards::Hand::new(); 4];
+/// Deal cards for 5 players deterministically.
+pub fn deal_seeded_hands(seed: [u8; 32]) -> ([cards::Hand; NB_PLAYERS], cards::Hand) {
+    let mut hands = [cards::Hand::new(); NB_PLAYERS];
+    let mut dog = cards::Hand::new();
 
     let mut d = cards::Deck::new();
     d.shuffle_seeded(seed);
 
     d.deal_each(&mut hands, 3);
-    d.deal_each(&mut hands, 2);
+    d.deal_each(&mut hands, 3);
+    dog.add(d.draw());
+    d.deal_each(&mut hands, 3);
+    dog.add(d.draw());
+    d.deal_each(&mut hands, 3);
+    dog.add(d.draw());
     d.deal_each(&mut hands, 3);
 
-    hands
+    (hands, dog)
 }
 
 #[test]
 fn test_deals() {
-    let hands = deal_hands();
+    let (hands, dog) = deal_hands();
+    assert!(dog.size() == 3);
 
-    let mut count = [0; 32];
+    let mut count = [0; 78];
     for hand in hands.iter() {
-        assert!(hand.size() == 8);
+        assert!(hand.size() == 15);
         for card in hand.list().iter() {
             count[card.id() as usize] += 1;
         }

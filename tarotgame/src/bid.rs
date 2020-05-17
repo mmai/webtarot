@@ -264,6 +264,7 @@ impl Auction {
                 self.players,
                 self.dog,
                 self.history.pop().expect("contract history empty"),
+                pos::PlayerPos::P0, //XXX placeholder
             ))
         }
     }

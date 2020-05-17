@@ -9,10 +9,6 @@ use std::num::Wrapping;
 use std::str::FromStr;
 use std::string::ToString;
 
-pub const PETIT: Card = Card::new(Suit::Trump, Rank::Rank1);
-pub const VINGTETUN: Card = Card::new(Suit::Trump, Rank::Rank21);
-pub const EXCUSE: Card = Card::new(Suit::Trump, Rank::Rank22);
-
 /// One of the four Suits: Heart, Spade, Diamond, Club.
 #[derive(PartialEq, Clone, Copy, Debug, Serialize, Deserialize)]
 #[repr(u64)]

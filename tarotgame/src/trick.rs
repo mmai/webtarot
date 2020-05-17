@@ -10,7 +10,7 @@ use super::pos;
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Trick {
     /// Cards currently on the table (they are `None` until played).
-    pub cards: [Option<cards::Card>; 4],
+    pub cards: [Option<cards::Card>; super::NB_PLAYERS],
     /// First player in this trick.
     pub first: pos::PlayerPos,
     /// Current winner of the trick (updated after each card played).
@@ -23,7 +23,7 @@ impl Trick {
         Trick {
             first,
             winner: first,
-            cards: [None; 4],
+            cards: [None; super::NB_PLAYERS],
         }
     }
 
@@ -33,15 +33,15 @@ impl Trick {
         Trick {
             first: default,
             winner: default,
-            cards: [None; 4],
+            cards: [None; super::NB_PLAYERS],
         }
     }
 
     /// Returns the points value of this trick.
-    pub fn score(&self) -> f32 {
+    pub fn points(&self) -> f32 {
         self.cards
             .iter()
-            .map(|c| c.map_or(0.0, |c| points::score(c)))
+            .map(|c| c.map_or(0.0, |c| points::points(c)))
             .sum()
     }
 
@@ -56,6 +56,17 @@ impl Trick {
         // };
         // self.cards[trick_pos]
     }
+
+    /// Returns the player who played a card
+    pub fn player_played(&self, card: cards::Card) -> Option<pos::PlayerPos> {
+        self.cards.iter().position(|c| c == &Some(card)).map(|idx| pos::PlayerPos::from_n(idx))
+    }
+
+    /// Returns `true` if `self` contains `card`.
+    pub fn has(self, card: cards::Card) -> bool {
+        self.cards.contains(&Some(card))
+    }
+
 
     /// Plays a card.
     ///

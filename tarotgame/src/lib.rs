@@ -20,8 +20,9 @@
 //!     auction.bid(pos::PlayerPos::P0, cards::Suit::Heart, bid::Target::Contract80).unwrap();
 //!     auction.pass(pos::PlayerPos::P1).unwrap();
 //!     auction.pass(pos::PlayerPos::P2).unwrap();
+//!     auction.pass(pos::PlayerPos::P3).unwrap();
 //!     // The result is `Over` when the auction is ready to complete
-//!     match auction.pass(pos::PlayerPos::P3) {
+//!     match auction.pass(pos::PlayerPos::P4) {
 //!         Ok(bid::AuctionState::Over) => (),
 //!         _ => panic!("Should not happen"),
 //!     };
@@ -47,6 +48,8 @@ pub mod pos;
 pub mod trick;
 
 const NB_PLAYERS:usize = 5;
+const DOG_SIZE:usize = 3;
+const DEAL_SIZE:usize = (78 - DOG_SIZE) / NB_PLAYERS ;
 
 // Expose the module or their content directly? Still unsure.
 
@@ -106,7 +109,7 @@ fn test_deals() {
 
     let mut count = [0; 78];
     for hand in hands.iter() {
-        assert!(hand.size() == 15);
+        assert!(hand.size() == DEAL_SIZE);
         for card in hand.list().iter() {
             count[card.id() as usize] += 1;
         }

@@ -2,8 +2,18 @@
 
 use super::cards;
 
+pub fn score(points: f32, oudlers_count: u8) -> f32 {
+    match oudlers_count {
+        3 => points - 36.0,
+        2 => points - 41.0,
+        1 => points - 51.0,
+        _ => points - 56.0,
+    }
+
+}
+
 /// Returns the number of points `card` is worth
-pub fn score(card: cards::Card) -> f32 {
+pub fn points(card: cards::Card) -> f32 {
     match card.rank() {
         cards::Rank::Rank1 if card.suit() == cards::Suit::Trump => 4.5, 
         cards::Rank::Rank21 => 4.5,

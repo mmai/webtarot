@@ -11,10 +11,12 @@ use super::trick;
 #[derive(Clone)]
 pub struct DealState {
     players: [cards::Hand; super::NB_PLAYERS],
+    partner: pos::PlayerPos, 
     dog: cards::Hand,
     current: pos::PlayerPos,
     contract: bid::Contract,
-    points: [i32; super::NB_PLAYERS],
+    points: [f32; super::NB_PLAYERS],
+    oudlers_count: u8,
     tricks: Vec<trick::Trick>,
 }
 
@@ -27,11 +29,11 @@ pub enum DealResult {
     /// The deal is over
     GameOver {
         /// Worth of won tricks
-        points: [i32; super::NB_PLAYERS],
+        points: [f32; super::NB_PLAYERS],
         /// Winning team
         taker_won: bool,
         /// Score for this deal
-        scores: [i32; super::NB_PLAYERS],
+        scores: [f32; super::NB_PLAYERS],
     },
 }
 
@@ -75,14 +77,16 @@ impl fmt::Display for PlayError {
 
 impl DealState {
     /// Creates a new DealState, with the given cards, first player and contract.
-    pub fn new(first: pos::PlayerPos, hands: [cards::Hand; super::NB_PLAYERS], dog: cards::Hand, contract: bid::Contract) -> Self {
+    pub fn new(first: pos::PlayerPos, hands: [cards::Hand; super::NB_PLAYERS], dog: cards::Hand, contract: bid::Contract, partner: pos::PlayerPos) -> Self {
         DealState {
             players: hands,
+            partner,
             dog,
             current: first,
             contract,
             tricks: vec![trick::Trick::new(first)],
-            points: [0; 5],
+            oudlers_count: 0,
+            points: [0.0; 5],
         }
     }
 
@@ -118,11 +122,45 @@ impl DealState {
         // Is the trick over?
         let result = if trick_over {
             let winner = self.current_trick().winner;
-            let score = self.current_trick().score();
-            self.points[winner.team() as usize] += score;
-            if self.tricks.len() == 8 {
-                // petit au bout ?
-                self.points[winner.team() as usize] += 10;
+
+            let points = self.current_trick().points();
+            self.points[winner as usize] += points;
+
+            if self.in_taker_team(winner) && ( 
+                self.current_trick().has(cards::PETIT) || 
+                self.current_trick().has(cards::VINGTETUN)) {
+                    self.oudlers_count += 1;
+            }
+
+            if self.current_trick().has(cards::EXCUSE) {
+                let excuse_player = self.current_trick().player_played(cards::EXCUSE).unwrap();
+                if self.tricks.len() == super::DEAL_SIZE && !self.is_slam() {
+                    //Excuse played in the last trick when not a slam : goes to the other team
+                    let excuse_points = points::points(cards::EXCUSE);
+                    if self.in_taker_team(excuse_player) {
+                        self.points[self.contract.author as usize] -= excuse_points;
+                        self.points[self.get_opponent() as usize] += excuse_points;
+                    } else {
+                        self.points[excuse_player as usize] -= excuse_points;
+                        self.points[self.contract.author as usize] += excuse_points;
+                        self.oudlers_count += 1;
+                    }
+
+                } else {
+                    //player of the excuse keeps it
+                      // points
+                    let diff_points = points::points(cards::EXCUSE) - 0.5; 
+                    self.points[winner as usize] -= diff_points;
+                    self.points[excuse_player as usize] += diff_points;
+                      // oudlers count
+                    if self.in_taker_team(excuse_player) {
+                        self.oudlers_count += 1;
+                    }
+                }
+            }
+
+            if self.tricks.len() == super::DEAL_SIZE {
+                // TODO petit au bout ? -> maj annonce
             } else {
                 self.tricks.push(trick::Trick::new(winner));
             }
@@ -136,6 +174,24 @@ impl DealState {
         Ok(result)
     }
 
+    fn taker_won(self) -> bool {
+        let winner = self.current_trick().winner;
+        winner == self.contract.author || winner == self.partner
+    } 
+
+    fn in_taker_team(self, player: pos::PlayerPos) -> bool {
+        player == self.contract.author || player == self.partner
+    } 
+
+    fn get_opponent(self) -> pos::PlayerPos {
+        for position in pos::POSITIONS_LIST.iter() {
+            if !self.in_taker_team(*position) {
+                return *position;
+            }
+        }
+        pos::PlayerPos::P0
+    }
+
     /// Returns the player expected to play next.
     pub fn next_player(&self) -> pos::PlayerPos {
         self.current
@@ -146,46 +202,43 @@ impl DealState {
             return DealResult::Nothing;
         }
 
-        let taking_team = self.contract.author.team();
-        let taking_points = self.points[taking_team as usize];
+        let slam = self.is_slam();
 
-        let capot = self.is_capot(taking_team);
+        let mut taking_points = self.points[self.contract.author as usize];
+        if self.partner != self.contract.author {
+            taking_points += self.points[self.partner as usize];
+        }
+        let base_points = self.contract.target.multiplier() as f32 * points::score(taking_points, self.oudlers_count);
 
-        let victory = self.contract.target.victory(taking_points, capot);
-
-        let winners = if victory {
-            taking_team
-        } else {
-            taking_team.opponent()
-        };
-
-        // TODO: Allow for variants in scoring. (See wikipedia article)
-        let mut scores = [0; 2];
-        if victory {
-            scores[winners as usize] = self.contract.target.score();
-        } else {
-            scores[winners as usize] = 160;
+        let mut scores = [0.0; super::NB_PLAYERS];
+        for position in pos::POSITIONS_LIST.iter() {
+            if !self.in_taker_team(*position) {
+                scores[*position as usize] -= base_points;
+                scores[self.contract.author as usize] += base_points;
+            } else if position != &self.contract.author { // Partner
+                scores[*position as usize] += base_points;
+                scores[self.contract.author as usize] -= base_points;
+            }
         }
 
         DealResult::GameOver {
             points: self.points,
-            winners,
+            taker_won: base_points > 0.0,
             scores,
         }
     }
 
-    fn is_capot(&self, team: pos::Team) -> bool {
+    fn is_slam(&self) -> bool {
         for trick in &self.tricks {
-            if trick.winner.team() != team {
+            if !self.in_taker_team(trick.winner) {
                 return false;
             }
         }
-
         true
     }
 
     /// Returns the cards of all players
-    pub fn hands(&self) -> [cards::Hand; 4] {
+    pub fn hands(&self) -> [cards::Hand; super::NB_PLAYERS] {
         self.players
     }
 
@@ -324,10 +377,8 @@ mod tests {
         hands[3].add(cards::Card::new(cards::Suit::Heart, cards::Rank::RankJ));
 
         let contract = bid::Contract {
-            trump: cards::Suit::Heart,
             author: pos::PlayerPos::P0,
-            target: bid::Target::Contract80,
-            coinche_level: 0,
+            target: bid::Target::Prise,
         };
 
         let mut deal = DealState::new(pos::PlayerPos::P0, hands, contract);

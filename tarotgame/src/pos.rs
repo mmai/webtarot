@@ -17,6 +17,14 @@ pub enum PlayerPos {
     P4,
 }
 
+pub const POSITIONS_LIST: [PlayerPos;5] = [
+    PlayerPos::P0,
+    PlayerPos::P1,
+    PlayerPos::P2,
+    PlayerPos::P3,
+    PlayerPos::P4,
+];
+
 /// Iterates on players
 pub struct PlayerIterator {
     current: PlayerPos,

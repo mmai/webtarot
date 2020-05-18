@@ -127,19 +127,14 @@ impl Game {
     }
 
 
-    pub async fn set_bid(&self, pid: Uuid, target: bid::Target, trump: cards::Suit){
+    pub async fn set_bid(&self, pid: Uuid, target: bid::Target){
         let mut game_state = self.game_state.lock().await;
-        game_state.set_bid(pid, target, trump);
+        game_state.set_bid(pid, target);
     }
 
     pub async fn set_pass(&self, pid: Uuid){
         let mut game_state = self.game_state.lock().await;
         game_state.set_pass(pid);
-    }
-
-    pub async fn set_coinche(&self, pid: Uuid){
-        let mut game_state = self.game_state.lock().await;
-        game_state.set_coinche(pid);
     }
 
     pub async fn set_play(&self, pid: Uuid, card: cards::Card){

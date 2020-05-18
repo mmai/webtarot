@@ -80,7 +80,7 @@ impl FromStr for Suit {
             "♣" | "C" | "c" | "club" | "Suit::Club" | "Club" => Ok(Suit::Club),
             "♠" | "S" | "s" | "spade" | "Suit::Spade" | "Spade" => Ok(Suit::Spade),
             "♦" | "D" | "d" | "diamond" | "Suit::Diamond" | "Diamond" => Ok(Suit::Diamond),
-            "T" | "A" | "d" | "trump" | "Suit::Trump" | "Trump" => Ok(Suit::Trump),
+            "T" | "A" | "t" | "trump" | "Suit::Trump" | "Trump" => Ok(Suit::Trump),
             _ => Err(format!("invalid suit: {}", s)),
         }
     }
@@ -175,6 +175,7 @@ impl Rank {
             128 => Rank::Rank8,
             256 => Rank::Rank9,
             512 => Rank::Rank10,
+
             1024 => Rank::RankJ,
             2048 => Rank::RankC,
             4096 => Rank::RankQ,
@@ -183,7 +184,7 @@ impl Rank {
             16384 => Rank::Rank11,
             32768 => Rank::Rank12,
             65536 => Rank::Rank13,
-            13172 => Rank::Rank14,
+            131072 => Rank::Rank14,
             262144 => Rank::Rank15,
             524288 => Rank::Rank16,
             1048576 => Rank::Rank17,
@@ -258,12 +259,16 @@ impl Card {
     ///
     /// # Panics
     ///
-    /// If `id >= 78`
+    /// If `id >= 82` or 65 < id < 70
     pub fn from_id(id: u32) -> Self {
         if id < 56 {
             Card(1 << id, 0)
-        } else if id < 78 {
-            Card(0, 1 << (id - 55))
+        } else if id < 66 {
+            Card(0, 1 << (id - 56))
+        } else if id < 70 {
+            panic!("invalid card id");
+        } else if id < 82 {
+            Card(0, 1 << (id - 56))
         } else {
             panic!("invalid card id");
         }
@@ -353,7 +358,7 @@ impl Hand {
     /// Returns `true` if the hand contains any card of the given suit.
     pub fn has_any(self, suit: Suit) -> bool {
         if suit == Suit::Trump {
-            true
+            self.1 != 0
         } else {
             self.0 & (RANK_MASK * suit as u64) != 0
         }
@@ -384,11 +389,11 @@ impl Hand {
                 // We just need to shift it back.
                 Card(n.0 >> 1, 0)
             }
-        } else { //Trumps
+        } else { //Trumps XXX not tested and possibly wrong
             let n = Wrapping(t ^ (t - 1)) + Wrapping(1);
             if n.0 == 0 {
                 // We got an overflow. This means the desired bit it the leftmost one.
-                Card::from_id(77)
+                Card::from_id(81)
             } else {
                 // We just need to shift it back.
                 Card(0, n.0 >> 1)
@@ -445,10 +450,13 @@ impl Deck {
     /// Returns a full, sorted deck of 32 cards.
     pub fn new() -> Self {
         let mut d = Deck {
-            cards: Vec::with_capacity(32),
+            cards: Vec::with_capacity(78),
         };
 
-        for i in 0..32 {
+        for i in 0..66 {
+            d.cards.push(Card::from_id(i));
+        }
+        for i in 70..82 {
             d.cards.push(Card::from_id(i));
         }
 
@@ -522,20 +530,47 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_card() {
+        let card = Card::new(Suit::Trump, Rank::Rank22);
+        assert!(81 == card.id());
+
+        let card = Card::from_id(81);
+        assert!(Card::new(Suit::Trump, Rank::Rank22) == card);
+    }
+
+    #[test]
     fn test_cards() {
-        for i in 0..32 {
+        for i in 0..66 {
+            let card = Card::from_id(i);
+            assert!(i == card.id());
+        }
+        for i in 70..82 {
             let card = Card::from_id(i);
             assert!(i == card.id());
         }
 
-        for s in 0..4 {
+        for s in 0..3 {
             let suit = Suit::from_n(s);
-            for r in 0..8 {
+            for r in 0..13 {
                 let rank = Rank::from_n(r);
                 let card = Card::new(suit, rank);
                 assert!(card.rank() == rank);
                 assert!(card.suit() == suit);
             }
+        }
+
+        let suit = Suit::Trump;
+        for r in 0..9 {
+            let rank = Rank::from_n(r);
+            let card = Card::new(suit, rank);
+            assert!(card.rank() == rank);
+            assert!(card.suit() == suit);
+        }
+        for r in 14..25 {
+            let rank = Rank::from_n(r);
+            let card = Card::new(suit, rank);
+            assert!(card.rank() == rank);
+            assert!(card.suit() == suit);
         }
     }
 
@@ -544,6 +579,9 @@ mod tests {
         let mut hand = Hand::new();
 
         let cards: Vec<Card> = vec![
+            Card::new(Suit::Heart, Rank::Rank2),
+            Card::new(Suit::Heart, Rank::Rank3),
+            Card::new(Suit::Heart, Rank::Rank4),
             Card::new(Suit::Heart, Rank::Rank7),
             Card::new(Suit::Heart, Rank::Rank8),
             Card::new(Suit::Spade, Rank::Rank9),
@@ -551,7 +589,11 @@ mod tests {
             Card::new(Suit::Club, Rank::RankQ),
             Card::new(Suit::Club, Rank::RankK),
             Card::new(Suit::Diamond, Rank::Rank10),
+            Card::new(Suit::Diamond, Rank::Rank8),
+            Card::new(Suit::Diamond, Rank::Rank9),
             Card::new(Suit::Trump, Rank::Rank15),
+            Card::new(Suit::Trump, Rank::Rank7),
+            Card::new(Suit::Trump, Rank::Rank21),
         ];
 
         assert!(hand.is_empty());
@@ -575,17 +617,24 @@ mod tests {
     fn test_deck() {
         let mut deck = Deck::new();
         deck.shuffle();
+        assert!(deck.len() == 78);
 
-        assert!(deck.len() == 32);
-
-        let mut count = [0; 32];
+        let mut count = [0; 78];
         while !deck.is_empty() {
             let card = deck.draw();
-            count[card.id() as usize] += 1;
+            count[idx_from_id(card.id()) as usize] += 1;
         }
 
         for c in count.iter() {
             assert!(*c == 1);
+        }
+    }
+
+    fn idx_from_id(id: u32) -> u32 {
+        if id < 66 {
+            id
+        } else {
+            id - 4
         }
     }
 }

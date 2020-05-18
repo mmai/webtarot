@@ -121,27 +121,22 @@ impl DealState {
 
         // Is the trick over?
         let result = if trick_over {
-            let PETIT = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank1);
-            let VINGTETUN = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank21);
-            let EXCUSE = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank22);
-
             let winner = self.current_trick().winner;
 
             let points = self.current_trick().points();
             self.points[winner as usize] += points;
 
-            let cur_trick = self.current_trick();
-            let has_petit = cur_trick.has(PETIT);
-            let has_21 = cur_trick.has(VINGTETUN);
+            let (has_petit, has_21, has_excuse) = self.current_trick().clone().has_oudlers();
             if self.in_taker_team(winner) && (has_petit || has_21) {
                     self.oudlers_count += 1;
             }
 
-            if self.current_trick().has(EXCUSE) {
-                let excuse_player = self.current_trick().player_played(EXCUSE).unwrap();
+            if has_excuse {
+                let excuse = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank22);
+                let excuse_player = self.current_trick().player_played(excuse).unwrap();
                 if self.tricks.len() == super::DEAL_SIZE && !self.is_slam() {
                     //Excuse played in the last trick when not a slam : goes to the other team
-                    let excuse_points = points::points(EXCUSE);
+                    let excuse_points = points::points(excuse);
                     if self.in_taker_team(excuse_player) {
                         self.points[self.contract.author as usize] -= excuse_points;
                         self.points[*self.get_opponent() as usize] += excuse_points;
@@ -154,7 +149,7 @@ impl DealState {
                 } else {
                     //player of the excuse keeps it
                       // points
-                    let diff_points = points::points(EXCUSE) - 0.5; 
+                    let diff_points = points::points(excuse) - 0.5; 
                     self.points[winner as usize] -= diff_points;
                     self.points[excuse_player as usize] += diff_points;
                       // oudlers count
@@ -179,11 +174,6 @@ impl DealState {
         Ok(result)
     }
 
-    fn taker_won(self) -> bool {
-        let winner = self.current_trick().winner;
-        winner == self.contract.author || winner == self.partner
-    } 
-
     fn in_taker_team(&self, player: pos::PlayerPos) -> bool {
         &player == &self.contract.author || &player == &self.partner
     } 
@@ -207,7 +197,7 @@ impl DealState {
             return DealResult::Nothing;
         }
 
-        let slam = self.is_slam();
+        let _slam = self.is_slam();
 
         let mut taking_points = self.points[self.contract.author as usize];
         if self.partner != self.contract.author {
@@ -285,6 +275,11 @@ pub fn can_play(
         return Err(PlayError::CardMissing);
     }
 
+    //Excuse
+    if card.rank() == cards::Rank::Rank22 {
+        return Ok(());
+    }
+
     if p == trick.first {
         return Ok(());
     }
@@ -297,14 +292,14 @@ pub fn can_play(
         }
 
         if card_suit != cards::Suit::Trump && hand.has_any(cards::Suit::Trump) {
-                return Err(PlayError::InvalidPiss);
+            return Err(PlayError::InvalidPiss);
         }
     }
 
     // One must raise when playing trump
     if card_suit == cards::Suit::Trump {
         let highest = highest_trump(trick, p);
-        if points::strength(card) < highest && has_higher(hand, highest) {
+        if points::strength(card) < highest && has_higher_trump(hand, highest) {
             return Err(PlayError::NonRaisedTrump);
         }
     }
@@ -312,7 +307,7 @@ pub fn can_play(
     Ok(())
 }
 
-fn has_higher(hand: cards::Hand, strength: i32) -> bool {
+fn has_higher_trump(hand: cards::Hand, strength: i32) -> bool {
     for c in hand.list() {
         if points::strength(c) > strength {
             return true;
@@ -338,9 +333,9 @@ fn highest_trump(trick: &trick::Trick, player: pos::PlayerPos) -> i32 {
 
 #[cfg(test)]
 mod tests {
-    use super::has_higher;
+    use super::has_higher_trump;
     use super::*;
-    use crate::{bid, cards, points, pos};
+    use crate::{NB_PLAYERS, cards, points, pos};
 
     #[test]
     fn test_play_card() {
@@ -349,7 +344,7 @@ mod tests {
         dog.add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank5));
         dog.add(cards::Card::new(cards::Suit::Club, cards::Rank::Rank2));
 
-        let mut hands = [cards::Hand::new(); 5];
+        let mut hands = [cards::Hand::new(); NB_PLAYERS];
         hands[0].add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank8));
         hands[0].add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank9));
         hands[0].add(cards::Card::new(cards::Suit::Club, cards::Rank::Rank7));
@@ -391,8 +386,8 @@ mod tests {
         hands[2].add(cards::Card::new(cards::Suit::Heart, cards::Rank::RankQ));
         hands[2].add(cards::Card::new(cards::Suit::Heart, cards::Rank::RankK));
         hands[2].add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank3));
-        hands[2].add(cards::Card::new(cards::Suit::Club, cards::Rank::Rank4));
-        hands[2].add(cards::Card::new(cards::Suit::Club, cards::Rank::Rank6));
+        hands[2].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank2));
+        hands[2].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank7));
         hands[2].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank9));
         hands[2].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank10));
         hands[2].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank11));
@@ -407,12 +402,12 @@ mod tests {
         hands[3].add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank7));
         hands[3].add(cards::Card::new(cards::Suit::Heart, cards::Rank::RankJ));
         hands[3].add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank4));
-        hands[3].add(cards::Card::new(cards::Suit::Club, cards::Rank::Rank5));
         hands[3].add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank2));
         hands[3].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank1));
-        hands[3].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank2));
-        hands[3].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank7));
         hands[3].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank8));
+        hands[3].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank3));
+        hands[3].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank4));
+        hands[3].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank5));
 
         hands[4].add(cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank2));
         hands[4].add(cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank3));
@@ -425,9 +420,9 @@ mod tests {
         hands[4].add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank3));
         hands[4].add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank4));
         hands[4].add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank5));
-        hands[4].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank3));
-        hands[4].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank4));
-        hands[4].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank5));
+        hands[4].add(cards::Card::new(cards::Suit::Club, cards::Rank::Rank5));
+        hands[4].add(cards::Card::new(cards::Suit::Club, cards::Rank::Rank4));
+        hands[4].add(cards::Card::new(cards::Suit::Club, cards::Rank::Rank6));
         hands[4].add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank6));
 
         let contract = bid::Contract {
@@ -486,7 +481,7 @@ mod tests {
         assert_eq!(
             deal.play_card(
                 pos::PlayerPos::P2,
-                cards::Card::new(cards::Suit::Heart, cards::Rank::RankQ)
+                cards::Card::new(cards::Suit::Trump, cards::Rank::Rank2)
             ).ok(),
             Some(TrickResult::Nothing)
         );
@@ -494,14 +489,21 @@ mod tests {
         assert_eq!(
             deal.play_card(
                 pos::PlayerPos::P3,
-                cards::Card::new(cards::Suit::Heart, cards::Rank::Rank7)
+                cards::Card::new(cards::Suit::Trump, cards::Rank::Rank1)
             ).err(),
             Some(PlayError::NonRaisedTrump)
         );
         assert_eq!(
             deal.play_card(
                 pos::PlayerPos::P3,
-                cards::Card::new(cards::Suit::Heart, cards::Rank::RankJ)
+                cards::Card::new(cards::Suit::Trump, cards::Rank::Rank8)
+            ).ok(),
+            Some(TrickResult::Nothing)
+        );
+        assert_eq!(
+            deal.play_card(
+                pos::PlayerPos::P4,
+                cards::Card::new(cards::Suit::Club, cards::Rank::Rank4)
             ).ok(),
             Some(TrickResult::TrickOver(
                 pos::PlayerPos::P3,
@@ -512,14 +514,14 @@ mod tests {
 
     #[test]
     fn test_has_higher_1() {
-        // Simple case: K is always higher than Q.
+        // Simple case
         let mut hand = cards::Hand::new();
 
         hand.add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank8));
-        hand.add(cards::Card::new(cards::Suit::Spade, cards::Rank::RankK));
-        assert!(has_higher(
+        hand.add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank6));
+        assert!(has_higher_trump(
             hand,
-            points::strength(cards::Card::new(cards::Suit::Spade, cards::Rank::RankQ))
+            points::strength(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank4))
         ));
     }
 
@@ -528,11 +530,11 @@ mod tests {
         // Test that we don't mix colors
         let mut hand = cards::Hand::new();
 
-        hand.add(cards::Card::new(cards::Suit::Heart, cards::Rank::RankK));
-        hand.add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank10));
-        assert!(!has_higher(
+        hand.add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank8));
+        hand.add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank1));
+        assert!(!has_higher_trump(
             hand,
-            points::strength(cards::Card::new(cards::Suit::Spade, cards::Rank::RankQ))
+            points::strength(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank5))
         ));
     }
 
@@ -542,9 +544,9 @@ mod tests {
 
         hand.add(cards::Card::new(cards::Suit::Heart, cards::Rank::RankJ));
         hand.add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank2));
-        assert!(has_higher(
+        assert!(!has_higher_trump(
             hand,
-            points::strength(cards::Card::new(cards::Suit::Spade, cards::Rank::RankQ))
+            points::strength(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank3))
         ));
     }
 
@@ -554,7 +556,7 @@ mod tests {
 
         hand.add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank8));
         hand.add(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank22));
-        assert!(!has_higher(
+        assert!(!has_higher_trump(
             hand,
             points::strength(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank3))
         ));
@@ -568,9 +570,9 @@ mod tests {
         hand.add(cards::Card::new(cards::Suit::Heart, cards::Rank::RankJ));
         hand.add(cards::Card::new(cards::Suit::Diamond, cards::Rank::RankJ));
         hand.add(cards::Card::new(cards::Suit::Spade, cards::Rank::RankJ));
-        assert!(!has_higher(
+        assert!(!has_higher_trump(
             hand,
-            points::strength(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank7))
+            points::strength(cards::Card::new(cards::Suit::Trump, cards::Rank::Rank7))
         ));
     }
 }

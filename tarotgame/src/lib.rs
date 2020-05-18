@@ -47,7 +47,7 @@ pub mod points;
 pub mod pos;
 pub mod trick;
 
-const NB_PLAYERS:usize = 5;
+pub const NB_PLAYERS:usize = 5;
 const DOG_SIZE:usize = 3;
 const DEAL_SIZE:usize = (78 - DOG_SIZE) / NB_PLAYERS ;
 
@@ -108,14 +108,27 @@ fn test_deals() {
     assert!(dog.size() == 3);
 
     let mut count = [0; 78];
+
+    for card in dog.list().iter() {
+        count[idx_from_id(card.id()) as usize] += 1;
+    }
     for hand in hands.iter() {
         assert!(hand.size() == DEAL_SIZE);
         for card in hand.list().iter() {
-            count[card.id() as usize] += 1;
+            count[idx_from_id(card.id()) as usize] += 1;
         }
     }
 
     for c in count.iter() {
         assert!(*c == 1);
     }
+
+    fn idx_from_id(id: u32) -> u32 {
+        if id < 66 {
+            id
+        } else {
+            id - 4
+        }
+    }
 }
+

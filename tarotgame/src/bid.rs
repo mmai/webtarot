@@ -273,7 +273,7 @@ impl Auction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{cards, pos};
+    use crate::pos;
 
     #[test]
     fn test_auction() {
@@ -295,19 +295,15 @@ mod tests {
             Ok(AuctionState::Bidding)
         );
         assert_eq!(
-            auction
-                .bid(pos::PlayerPos::P0, Target::Garde)
-                .err(),
+            auction.bid(pos::PlayerPos::P0, Target::Garde).err(),
             Some(BidError::NonRaisedTarget)
         );
         assert_eq!(
-            auction
-                .bid(pos::PlayerPos::P1, Target::GardeSans)
-                .err(),
+            auction.bid(pos::PlayerPos::P1, Target::GardeSans).err(),
             Some(BidError::TurnError)
         );
         assert_eq!(auction.pass(pos::PlayerPos::P0), Ok(AuctionState::Bidding));
-        // Partner surbids
+        // Surbid
         assert_eq!(
             auction.bid(pos::PlayerPos::P1, Target::GardeSans),
             Ok(AuctionState::Bidding)

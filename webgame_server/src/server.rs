@@ -265,10 +265,10 @@ pub async fn on_player_bid(
     if let Some(game) = universe.get_player_game(player_id).await {
         game.broadcast(&Message::Chat(ChatMessage {
             player_id,
-            text: format!("bid: {:?} {:?}", cmd.target, cmd.trump),
+            text: format!("bid: {:?}", cmd.target),
         }))
         .await;
-        game.set_bid(player_id, cmd.target, cmd.trump).await;
+        game.set_bid(player_id, cmd.target).await;
         game.broadcast_state().await;
         Ok(())
     } else {
@@ -334,7 +334,6 @@ pub async fn on_player_coinche(
             text: format!("coinche"),
         }))
         .await;
-        game.set_coinche(player_id).await;
         game.broadcast_state().await;
         Ok(())
     } else {

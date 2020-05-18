@@ -67,6 +67,18 @@ impl Trick {
         self.cards.contains(&Some(card))
     }
 
+    pub fn has_oudlers(self) -> (bool, bool, bool) {
+        let petit = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank1);
+        let vingtetun = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank21);
+        let excuse = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank22);
+        (
+            self.cards.contains(&Some(petit)),
+            self.cards.contains(&Some(vingtetun)),
+            self.cards.contains(&Some(excuse))
+        )
+    }
+
+
 
     /// Plays a card.
     ///

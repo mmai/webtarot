@@ -176,7 +176,7 @@ impl GameState {
                         count = count + 1;
                     }
                 }
-                if count == 4 {
+                if count == NB_PLAYERS {
                     if self.turn == Turn::Interdeal { // ongoing game
                         self.next_deal();
                         self.update_turn();

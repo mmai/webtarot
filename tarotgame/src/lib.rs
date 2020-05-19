@@ -17,7 +17,7 @@
 //!     let hands = auction.hands();
 //!
 //!     // Players bid or pass
-//!     auction.bid(pos::PlayerPos::P0, cards::Suit::Heart, bid::Target::Contract80).unwrap();
+//!     auction.bid(pos::PlayerPos::P0, bid::Target::Garde).unwrap();
 //!     auction.pass(pos::PlayerPos::P1).unwrap();
 //!     auction.pass(pos::PlayerPos::P2).unwrap();
 //!     auction.pass(pos::PlayerPos::P3).unwrap();

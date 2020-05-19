@@ -238,7 +238,7 @@ impl DealState {
     }
 
     pub fn is_over(&self) -> bool {
-        self.tricks.len() == 8 && !self.tricks[7].cards.iter().any(|&c| c.is_none())
+        self.tricks.len() == super::DEAL_SIZE && !self.tricks[super::DEAL_SIZE -1].cards.iter().any(|&c| c.is_none())
     }
 
     /// Return the last trick, if possible

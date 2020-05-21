@@ -12,6 +12,7 @@ use super::trick;
 pub struct DealState {
     players: [cards::Hand; super::NB_PLAYERS],
     partner: pos::PlayerPos, 
+    called_king: Option<cards::Card>,
     dog: cards::Hand,
     current: pos::PlayerPos,
     contract: bid::Contract,
@@ -81,6 +82,7 @@ impl DealState {
         DealState {
             players: hands,
             partner,
+            called_king: None,
             dog,
             current: first,
             contract,
@@ -93,6 +95,51 @@ impl DealState {
     /// Returns the contract used for this deal
     pub fn contract(&self) -> &bid::Contract {
         &self.contract
+    }
+
+    //TODO return Result instead of bool
+    pub fn call_king(&mut self, pos: pos::PlayerPos, card: cards::Card) -> bool {
+        if pos != self.contract.author {
+            println!("Player {:?} is not the taker", pos);
+            return false;
+        } 
+
+        let hand = self.players[pos as usize];
+        let has_all_kings = hand.has(cards::Card::new(cards::Suit::Club, cards::Rank::RankK))
+            && hand.has(cards::Card::new(cards::Suit::Heart, cards::Rank::RankK))
+            && hand.has(cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK))
+            && hand.has(cards::Card::new(cards::Suit::Spade, cards::Rank::RankK)) ;
+        let has_all_queens = hand.has(cards::Card::new(cards::Suit::Club, cards::Rank::RankQ))
+            && hand.has(cards::Card::new(cards::Suit::Heart, cards::Rank::RankQ))
+            && hand.has(cards::Card::new(cards::Suit::Diamond, cards::Rank::RankQ))
+            && hand.has(cards::Card::new(cards::Suit::Spade, cards::Rank::RankQ)) ;
+
+        if card.rank() == cards::Rank::RankJ && !(has_all_queens && has_all_kings) {
+            println!("Calling a jake not allowed");
+            return false;
+        }
+        if card.rank() == cards::Rank::RankQ && !has_all_kings {
+            println!("Calling a queen not allowed");
+            return false;
+        }
+
+        //Everything ok, now who is the partner ?
+        self.partner = pos; // the taker by default (if king is in the dog..) 
+        for player_pos in &[
+            pos::PlayerPos::P0,
+            pos::PlayerPos::P1,
+            pos::PlayerPos::P2,
+            pos::PlayerPos::P3,
+            pos::PlayerPos::P4,
+        ] {
+            if self.players[*player_pos as usize].has(card) {
+                self.partner = *player_pos;
+            }
+        }
+
+        //King have been called successfully
+        self.called_king = Some(card);
+        true
     }
 
     /// Try to play a card

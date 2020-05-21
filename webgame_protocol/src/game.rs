@@ -147,10 +147,14 @@ impl GameState {
         } else if self.was_last_trick() {
             self.end_deal();
             Turn::Interdeal
-        } else {
-            if self.turn == Turn::Interdeal {
-                self.next_deal();
+        } else if self.turn == Turn::Interdeal {
+            self.next_deal();
+            if NB_PLAYERS == 5 {
+                Turn::CallingKing
+            } else {
+                Turn::MakingDog
             }
+        } else {
             Turn::from_deal(&self.deal)
         }
     }
@@ -206,6 +210,25 @@ impl GameState {
             self.complete_auction();
         }
         self.update_turn();
+    }
+
+    pub fn call_king(&mut self, pid: Uuid, card: cards::Card){
+        let pos = self.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
+        if self.deal.deal_state_mut().unwrap().call_king(pos, card) {
+            self.turn = Turn::MakingDog;
+        }
+    }
+
+    pub fn make_dog(&mut self, pid: Uuid, cards: Vec<cards::Card>){
+        let pos = self.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
+
+        if pos != self.deal.deal_contract().unwrap().author {
+            println!("Player {:?} is not the taker", pos);
+            return ();
+        } 
+        //TODO make dog
+        
+        self.turn = Turn::from_deal(&self.deal);
     }
 
     pub fn set_play(&mut self, pid: Uuid, card: cards::Card){
@@ -264,7 +287,6 @@ impl GameState {
     }
 
     fn end_deal(&mut self) {
-        println!("end deal...");
         self.turn = Turn::Interdeal;
         for player in self.players.values_mut() {
             if player.role != PlayerRole::Spectator {
@@ -382,6 +404,14 @@ mod tests {
         game.set_pass(id2);
         game.set_pass(id3);
         game.set_pass(id4);
+        assert_eq!(game.get_turn(), Turn::CallingKing);
+        game.call_king(id0, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK));
+        assert_eq!(game.get_turn(), Turn::MakingDog);
+        game.make_dog(id0, vec![
+            cards::Card::new(cards::Suit::Heart, cards::Rank::Rank4),
+            cards::Card::new(cards::Suit::Spade, cards::Rank::Rank10),
+            cards::Card::new(cards::Suit::Spade, cards::Rank::RankQ),
+        ]);
         assert_eq!(game.get_turn(), Turn::Playing(pos0));
 
         game.set_play(id0, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank2));
@@ -647,7 +677,10 @@ mod tests {
         game.set_player_ready(id2);
         game.set_player_ready(id3);
         game.set_player_ready(id4);
-        assert_eq!(game.get_turn(), Turn::Bidding((bid::AuctionState::Bidding, pos1)));
+        assert_eq!(game.get_turn(), Turn::CallingKing);
+        game.call_king(id1, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK));
+        assert_eq!(game.get_turn(), Turn::MakingDog);
+        // assert_eq!(game.get_turn(), Turn::Bidding((bid::AuctionState::Bidding, pos1)));
 
     }
 }

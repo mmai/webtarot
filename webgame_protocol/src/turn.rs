@@ -10,6 +10,8 @@ pub enum Turn {
     Intertrick,
     Interdeal,
     Bidding((bid::AuctionState, pos::PlayerPos)),
+    CallingKing,
+    MakingDog,
     Playing(pos::PlayerPos),
     Endgame,
 }
@@ -33,6 +35,8 @@ impl fmt::Display for Turn {
                     &strpos
                 }
                 Turn::Endgame => "end",
+                Turn::CallingKing => "calling king",
+                Turn::MakingDog => "making dog",
             }
         )
     }

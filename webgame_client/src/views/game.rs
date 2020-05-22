@@ -266,13 +266,18 @@ impl Component for GamePage {
                             />
                     }
                },
-               Turn::MakingDog if player_action == Some(PlayerAction::MakeDog) => 
+               Turn::MakingDog if player_action == Some(PlayerAction::MakeDog) => {
+                   let my_hand = self.game_state.deal.hand;
+                   let dog = self.game_state.deal.initial_dog;
+
                     html! {
                         <MakeDogAction
-                            game_state=self.game_state.clone()
+                            dog=dog
+                            hand=my_hand
                             on_make_dog=self.link.callback(|cards| Msg::MakeDog(cards))
                             />
-                    },
+                    }
+               },
                 _ if player_action == Some(PlayerAction::Bid) => 
                     html! {
                         <BiddingActions

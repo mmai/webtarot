@@ -97,6 +97,11 @@ impl DealState {
         &self.contract
     }
 
+    /// Returns the dog
+    pub fn dog(&self) -> cards::Hand {
+        self.dog
+    }
+
     //TODO return Result instead of bool
     pub fn call_king(&mut self, pos: pos::PlayerPos, card: cards::Card) -> bool {
         if pos != self.contract.author {

@@ -1,26 +1,26 @@
-use std::rc::Rc;
-
-use strum::IntoEnumIterator;
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender, Callback};
 
-use crate::protocol::GameStateSnapshot;
 use tarotgame::cards;
 
 pub enum Msg {
-    MakeDog(cards::Hand),
+    AddToHand(cards::Card),
+    AddToDog(cards::Card),
+    MakeDog,
     Empty,
 }
 
 #[derive(Clone, Properties)]
 pub struct Props {
-    pub game_state: Rc<GameStateSnapshot>,
+    pub dog: cards::Hand,
+    pub hand: cards::Hand,
     pub on_make_dog: Callback<cards::Hand>,
 }
 
 pub struct MakeDogAction {
     link: ComponentLink<Self>,
     on_make_dog: Callback<cards::Hand>,
-    game_state: Rc<GameStateSnapshot>,
+    dog: cards::Hand,
+    hand: cards::Hand,
 }
 
 impl Component for MakeDogAction {
@@ -30,32 +30,65 @@ impl Component for MakeDogAction {
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         MakeDogAction {
             link,
-            game_state: props.game_state,
             on_make_dog: props.on_make_dog,
+            dog: props.dog,
+            hand: props.hand,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::MakeDog(cards) => {
-                self.on_make_dog.emit(cards);
+            Msg::AddToHand(card) => {
+                self.hand.add(card);
+                self.dog.remove(card);
+            },
+            Msg::AddToDog(card) => {
+                self.dog.add(card);
+                self.hand.remove(card);
+            },
+            Msg::MakeDog => {
+                self.on_make_dog.emit(self.dog);
             },
             _ => {}
         }
-        false
+        true
     }
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        self.game_state = props.game_state;
+        self.dog = props.dog;
+        self.hand = props.hand;
         true
     }
 
     fn view(&self) -> Html {
-        let curr_target = self.game_state.deal.contract_target();
         html! {
-            <section class="make_dog">
-            {{ "Making dog" }}
-            </section>
+        <div>
+            <section class="hand">
+            {
+                for self.dog.list().iter().map(|card| {
+                    let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                    let clicked = card.clone();
+                    html! {
+                        <div class="card" style={style} onclick=self.link.callback(move |_| Msg::AddToHand(clicked))></div>
+                    }
+                })
+            }
+        </section>
+                                <button onclick=self.link.callback(move |_| Msg::MakeDog)>
+                                    {{ "finish" }}
+                                </button>
+            <section class="hand">
+            {
+                for self.hand.list().iter().map(|card| {
+                    let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                    let clicked = card.clone();
+                    html! {
+                        <div class="card" style={style} onclick=self.link.callback(move |_| Msg::AddToDog(clicked))></div>
+                    }
+                })
+            }
+        </section>
+        </div>
         }
     }
 }

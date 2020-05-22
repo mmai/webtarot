@@ -74,6 +74,7 @@ pub struct DealSnapshot {
     pub contract: Option<bid::Contract>,
     pub points: [f32; NB_PLAYERS],
     pub last_trick: trick::Trick,
+    pub initial_dog: cards::Hand,
     // pub tricks: Vec<trick::Trick>,
 }
 

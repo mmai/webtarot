@@ -113,6 +113,9 @@ impl GameState {
                     state.current_trick().clone()
                 };
                 // log::debug!("trick {:?}", last_trick.cards);
+                let initial_dog = if self.turn == Turn::MakingDog {
+                    state.dog()
+                } else { cards::Hand::new() };
                 DealSnapshot {
                     hand: state.hands()[pos as usize],
                     current: state.next_player(),
@@ -120,6 +123,7 @@ impl GameState {
                     points,
                     // last_trick: state.tricks.last().unwrap_or(trick::Trick::default()),
                     last_trick,
+                    initial_dog,
                 }
             },
             None => DealSnapshot { // In bidding phase
@@ -128,6 +132,7 @@ impl GameState {
                 contract,
                 points: [0.0;NB_PLAYERS],
                 last_trick: trick::Trick::default(),
+                initial_dog: cards::Hand::new(),
             }
         };
         GameStateSnapshot {
@@ -347,6 +352,7 @@ impl Default for GameStateSnapshot {
                 contract: None,
                 points: [0.0;NB_PLAYERS],
                 last_trick: trick::Trick::new(pos),
+                initial_dog: cards::Hand::new(),
             }
         }
     }

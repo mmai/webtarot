@@ -142,4 +142,14 @@ impl Game {
         game_state.set_play(pid, card);
     }
 
+    pub async fn call_king(&self, pid: Uuid, card: cards::Card){
+        let mut game_state = self.game_state.lock().await;
+        game_state.call_king(pid, card);
+    }
+
+    pub async fn make_dog(&self, pid: Uuid, cards: cards::Hand){
+        let mut game_state = self.game_state.lock().await;
+        game_state.make_dog(pid, cards);
+    }
+
 }

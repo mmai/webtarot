@@ -12,11 +12,13 @@ use crate::api::Api;
 use crate::components::chat_box::{ChatBox, ChatLine, ChatLineData};
 use crate::components::player_list::PlayerList;
 use crate::components::bidding_actions::BiddingActions;
+use crate::components::call_king_action::CallKingAction;
+use crate::components::make_dog_action::MakeDogAction;
 use crate::protocol::{
     Command, GameInfo, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
     PlayerInfo,
     SendTextCommand,
-    BidCommand, PlayCommand,
+    BidCommand, PlayCommand, CallKingCommand, MakeDogCommand,
     Turn,
 };
 use tarotgame::{bid, cards};
@@ -44,10 +46,11 @@ pub enum Msg {
     Disconnect,
     MarkReady,
     Continue,
-    Bid((bid::Target, cards::Suit)),
-    Coinche,
+    Bid(bid::Target),
     Pass,
     Play(cards::Card),
+    CallKing(cards::Card),
+    MakeDog(cards::Hand),
     SetChatLine(String),
     ServerMessage(Message),
 }
@@ -137,15 +140,18 @@ impl Component for GamePage {
             Msg::Disconnect => {
                 self.api.send(Command::LeaveGame);
             }
-            Msg::Bid((target, trump)) => {
-                log!("received bid {:?} {:?}", target, trump);
-                self.api.send(Command::Bid(BidCommand { target, trump }));
+            Msg::Bid(target) => {
+                log!("received bid {:?}", target);
+                self.api.send(Command::Bid(BidCommand { target }));
             }
             Msg::Pass => {
                 self.api.send(Command::Pass);
             }
-            Msg::Coinche => {
-                self.api.send(Command::Coinche);
+            Msg::CallKing(card) => {
+                self.api.send(Command::CallKing(CallKingCommand { card }));
+            }
+            Msg::MakeDog(cards) => {
+                self.api.send(Command::MakeDog(MakeDogCommand { cards }));
             }
             Msg::Play(card) => {
                 self.api.send(Command::Play(PlayCommand { card }));
@@ -243,15 +249,39 @@ impl Component for GamePage {
                    }} else {
                      html! {}
                 },
-                _ => if player_action == Some(PlayerAction::Bid) {
+               Turn::CallingKing if player_action == Some(PlayerAction::CallKing) => {
+                   // Choose a queen if player has all kings
+                   // Choose a jack if player has all kings and all queens
+                   let my_hand = self.game_state.deal.hand;
+                   let rank = if my_hand.has_all_rank(cards::Rank::RankK) {
+                       if my_hand.has_all_rank(cards::Rank::RankQ) { cards::Rank::RankJ } else { cards::Rank::RankQ } 
+                   } else {
+                       cards::Rank::RankK
+                   };
+
+                    html! {
+                        <CallKingAction
+                            rank=rank
+                            on_call_king=self.link.callback(|card| Msg::CallKing(card))
+                            />
+                    }
+               },
+               Turn::MakingDog if player_action == Some(PlayerAction::MakeDog) => 
+                    html! {
+                        <MakeDogAction
+                            game_state=self.game_state.clone()
+                            on_make_dog=self.link.callback(|cards| Msg::MakeDog(cards))
+                            />
+                    },
+                _ if player_action == Some(PlayerAction::Bid) => 
                     html! {
                         <BiddingActions
                             game_state=self.game_state.clone()
                             on_bid=self.link.callback(|contract| Msg::Bid(contract))
                             on_pass=self.link.callback(|contract| Msg::Pass)
-                            on_coinche=self.link.callback(|_| Msg::Coinche) />
-                    }
-                } else {
+                            />
+                    },
+                _ => 
                     html! {
                         <div>
                             {if let Some(card) = card_played {
@@ -264,7 +294,6 @@ impl Component for GamePage {
                             }}
                         </div>
                     }
-                }
              }}
         </section>
 

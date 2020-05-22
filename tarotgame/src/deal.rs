@@ -105,14 +105,8 @@ impl DealState {
         } 
 
         let hand = self.players[pos as usize];
-        let has_all_kings = hand.has(cards::Card::new(cards::Suit::Club, cards::Rank::RankK))
-            && hand.has(cards::Card::new(cards::Suit::Heart, cards::Rank::RankK))
-            && hand.has(cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK))
-            && hand.has(cards::Card::new(cards::Suit::Spade, cards::Rank::RankK)) ;
-        let has_all_queens = hand.has(cards::Card::new(cards::Suit::Club, cards::Rank::RankQ))
-            && hand.has(cards::Card::new(cards::Suit::Heart, cards::Rank::RankQ))
-            && hand.has(cards::Card::new(cards::Suit::Diamond, cards::Rank::RankQ))
-            && hand.has(cards::Card::new(cards::Suit::Spade, cards::Rank::RankQ)) ;
+        let has_all_kings = hand.has_all_rank(cards::Rank::RankK);
+        let has_all_queens = hand.has_all_rank(cards::Rank::RankQ);
 
         if card.rank() == cards::Rank::RankJ && !(has_all_queens && has_all_kings) {
             println!("Calling a jake not allowed");
@@ -141,6 +135,41 @@ impl DealState {
         self.called_king = Some(card);
         true
     }
+
+    /// Make the dog
+    //TODO return Result instead of bool
+    pub fn make_dog(&mut self, pos: pos::PlayerPos, cards: cards::Hand) -> bool {
+        if pos != self.contract.author {
+            println!("Player {:?} is not the taker", pos);
+            return false;
+        } 
+        let cards_list = cards.list();
+        if cards_list.len() != super::DOG_SIZE {
+            println!("Wrong number of cards: {} instead of {}", cards_list.len(), super::DOG_SIZE);
+            return false;
+        }
+
+        let mut taker_cards = self.players[pos as usize].clone();
+        taker_cards.merge(self.dog);
+        let mut new_dog = cards::Hand::new();
+        for card in cards_list {
+            if new_dog.has(card) {
+                println!("Can't put the same card ({}) twice in the dog", card.to_string());
+                return false;
+            }
+            if !taker_cards.has(card) {
+                println!("{} is neither in the taker's hand nor in the dog", card.to_string());
+                return false;
+            }
+
+            taker_cards.remove(card);
+            new_dog.add(card);
+        }
+        //Dog successfully made
+        self.dog = new_dog;
+        self.players[pos as usize] = taker_cards;
+        true
+    } 
 
     /// Try to play a card
     pub fn play_card(

@@ -150,8 +150,9 @@ impl Auction {
     }
 
     /// Override Auction hands (for tests)
-    pub fn set_hands(&mut self, hands: [cards::Hand; super::NB_PLAYERS]) {
+    pub fn set_hands(&mut self, hands: [cards::Hand; super::NB_PLAYERS], dog: cards::Hand) {
         self.players = hands;
+        self.dog = dog;
     }
 
     /// Returns the current state of the auctions.

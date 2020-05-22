@@ -48,7 +48,7 @@ pub mod pos;
 pub mod trick;
 
 pub const NB_PLAYERS:usize = 5;
-const DOG_SIZE:usize = 3;
+pub const DOG_SIZE:usize = 3;
 const DEAL_SIZE:usize = (78 - DOG_SIZE) / NB_PLAYERS ;
 
 // Expose the module or their content directly? Still unsure.

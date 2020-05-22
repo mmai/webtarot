@@ -142,19 +142,18 @@ impl GameState {
     }
 
     pub fn update_turn(&mut self){
+        if self.turn == Turn::CallingKing || self.turn == Turn::MakingDog {
+            return ();
+        }
         self.turn = if !self.players_ready() {
             Turn::Intertrick
         } else if self.was_last_trick() {
             self.end_deal();
             Turn::Interdeal
-        } else if self.turn == Turn::Interdeal {
-            self.next_deal();
-            if NB_PLAYERS == 5 {
-                Turn::CallingKing
-            } else {
-                Turn::MakingDog
-            }
         } else {
+            if self.turn == Turn::Interdeal {
+                self.next_deal();
+            }
             Turn::from_deal(&self.deal)
         }
     }
@@ -219,16 +218,11 @@ impl GameState {
         }
     }
 
-    pub fn make_dog(&mut self, pid: Uuid, cards: Vec<cards::Card>){
+    pub fn make_dog(&mut self, pid: Uuid, cards: cards::Hand){
         let pos = self.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
-
-        if pos != self.deal.deal_contract().unwrap().author {
-            println!("Player {:?} is not the taker", pos);
-            return ();
-        } 
-        //TODO make dog
-        
-        self.turn = Turn::from_deal(&self.deal);
+        if self.deal.deal_state_mut().unwrap().make_dog(pos, cards) {
+            self.turn = Turn::from_deal(&self.deal);
+        }
     }
 
     pub fn set_play(&mut self, pid: Uuid, card: cards::Card){
@@ -267,6 +261,18 @@ impl GameState {
             }
         };
         self.deal = Deal::Playing(deal_state);
+
+        //Set taker role
+        let taker_pos = self.deal.deal_contract().unwrap().author;
+        let taker_id = self.player_by_pos(taker_pos).unwrap().player.id;
+        self.set_player_role( taker_id, PlayerRole::Taker);
+
+        //Update turn
+        self.turn = if NB_PLAYERS == 5 {
+            Turn::CallingKing
+        } else {
+            Turn::MakingDog
+        }
     }
 
     fn end_trick(&mut self) {
@@ -383,11 +389,12 @@ mod tests {
         assert_eq!(game.get_turn(), Turn::Bidding((bid::AuctionState::Bidding, pos0)));
 
         let seed = [3, 32, 3, 32, 54, 1, 84, 3, 32, 54, 1, 84, 3, 32, 65, 1, 84, 3, 32, 64, 1, 44, 3, 32, 54, 1, 84, 3, 32, 65, 1, 44];
-        let (hands, _dog) = deal_seeded_hands(seed);
+        let (hands, dog) = deal_seeded_hands(seed);
         // println!("{}", _dog.to_string());
         // for hand in hands.iter() {
         //     println!("{}", hand.to_string()); // `cargo test -- --nocapture` to view output
         // }
+        // println!("-------------------");
 
         // Dog : 4♥,      10♠,Q♠,
         // [C♥,Q♥,        2♠,C♠,        2♦,3♦,7♦,        5♣,8♣,10♣,       3T,8T,11T,12T,21T,]
@@ -397,7 +404,7 @@ mod tests {
         // [3♥,5♥,10♥,    6♠,7♠,        4♦,8♦,C♦,Q♦,K♦,  7♣,C♣,K♣,        6T,13T,]
 
         let auction = game.deal.deal_auction_mut().unwrap();
-        auction.set_hands(hands);
+        auction.set_hands(hands, dog);
 
         game.set_bid(id0, bid::Target::Garde);
         game.set_pass(id1);
@@ -405,15 +412,22 @@ mod tests {
         game.set_pass(id3);
         game.set_pass(id4);
         assert_eq!(game.get_turn(), Turn::CallingKing);
+        assert_eq!(game.player_by_pos(pos0).unwrap().role, PlayerRole::Taker);
         game.call_king(id0, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK));
         assert_eq!(game.get_turn(), Turn::MakingDog);
-        game.make_dog(id0, vec![
-            cards::Card::new(cards::Suit::Heart, cards::Rank::Rank4),
-            cards::Card::new(cards::Suit::Spade, cards::Rank::Rank10),
-            cards::Card::new(cards::Suit::Spade, cards::Rank::RankQ),
-        ]);
+        let mut dog = cards::Hand::new();
+        dog.add(cards::Card::new(cards::Suit::Heart, cards::Rank::RankC));
+        dog.add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank2));
+        dog.add(cards::Card::new(cards::Suit::Spade, cards::Rank::RankQ));
+        game.make_dog(id0, dog);
         assert_eq!(game.get_turn(), Turn::Playing(pos0));
 
+        // Dog : C♥,      2♠,Q♠,
+        // [4♥,Q♥,        10♠,C♠,        2♦,3♦,7♦,        5♣,8♣,10♣,       3T,8T,11T,12T,21T,]
+        // [6♥,K♥,        9♠,           5♦,6♦,J♦,        4♣,              1T,5T,7T,9T,16T,17T,20T,ET,]
+        // [1♥,2♥,8♥,9♥,  4♠,8♠,K♠,     10♦,             3♣,J♣,           10T,14T,15T,18T,19T,]
+        // [7♥,J♥,        1♠,3♠,5♠,J♠,  1♦,9♦,           1♣,2♣,6♣,9♣,Q♣,  2T,4T,]
+        // [3♥,5♥,10♥,    6♠,7♠,        4♦,8♦,C♦,Q♦,K♦,  7♣,C♣,K♣,        6T,13T,]
         game.set_play(id0, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank2));
         game.set_play(id1, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankJ));
         game.set_play(id2, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank10));
@@ -425,7 +439,7 @@ mod tests {
         game.set_player_ready(id3);
         game.set_player_ready(id4);
 
-        // [C♥,Q♥,        2♠,C♠,        3♦,7♦,        5♣,8♣,10♣,       3T,8T,11T,12T,21T,]        
+        // [4♥,Q♥,        10♠,C♠,        3♦,7♦,        5♣,8♣,10♣,       3T,8T,11T,12T,21T,]        
         // [6♥,K♥,        9♠,           5♦,6♦,        4♣,              1T,5T,7T,9T,16T,17T,20T,ET]
         // [1♥,2♥,8♥,9♥,  4♠,8♠,K♠,     ,             3♣,J♣,           10T,14T,15T,18T,19T,]
         // [7♥,J♥,        1♠,3♠,5♠,J♠,  1♦,           1♣,2♣,6♣,9♣,Q♣,  2T,4T,]
@@ -442,7 +456,7 @@ mod tests {
         game.set_player_ready(id4);
         assert_eq!(game.get_turn(), Turn::Playing(pos4));
 
-        // [C♥,Q♥,        2♠,C♠,        3♦,7♦,        8♣,10♣,       3T,8T,11T,12T,21T,]        
+        // [4♥,Q♥,        10♠,C♠,        3♦,7♦,        8♣,10♣,       3T,8T,11T,12T,21T,]        
         // [6♥,K♥,        9♠,           5♦,6♦,                      1T,5T,7T,9T,16T,17T,20T,ET]
         // [1♥,2♥,8♥,9♥,  4♠,8♠,K♠,     ,             J♣,           10T,14T,15T,18T,19T,]       
         // [7♥,J♥,        1♠,3♠,5♠,J♠,  1♦,           2♣,6♣,9♣,Q♣,  2T,4T,]                    
@@ -459,7 +473,7 @@ mod tests {
         game.set_player_ready(id4);
         assert_eq!(game.get_turn(), Turn::Playing(pos0));
 
-        // [C♥,Q♥,        2♠,        3♦,7♦,        8♣,10♣,       3T,8T,11T,12T,21T,]        
+        // [4♥,Q♥,        10♠,        3♦,7♦,        8♣,10♣,       3T,8T,11T,12T,21T,]        
         // [6♥,K♥,                   5♦,6♦,                      1T,5T,7T,9T,16T,17T,20T,ET]
         // [1♥,2♥,8♥,9♥,  4♠,K♠,     ,             J♣,           10T,14T,15T,18T,19T,]       
         // [7♥,J♥,        1♠,3♠,J♠,  1♦,           2♣,6♣,9♣,Q♣,  2T,4T,]                    
@@ -476,7 +490,7 @@ mod tests {
         game.set_player_ready(id4);
         assert_eq!(game.get_turn(), Turn::Playing(pos1));
 
-        // [C♥,Q♥,        2♠,        3♦,7♦,        10♣,       3T,8T,11T,12T,21T,]     
+        // [4♥,Q♥,        10♠,        3♦,7♦,        10♣,       3T,8T,11T,12T,21T,]     
         // [6♥,K♥,                   5♦,6♦,                   5T,7T,9T,16T,17T,20T,ET]
         // [1♥,2♥,8♥,9♥,  4♠,K♠,     ,                        10T,14T,15T,18T,19T,]    
         // [7♥,J♥,        1♠,3♠,J♠,  1♦,           6♣,9♣,Q♣,  2T,4T,]                 
@@ -493,7 +507,7 @@ mod tests {
         game.set_player_ready(id4);
         assert_eq!(game.get_turn(), Turn::Playing(pos2));
 
-        // [C♥,Q♥,        2♠,        3♦,        10♣,       3T,8T,11T,12T,21T,]     
+        // [4♥,Q♥,        10♠,        3♦,        10♣,       3T,8T,11T,12T,21T,]     
         // [6♥,K♥,                   5♦,                   5T,7T,9T,16T,17T,20T,ET]
         // [1♥,2♥,8♥,9♥,  4♠,K♠,     ,                     14T,15T,18T,19T,]
         // [7♥,J♥,        1♠,3♠,J♠,             6♣,9♣,Q♣,  2T,4T,]                
@@ -510,7 +524,7 @@ mod tests {
         game.set_player_ready(id4);
         assert_eq!(game.get_turn(), Turn::Playing(pos0));
 
-        // [C♥,Q♥,        2♠,        3♦,        10♣,       3T,8T,11T,12T,]     
+        // [4♥,Q♥,        10♠,        3♦,        10♣,       3T,8T,11T,12T,]     
         // [6♥,K♥,                   5♦,                   5T,7T,9T,16T,17T,20T]
         // [1♥,2♥,8♥,9♥,  4♠,K♠,     ,                     15T,18T,19T,]
         // [7♥,J♥,        1♠,3♠,J♠,             6♣,9♣,Q♣,  4T,]                
@@ -528,7 +542,7 @@ mod tests {
         game.set_player_ready(id4);
         assert_eq!(game.get_turn(), Turn::Playing(pos2));
 
-        // [C♥,Q♥,        2♠,        3♦,        10♣,       8T,11T,12T,]     
+        // [4♥,Q♥,        10♠,        3♦,        10♣,       8T,11T,12T,]     
         // [6♥,K♥,                   5♦,                   7T,9T,16T,17T,20T]
         // [1♥,2♥,8♥,9♥,  4♠,K♠,     ,                     18T,19T,]
         // [7♥,J♥,        1♠,3♠,J♠,             6♣,9♣,Q♣,  ]                
@@ -546,7 +560,7 @@ mod tests {
         game.set_player_ready(id4);
         assert_eq!(game.get_turn(), Turn::Playing(pos1));
 
-        // [C♥,Q♥,        2♠,        3♦,        10♣,    8T,11T,]     
+        // [4♥,Q♥,        10♠,        3♦,        10♣,    8T,11T,]     
         // [6♥,K♥,                   5♦,                7T,9T,16T,17T]
         // [1♥,2♥,8♥,9♥,  4♠,K♠,     ,                  18T,]
         // [7♥,J♥,        1♠,3♠,J♠,             6♣,9♣,  ]                
@@ -564,7 +578,7 @@ mod tests {
         game.set_player_ready(id4);
         assert_eq!(game.get_turn(), Turn::Playing(pos2));
 
-        // [C♥,Q♥,        2♠,                10♣,    8T,11T,]     
+        // [4♥,Q♥,        10♠,                10♣,    8T,11T,]     
         // [6♥,K♥,                                   7T,9T,16T,17T]
         // [1♥,2♥,8♥,9♥,  4♠,K♠,     ,                  ]
         // [7♥,J♥,        1♠,3♠,J♠,          6♣, ]                
@@ -582,7 +596,7 @@ mod tests {
         game.set_player_ready(id4);
         assert_eq!(game.get_turn(), Turn::Playing(pos1));
 
-        // [C♥,        2♠,                10♣,    8T,11T,]     
+        // [4♥,        10♠,                10♣,    8T,11T,]     
         // [6♥,                                   7T,9T,16T,17T]
         // [1♥,2♥,8♥,  4♠,K♠,     ,                  ]
         // [7♥,        1♠,3♠,J♠,          6♣, ]                
@@ -600,7 +614,7 @@ mod tests {
         game.set_player_ready(id4);
         assert_eq!(game.get_turn(), Turn::Playing(pos1));
 
-        // [C♥,        2♠,                10♣,    8T,
+        // [4♥,        10♠,                10♣,    8T,
         // [6♥,                                   7T,9T,16T
         // [2♥,8♥,  4♠,K♠,     ,                  ]
         // [        1♠,3♠,J♠,          6♣, ]                
@@ -618,7 +632,7 @@ mod tests {
         game.set_player_ready(id4);
         assert_eq!(game.get_turn(), Turn::Playing(pos1));
 
-        // [C♥,        2♠,                10♣,    
+        // [4♥,        10♠,                10♣,    
         // [6♥,                                   7T,9T
         // [8♥,  4♠,K♠,     ,                  ]
         // [        1♠,3♠,J♠,           ]                
@@ -627,7 +641,7 @@ mod tests {
         game.set_play(id2, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank8));
         game.set_play(id3, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank1));
         game.set_play(id4, cards::Card::new(cards::Suit::Club, cards::Rank::RankK));
-        game.set_play(id0, cards::Card::new(cards::Suit::Heart, cards::Rank::RankC));
+        game.set_play(id0, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank4));
         assert_eq!(game.get_turn(), Turn::Intertrick);
         game.set_player_ready(id0);
         game.set_player_ready(id1);
@@ -636,7 +650,7 @@ mod tests {
         game.set_player_ready(id4);
         assert_eq!(game.get_turn(), Turn::Playing(pos1));
 
-        // [        2♠,                10♣,    
+        // [        10♠,                10♣,    
         // [6♥,                                   7T
         // [  4♠,K♠,     ,                  ]
         // [        3♠,J♠,           ]                
@@ -645,7 +659,7 @@ mod tests {
         game.set_play(id2, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank4));
         game.set_play(id3, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank3));
         game.set_play(id4, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankC));
-        game.set_play(id0, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank2));
+        game.set_play(id0, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank10));
         assert_eq!(game.get_turn(), Turn::Intertrick);
         game.set_player_ready(id0);
         game.set_player_ready(id1);
@@ -677,10 +691,6 @@ mod tests {
         game.set_player_ready(id2);
         game.set_player_ready(id3);
         game.set_player_ready(id4);
-        assert_eq!(game.get_turn(), Turn::CallingKing);
-        game.call_king(id1, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK));
-        assert_eq!(game.get_turn(), Turn::MakingDog);
-        // assert_eq!(game.get_turn(), Turn::Bidding((bid::AuctionState::Bidding, pos1)));
-
+        assert_eq!(game.get_turn(), Turn::Bidding((bid::AuctionState::Bidding, pos1)));
     }
 }

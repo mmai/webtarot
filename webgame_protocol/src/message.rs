@@ -19,7 +19,8 @@ pub enum Command {
     Bid(BidCommand),
     Play(PlayCommand),
     Pass,
-    Coinche,
+    CallKing(CallKingCommand),
+    MakeDog(MakeDogCommand),
     SetPlayerRole(SetPlayerRoleCommand),
 }
 
@@ -94,12 +95,21 @@ pub struct SetPlayerRoleCommand {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BidCommand {
     pub target: bid::Target,
-    pub trump: cards::Suit,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PlayCommand {
     pub card: cards::Card,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CallKingCommand {
+    pub card: cards::Card,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MakeDogCommand {
+    pub cards: cards::Hand,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

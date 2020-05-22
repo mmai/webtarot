@@ -328,6 +328,14 @@ impl Hand {
         Hand(0, 0)
     }
 
+    /// Add `cards` to `self`.
+    ///
+    pub fn merge(&mut self, cards: Hand) -> &mut Hand {
+        self.0 |= cards.0;
+        self.1 |= cards.1;
+        self
+    }
+
     /// Add `card` to `self`.
     ///
     /// No effect if `self` already contains `card`.
@@ -353,6 +361,14 @@ impl Hand {
     /// Returns `true` if `self` contains `card`.
     pub fn has(self, card: Card) -> bool {
         (self.0 & card.0) != 0 || (self.1 & card.1) != 0
+    }
+
+    /// Returns `true` if `self` contains all cards from a given rank
+    pub fn has_all_rank(self, rank: Rank) -> bool {
+        self.has(Card::new(Suit::Club, rank))
+            && self.has(Card::new(Suit::Heart, rank))
+            && self.has(Card::new(Suit::Diamond, rank))
+            && self.has(Card::new(Suit::Spade, rank))
     }
 
     /// Returns `true` if the hand contains any card of the given suit.
@@ -447,7 +463,7 @@ impl Default for Deck {
 }
 
 impl Deck {
-    /// Returns a full, sorted deck of 32 cards.
+    /// Returns a full, sorted deck of 78 cards.
     pub fn new() -> Self {
         let mut d = Deck {
             cards: Vec::with_capacity(78),

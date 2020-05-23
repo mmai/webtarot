@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::game::{GameInfo, GameStateSnapshot};
 use crate::player::{PlayerInfo, GamePlayerState, PlayerRole};
-use tarotgame::{cards, bid};
+use tarotgame::{cards, bid, deal};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
@@ -63,6 +63,24 @@ impl ProtocolError {
 
     pub fn message(&self) -> &str {
         &self.message
+    }
+}
+
+impl From<deal::PlayError> for ProtocolError {
+    fn from(error: deal::PlayError) -> Self {
+        ProtocolError {
+            kind: ProtocolErrorKind::BadState,
+            message: format!("play error: {}", error),
+        }
+    }
+}
+
+impl From<bid::BidError> for ProtocolError {
+    fn from(error: bid::BidError) -> Self {
+        ProtocolError {
+            kind: ProtocolErrorKind::BadState,
+            message: format!("bid error: {}", error),
+        }
     }
 }
 

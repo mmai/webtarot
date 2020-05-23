@@ -74,7 +74,7 @@ impl Component for PlayerList {
                         <div class="action">
                         {
                             if let Some(card) = card_played {
-                                let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                                let style =format!("cursor: default; --bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
                                 html! {
                                     <div class="card" style={style}></div>
                                 }

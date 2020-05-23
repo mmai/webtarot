@@ -1,14 +1,9 @@
-use std::rc::Rc;
-
-use strum::IntoEnumIterator;
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender, Callback};
 
-use crate::protocol::GameStateSnapshot;
 use tarotgame::cards;
 
 pub enum Msg {
     CallKing(cards::Card),
-    Empty,
 }
 
 #[derive(Clone, Properties)]
@@ -40,7 +35,6 @@ impl Component for CallKingAction {
             Msg::CallKing(card) => {
                 self.on_call_king.emit(card);
             },
-            _ => {}
         }
         false
     }
@@ -52,7 +46,7 @@ impl Component for CallKingAction {
         kings.add(cards::Card::new(cards::Suit::Spade, self.rank));
         kings.add(cards::Card::new(cards::Suit::Heart, self.rank));
         html! {
-            <section class="call_king">
+            <section class="hand">
         {
             for kings.list().iter().map(|card| {
                 let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());

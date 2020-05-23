@@ -7,13 +7,14 @@ use crate::turn::Turn;
 use crate::deal::{Deal, DealSnapshot};
 use crate::player::{PlayerInfo, PlayerRole, GamePlayerState};
 use tarotgame::{NB_PLAYERS, bid, cards, pos, deal, trick};
+use crate::{ ProtocolError, ProtocolErrorKind };
 
 pub struct GameState {
     players: BTreeMap<Uuid, GamePlayerState>,
     turn: Turn,
     deal: Deal,
     first: pos::PlayerPos,
-    scores: [f32; NB_PLAYERS],
+    scores: Vec<[f32; NB_PLAYERS]>,
 }
 
 impl GameState {
@@ -23,7 +24,7 @@ impl GameState {
             turn: Turn::Pregame,
             deal: Deal::new(pos::PlayerPos::P0),
             first: pos::PlayerPos::P0,
-            scores: [0.0; NB_PLAYERS],
+            scores: vec![],
         }
     }
 
@@ -78,6 +79,11 @@ impl GameState {
     pub fn set_player_role(&mut self, player_id: Uuid, role: PlayerRole) {
         if let Some(player_state) = self.players.get_mut(&player_id) {
             player_state.role = role;
+        }
+    }
+
+    pub fn set_player_not_ready(&mut self, player_id: Uuid) {
+        if let Some(player_state) = self.players.get_mut(&player_id) {
             player_state.ready = false;
         }
     }
@@ -101,9 +107,9 @@ impl GameState {
         let pos = self.players[&player_id].pos;
         let deal = match self.deal.deal_state() {
             Some(state) => { // In Playing phase
-                let points =  match state.get_deal_result() {
+                let  scores =  match state.get_deal_result() {
                     deal::DealResult::Nothing => [0.0; 5],
-                    deal::DealResult::GameOver {points, taker_won: _, scores: _ } => points
+                    deal::DealResult::GameOver {points: _, taker_won: _, scores } => scores
                 };
                 let last_trick = if self.turn == Turn::Intertrick {
                     // intertrick : there is at least a trick done
@@ -120,7 +126,7 @@ impl GameState {
                     hand: state.hands()[pos as usize],
                     current: state.next_player(),
                     contract,
-                    points,
+                    scores,
                     // last_trick: state.tricks.last().unwrap_or(trick::Trick::default()),
                     last_trick,
                     initial_dog,
@@ -130,19 +136,20 @@ impl GameState {
                 hand: self.deal.hands()[pos as usize],
                 current: self.deal.next_player(),
                 contract,
-                points: [0.0;NB_PLAYERS],
+                scores: [0.0;NB_PLAYERS],
                 last_trick: trick::Trick::default(),
                 initial_dog: cards::Hand::new(),
             }
         };
         GameStateSnapshot {
             players,
+            scores: self.scores.clone(),
             turn: self.turn,
             deal
         }
     }
 
-    fn players_ready(&self) -> bool {
+    pub fn players_ready(&self) -> bool {
         !(self.players.iter().find(|(_, player)| player.ready == false) != None)
     }
 
@@ -197,23 +204,29 @@ impl GameState {
         }
     }
 
-    pub fn set_bid(&mut self, pid: Uuid, target: bid::Target){
+    pub fn set_bid(&mut self, pid: Uuid, target: bid::Target) -> Result<(), ProtocolError>{
         let pos = self.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
         let auction = self.deal.deal_auction_mut().unwrap();
         if Ok(bid::AuctionState::Over) == auction.bid(pos, target) {
-            self.complete_auction();
+            self.complete_auction()?;
         }
         self.update_turn();
+        Ok(())
     }
 
-    pub fn set_pass(&mut self, pid: Uuid){
-        let pos = self.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
-        let auction = self.deal.deal_auction_mut().unwrap();
+    pub fn set_pass(&mut self, pid: Uuid) -> Result<(), ProtocolError> {
+        let pos = self.players.get(&pid).map(|p| p.pos).ok_or(
+            ProtocolError::new(ProtocolErrorKind::InternalError, "unknown position")
+            )?;
+        let auction = self.deal.deal_auction_mut().ok_or(
+            ProtocolError::new(ProtocolErrorKind::InternalError, "unknown auction")
+        )?;
         let pass_result = auction.pass(pos);
         if Ok(bid::AuctionState::Over) == pass_result  {
-            self.complete_auction();
+            self.complete_auction()?;
         }
         self.update_turn();
+        Ok(())
     }
 
     pub fn call_king(&mut self, pid: Uuid, card: cards::Card){
@@ -230,40 +243,25 @@ impl GameState {
         }
     }
 
-    pub fn set_play(&mut self, pid: Uuid, card: cards::Card){
-        let pos = self.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
+    pub fn set_play(&mut self, pid: Uuid, card: cards::Card) -> Result<(), ProtocolError> {
+        let pos = self.players.get(&pid).map(|p| p.pos).unwrap();
         let state = self.deal.deal_state_mut().unwrap();
-        match state.play_card(pos, card) { // TODO -> RESULT
-            Err(_e) => {
-                println!("erreur play card: {:?}", _e);
-                ()
-            },
-            Ok(deal::TrickResult::Nothing) => (),
-            Ok(deal::TrickResult::TrickOver(_winner, game_result)) => {
-                match game_result {
-                    deal::DealResult::Nothing => self.end_trick(),
-                    deal::DealResult::GameOver{points: _, taker_won: _, scores} => {
-                        // log::debug!("results: {:?} {:?}", points, winners);
-                        for i in 0..5 {
-                            self.scores[i] += scores[i];
-                        }
-                        self.end_last_trick();
-                    }
-                }
+        match state.play_card(pos, card)? {
+            deal::TrickResult::Nothing => (),
+            deal::TrickResult::TrickOver(_winner, deal::DealResult::Nothing) => self.end_trick(),
+            deal::TrickResult::TrickOver(_winner, deal::DealResult::GameOver{points: _, taker_won: _, scores}) => {
+                self.scores.push(scores);
+                self.end_last_trick();
             }
         }
         self.update_turn();
+        Ok(())
     }
 
-    fn complete_auction(&mut self) {
+    fn complete_auction(&mut self)  -> Result<(), ProtocolError>{
         let deal_state = match &mut self.deal {
             &mut Deal::Playing(_) => unreachable!(),
-            &mut Deal::Bidding(ref mut auction) => {
-                match auction.complete() {
-                    Ok(deal_state) => deal_state,
-                    Err(err) => panic!(err)
-                }
-            }
+            &mut Deal::Bidding(ref mut auction) => auction.complete()?
         };
         self.deal = Deal::Playing(deal_state);
 
@@ -277,7 +275,8 @@ impl GameState {
             Turn::CallingKing
         } else {
             Turn::MakingDog
-        }
+        };
+        Ok(())
     }
 
     fn end_trick(&mut self) {
@@ -319,6 +318,7 @@ pub struct GameStateSnapshot {
     pub players: Vec<GamePlayerState>,
     pub turn: Turn,
     pub deal: DealSnapshot,
+    pub scores: Vec<[f32; NB_PLAYERS]>,
 }
 
 impl GameStateSnapshot {
@@ -345,12 +345,13 @@ impl Default for GameStateSnapshot {
         let pos = pos::PlayerPos::P0; // could be anything
         GameStateSnapshot {
             players: vec![],
+            scores: vec![],
             turn: Turn::Pregame,
             deal: DealSnapshot {
                 hand: cards::Hand::new(),
                 current: pos,
                 contract: None,
-                points: [0.0;NB_PLAYERS],
+                scores: [0.0;NB_PLAYERS],
                 last_trick: trick::Trick::new(pos),
                 initial_dog: cards::Hand::new(),
             }
@@ -412,11 +413,11 @@ mod tests {
         let auction = game.deal.deal_auction_mut().unwrap();
         auction.set_hands(hands, dog);
 
-        game.set_bid(id0, bid::Target::Garde);
-        game.set_pass(id1);
-        game.set_pass(id2);
-        game.set_pass(id3);
-        game.set_pass(id4);
+        game.set_bid(id0, bid::Target::Garde).unwrap();
+        game.set_pass(id1).unwrap();
+        game.set_pass(id2).unwrap();
+        game.set_pass(id3).unwrap();
+        game.set_pass(id4).unwrap();
         assert_eq!(game.get_turn(), Turn::CallingKing);
         assert_eq!(game.player_by_pos(pos0).unwrap().role, PlayerRole::Taker);
         game.call_king(id0, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK));
@@ -426,6 +427,7 @@ mod tests {
         dog.add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank2));
         dog.add(cards::Card::new(cards::Suit::Spade, cards::Rank::RankQ));
         game.make_dog(id0, dog);
+        assert_eq!(true, game.players_ready());
         assert_eq!(game.get_turn(), Turn::Playing(pos0));
 
         // Dog : C♥,      2♠,Q♠,
@@ -434,11 +436,12 @@ mod tests {
         // [1♥,2♥,8♥,9♥,  4♠,8♠,K♠,     10♦,             3♣,J♣,           10T,14T,15T,18T,19T,]
         // [7♥,J♥,        1♠,3♠,5♠,J♠,  1♦,9♦,           1♣,2♣,6♣,9♣,Q♣,  2T,4T,]
         // [3♥,5♥,10♥,    6♠,7♠,        4♦,8♦,C♦,Q♦,K♦,  7♣,C♣,K♣,        6T,13T,]
-        game.set_play(id0, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank2));
-        game.set_play(id1, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankJ));
-        game.set_play(id2, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank10));
-        game.set_play(id3, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank9));
-        game.set_play(id4, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank8));
+        game.set_play(id0, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank2)).unwrap();
+        assert_eq!(game.get_turn(), Turn::Playing(pos1));
+        game.set_play(id1, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankJ)).unwrap();
+        game.set_play(id2, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank10)).unwrap();
+        game.set_play(id3, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank9)).unwrap();
+        game.set_play(id4, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank8)).unwrap();
         game.set_player_ready(id0);
         game.set_player_ready(id1);
         game.set_player_ready(id2);
@@ -450,11 +453,11 @@ mod tests {
         // [1♥,2♥,8♥,9♥,  4♠,8♠,K♠,     ,             3♣,J♣,           10T,14T,15T,18T,19T,]
         // [7♥,J♥,        1♠,3♠,5♠,J♠,  1♦,           1♣,2♣,6♣,9♣,Q♣,  2T,4T,]
         // [3♥,5♥,10♥,    6♠,7♠,        4♦,C♦,Q♦,K♦,  7♣,C♣,K♣,        6T,13T,]
-        game.set_play(id1, cards::Card::new(cards::Suit::Club, cards::Rank::Rank4));
-        game.set_play(id2, cards::Card::new(cards::Suit::Club, cards::Rank::Rank3));
-        game.set_play(id3, cards::Card::new(cards::Suit::Club, cards::Rank::Rank1));
-        game.set_play(id4, cards::Card::new(cards::Suit::Club, cards::Rank::RankC));
-        game.set_play(id0, cards::Card::new(cards::Suit::Club, cards::Rank::Rank5));
+        game.set_play(id1, cards::Card::new(cards::Suit::Club, cards::Rank::Rank4)).unwrap();
+        game.set_play(id2, cards::Card::new(cards::Suit::Club, cards::Rank::Rank3)).unwrap();
+        game.set_play(id3, cards::Card::new(cards::Suit::Club, cards::Rank::Rank1)).unwrap();
+        game.set_play(id4, cards::Card::new(cards::Suit::Club, cards::Rank::RankC)).unwrap();
+        game.set_play(id0, cards::Card::new(cards::Suit::Club, cards::Rank::Rank5)).unwrap();
         game.set_player_ready(id0);
         game.set_player_ready(id1);
         game.set_player_ready(id2);
@@ -467,11 +470,11 @@ mod tests {
         // [1♥,2♥,8♥,9♥,  4♠,8♠,K♠,     ,             J♣,           10T,14T,15T,18T,19T,]       
         // [7♥,J♥,        1♠,3♠,5♠,J♠,  1♦,           2♣,6♣,9♣,Q♣,  2T,4T,]                    
         // [3♥,5♥,10♥,    6♠,7♠,        4♦,C♦,Q♦,K♦,  7♣,K♣,        6T,13T,]                   
-        game.set_play(id4, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank6));
-        game.set_play(id0, cards::Card::new(cards::Suit::Spade, cards::Rank::RankC));
-        game.set_play(id1, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank9));
-        game.set_play(id2, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank8));
-        game.set_play(id3, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank5));
+        game.set_play(id4, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank6)).unwrap();
+        game.set_play(id0, cards::Card::new(cards::Suit::Spade, cards::Rank::RankC)).unwrap();
+        game.set_play(id1, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank9)).unwrap();
+        game.set_play(id2, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank8)).unwrap();
+        game.set_play(id3, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank5)).unwrap();
         game.set_player_ready(id0);
         game.set_player_ready(id1);
         game.set_player_ready(id2);
@@ -484,11 +487,11 @@ mod tests {
         // [1♥,2♥,8♥,9♥,  4♠,K♠,     ,             J♣,           10T,14T,15T,18T,19T,]       
         // [7♥,J♥,        1♠,3♠,J♠,  1♦,           2♣,6♣,9♣,Q♣,  2T,4T,]                    
         // [3♥,5♥,10♥,    7♠,        4♦,C♦,Q♦,K♦,  7♣,K♣,        6T,13T,]                   
-        game.set_play(id0, cards::Card::new(cards::Suit::Club, cards::Rank::Rank8));
-        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank1));
-        game.set_play(id2, cards::Card::new(cards::Suit::Club, cards::Rank::RankJ));
-        game.set_play(id3, cards::Card::new(cards::Suit::Club, cards::Rank::Rank2));
-        game.set_play(id4, cards::Card::new(cards::Suit::Club, cards::Rank::Rank7));
+        game.set_play(id0, cards::Card::new(cards::Suit::Club, cards::Rank::Rank8)).unwrap();
+        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank1)).unwrap();
+        game.set_play(id2, cards::Card::new(cards::Suit::Club, cards::Rank::RankJ)).unwrap();
+        game.set_play(id3, cards::Card::new(cards::Suit::Club, cards::Rank::Rank2)).unwrap();
+        game.set_play(id4, cards::Card::new(cards::Suit::Club, cards::Rank::Rank7)).unwrap();
         game.set_player_ready(id0);
         game.set_player_ready(id1);
         game.set_player_ready(id2);
@@ -501,11 +504,11 @@ mod tests {
         // [1♥,2♥,8♥,9♥,  4♠,K♠,     ,                        10T,14T,15T,18T,19T,]    
         // [7♥,J♥,        1♠,3♠,J♠,  1♦,           6♣,9♣,Q♣,  2T,4T,]                 
         // [3♥,5♥,10♥,    7♠,        4♦,C♦,Q♦,K♦,  K♣,        6T,13T,]                
-        game.set_play(id1, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank6));
-        game.set_play(id2, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank10));
-        game.set_play(id3, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank1));
-        game.set_play(id4, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank4));
-        game.set_play(id0, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank7));
+        game.set_play(id1, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank6)).unwrap();
+        game.set_play(id2, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank10)).unwrap();
+        game.set_play(id3, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank1)).unwrap();
+        game.set_play(id4, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank4)).unwrap();
+        game.set_play(id0, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank7)).unwrap();
         game.set_player_ready(id0);
         game.set_player_ready(id1);
         game.set_player_ready(id2);
@@ -518,11 +521,11 @@ mod tests {
         // [1♥,2♥,8♥,9♥,  4♠,K♠,     ,                     14T,15T,18T,19T,]
         // [7♥,J♥,        1♠,3♠,J♠,             6♣,9♣,Q♣,  2T,4T,]                
         // [3♥,5♥,10♥,    7♠,        C♦,Q♦,K♦,  K♣,        6T,13T,]               
-        game.set_play(id2, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank14));
-        game.set_play(id3, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank2));
-        game.set_play(id4, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank6));
-        game.set_play(id0, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank21));
-        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank22));
+        game.set_play(id2, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank14)).unwrap();
+        game.set_play(id3, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank2)).unwrap();
+        game.set_play(id4, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank6)).unwrap();
+        game.set_play(id0, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank21)).unwrap();
+        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank22)).unwrap();
         game.set_player_ready(id0);
         game.set_player_ready(id1);
         game.set_player_ready(id2);
@@ -535,11 +538,11 @@ mod tests {
         // [1♥,2♥,8♥,9♥,  4♠,K♠,     ,                     15T,18T,19T,]
         // [7♥,J♥,        1♠,3♠,J♠,             6♣,9♣,Q♣,  4T,]                
         // [3♥,5♥,10♥,    7♠,        C♦,Q♦,K♦,  K♣,        13T,]               
-        game.set_play(id0, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank3));
-        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank5));
-        game.set_play(id2, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank15));
-        game.set_play(id3, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank4));
-        game.set_play(id4, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank13));
+        game.set_play(id0, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank3)).unwrap();
+        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank5)).unwrap();
+        game.set_play(id2, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank15)).unwrap();
+        game.set_play(id3, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank4)).unwrap();
+        game.set_play(id4, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank13)).unwrap();
         assert_eq!(game.get_turn(), Turn::Intertrick);
         game.set_player_ready(id0);
         game.set_player_ready(id1);
@@ -553,11 +556,11 @@ mod tests {
         // [1♥,2♥,8♥,9♥,  4♠,K♠,     ,                     18T,19T,]
         // [7♥,J♥,        1♠,3♠,J♠,             6♣,9♣,Q♣,  ]                
         // [3♥,5♥,10♥,    7♠,        C♦,Q♦,K♦,  K♣,        ]               
-        game.set_play(id2, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank19));
-        game.set_play(id3, cards::Card::new(cards::Suit::Club, cards::Rank::RankQ));
-        game.set_play(id4, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank7));
-        game.set_play(id0, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank12));
-        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank20));
+        game.set_play(id2, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank19)).unwrap();
+        game.set_play(id3, cards::Card::new(cards::Suit::Club, cards::Rank::RankQ)).unwrap();
+        game.set_play(id4, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank7)).unwrap();
+        game.set_play(id0, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank12)).unwrap();
+        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank20)).unwrap();
         assert_eq!(game.get_turn(), Turn::Intertrick);
         game.set_player_ready(id0);
         game.set_player_ready(id1);
@@ -571,11 +574,11 @@ mod tests {
         // [1♥,2♥,8♥,9♥,  4♠,K♠,     ,                  18T,]
         // [7♥,J♥,        1♠,3♠,J♠,             6♣,9♣,  ]                
         // [3♥,5♥,10♥,               C♦,Q♦,K♦,  K♣,        ]               
-        game.set_play(id1, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank5));
-        game.set_play(id2, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank18));
-        game.set_play(id3, cards::Card::new(cards::Suit::Club, cards::Rank::Rank9));
-        game.set_play(id4, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK));
-        game.set_play(id0, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank3));
+        game.set_play(id1, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank5)).unwrap();
+        game.set_play(id2, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank18)).unwrap();
+        game.set_play(id3, cards::Card::new(cards::Suit::Club, cards::Rank::Rank9)).unwrap();
+        game.set_play(id4, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK)).unwrap();
+        game.set_play(id0, cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank3)).unwrap();
         assert_eq!(game.get_turn(), Turn::Intertrick);
         game.set_player_ready(id0);
         game.set_player_ready(id1);
@@ -589,11 +592,11 @@ mod tests {
         // [1♥,2♥,8♥,9♥,  4♠,K♠,     ,                  ]
         // [7♥,J♥,        1♠,3♠,J♠,          6♣, ]                
         // [3♥,5♥,10♥,               C♦,Q♦,  K♣,        ]               
-        game.set_play(id2, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank9));
-        game.set_play(id3, cards::Card::new(cards::Suit::Heart, cards::Rank::RankJ));
-        game.set_play(id4, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank10));
-        game.set_play(id0, cards::Card::new(cards::Suit::Heart, cards::Rank::RankQ));
-        game.set_play(id1, cards::Card::new(cards::Suit::Heart, cards::Rank::RankK));
+        game.set_play(id2, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank9)).unwrap();
+        game.set_play(id3, cards::Card::new(cards::Suit::Heart, cards::Rank::RankJ)).unwrap();
+        game.set_play(id4, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank10)).unwrap();
+        game.set_play(id0, cards::Card::new(cards::Suit::Heart, cards::Rank::RankQ)).unwrap();
+        game.set_play(id1, cards::Card::new(cards::Suit::Heart, cards::Rank::RankK)).unwrap();
         assert_eq!(game.get_turn(), Turn::Intertrick);
         game.set_player_ready(id0);
         game.set_player_ready(id1);
@@ -607,11 +610,11 @@ mod tests {
         // [1♥,2♥,8♥,  4♠,K♠,     ,                  ]
         // [7♥,        1♠,3♠,J♠,          6♣, ]                
         // [3♥,5♥,               C♦,Q♦,  K♣,        ]               
-        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank17));
-        game.set_play(id2, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank1));
-        game.set_play(id3, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank7));
-        game.set_play(id4, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank3));
-        game.set_play(id0, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank11));
+        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank17)).unwrap();
+        game.set_play(id2, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank1)).unwrap();
+        game.set_play(id3, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank7)).unwrap();
+        game.set_play(id4, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank3)).unwrap();
+        game.set_play(id0, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank11)).unwrap();
         assert_eq!(game.get_turn(), Turn::Intertrick);
         game.set_player_ready(id0);
         game.set_player_ready(id1);
@@ -625,11 +628,11 @@ mod tests {
         // [2♥,8♥,  4♠,K♠,     ,                  ]
         // [        1♠,3♠,J♠,          6♣, ]                
         // [5♥,               C♦,Q♦,  K♣,        ]               
-        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank16));
-        game.set_play(id2, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank2));
-        game.set_play(id3, cards::Card::new(cards::Suit::Club, cards::Rank::Rank6));
-        game.set_play(id4, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank5));
-        game.set_play(id0, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank8));
+        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank16)).unwrap();
+        game.set_play(id2, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank2)).unwrap();
+        game.set_play(id3, cards::Card::new(cards::Suit::Club, cards::Rank::Rank6)).unwrap();
+        game.set_play(id4, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank5)).unwrap();
+        game.set_play(id0, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank8)).unwrap();
         assert_eq!(game.get_turn(), Turn::Intertrick);
         game.set_player_ready(id0);
         game.set_player_ready(id1);
@@ -643,11 +646,11 @@ mod tests {
         // [8♥,  4♠,K♠,     ,                  ]
         // [        1♠,3♠,J♠,           ]                
         // [               C♦,Q♦,  K♣,        ]               
-        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank9));
-        game.set_play(id2, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank8));
-        game.set_play(id3, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank1));
-        game.set_play(id4, cards::Card::new(cards::Suit::Club, cards::Rank::RankK));
-        game.set_play(id0, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank4));
+        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank9)).unwrap();
+        game.set_play(id2, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank8)).unwrap();
+        game.set_play(id3, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank1)).unwrap();
+        game.set_play(id4, cards::Card::new(cards::Suit::Club, cards::Rank::RankK)).unwrap();
+        game.set_play(id0, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank4)).unwrap();
         assert_eq!(game.get_turn(), Turn::Intertrick);
         game.set_player_ready(id0);
         game.set_player_ready(id1);
@@ -661,11 +664,11 @@ mod tests {
         // [  4♠,K♠,     ,                  ]
         // [        3♠,J♠,           ]                
         // [               C♦,Q♦,          ]               
-        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank7));
-        game.set_play(id2, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank4));
-        game.set_play(id3, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank3));
-        game.set_play(id4, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankC));
-        game.set_play(id0, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank10));
+        game.set_play(id1, cards::Card::new(cards::Suit::Trump, cards::Rank::Rank7)).unwrap();
+        game.set_play(id2, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank4)).unwrap();
+        game.set_play(id3, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank3)).unwrap();
+        game.set_play(id4, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankC)).unwrap();
+        game.set_play(id0, cards::Card::new(cards::Suit::Spade, cards::Rank::Rank10)).unwrap();
         assert_eq!(game.get_turn(), Turn::Intertrick);
         game.set_player_ready(id0);
         game.set_player_ready(id1);
@@ -679,11 +682,11 @@ mod tests {
         // [  K♠,     ,                  ]
         // [        J♠,           ]                
         // [               Q♦,          ]               
-        game.set_play(id1, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank6));
-        game.set_play(id2, cards::Card::new(cards::Suit::Spade, cards::Rank::RankK));
-        game.set_play(id3, cards::Card::new(cards::Suit::Spade, cards::Rank::RankJ));
-        game.set_play(id4, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankQ));
-        game.set_play(id0, cards::Card::new(cards::Suit::Club, cards::Rank::Rank10));
+        game.set_play(id1, cards::Card::new(cards::Suit::Heart, cards::Rank::Rank6)).unwrap();
+        game.set_play(id2, cards::Card::new(cards::Suit::Spade, cards::Rank::RankK)).unwrap();
+        game.set_play(id3, cards::Card::new(cards::Suit::Spade, cards::Rank::RankJ)).unwrap();
+        game.set_play(id4, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankQ)).unwrap();
+        game.set_play(id0, cards::Card::new(cards::Suit::Club, cards::Rank::Rank10)).unwrap();
         assert_eq!(game.get_turn(), Turn::Intertrick);
         game.set_player_ready(id0);
         game.set_player_ready(id1);
@@ -698,5 +701,6 @@ mod tests {
         game.set_player_ready(id3);
         game.set_player_ready(id4);
         assert_eq!(game.get_turn(), Turn::Bidding((bid::AuctionState::Bidding, pos1)));
+        println!("scores: {:?}", game.scores);
     }
 }

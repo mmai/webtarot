@@ -4,12 +4,11 @@ use strum::IntoEnumIterator;
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender, Callback};
 
 use crate::protocol::GameStateSnapshot;
-use tarotgame::{bid, cards};
+use tarotgame::bid;
 
 pub enum Msg {
     Bid(bid::Target),
     Pass,
-    Empty,
 }
 
 #[derive(Clone, Properties)]
@@ -47,7 +46,6 @@ impl Component for BiddingActions {
             Msg::Pass => {
                 self.on_pass.emit(());
             },
-            _ => {}
         }
         false
     }
@@ -59,13 +57,6 @@ impl Component for BiddingActions {
 
     fn view(&self) -> Html {
         let curr_target = self.game_state.deal.contract_target();
-        // let curr_trump = self.game_state.deal.contract_trump();
-        let trumps = vec![
-            cards::Suit::Heart,
-            cards::Suit::Spade,
-            cards::Suit::Diamond,
-            cards::Suit::Club
-        ];
         html! {
             <section class="bidding">
                 <button onclick=self.link.callback(move |_| Msg::Pass)>

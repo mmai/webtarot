@@ -248,6 +248,7 @@ pub async fn on_player_set_role(
             ));
         }
         game.set_player_role(player_id, cmd.role).await;
+        game.set_player_not_ready(player_id).await;
         game.broadcast_state().await;
         Ok(())
     } else {
@@ -269,7 +270,7 @@ pub async fn on_player_bid(
             text: format!("bid: {:?}", cmd.target),
         }))
         .await;
-        game.set_bid(player_id, cmd.target).await;
+        game.set_bid(player_id, cmd.target).await?;
         game.broadcast_state().await;
         Ok(())
     } else {
@@ -286,13 +287,16 @@ pub async fn on_player_play(
     cmd: PlayCommand,
 ) -> Result<(), ProtocolError> {
     if let Some(game) = universe.get_player_game(player_id).await {
-        game.broadcast(&Message::Chat(ChatMessage {
-            player_id,
-            text: format!("play: {}", cmd.card.to_string()),
-        }))
-        .await;
-        game.set_play(player_id, cmd.card).await;
-        game.broadcast_state().await;
+        if let Err(e) = game.set_play(player_id, cmd.card).await {
+            game.send(player_id, &Message::Error(e)).await;
+        } else {
+            game.broadcast(&Message::Chat(ChatMessage {
+                player_id,
+                text: format!("play: {}", cmd.card.to_string()),
+            }))
+            .await;
+            game.broadcast_state().await;
+        }
         Ok(())
     } else {
         Err(ProtocolError::new(
@@ -308,12 +312,12 @@ pub async fn on_player_pass(
     player_id: Uuid,
 ) -> Result<(), ProtocolError> {
     if let Some(game) = universe.get_player_game(player_id).await {
+        game.set_pass(player_id).await?;
         game.broadcast(&Message::Chat(ChatMessage {
             player_id,
             text: format!("pass"),
         }))
         .await;
-        game.set_pass(player_id).await;
         game.broadcast_state().await;
         Ok(())
     } else {
@@ -353,11 +357,6 @@ pub async fn on_player_make_dog(
     cmd: MakeDogCommand,
 ) -> Result<(), ProtocolError> {
     if let Some(game) = universe.get_player_game(player_id).await {
-        game.broadcast(&Message::Chat(ChatMessage {
-            player_id,
-            text: format!("make dog: {}", cmd.cards.to_string()),
-        }))
-        .await;
         game.make_dog(player_id, cmd.cards).await;
         game.broadcast_state().await;
         Ok(())

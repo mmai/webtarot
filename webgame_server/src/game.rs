@@ -4,6 +4,7 @@ use tokio::sync::Mutex;
 use uuid::Uuid;
 
 use crate::protocol::{
+    ProtocolError,
     GameState,
     GameInfo, Message, PlayerDisconnectedMessage, PlayerRole,
 };
@@ -95,6 +96,11 @@ impl Game {
         game_state.set_player_role(player_id, role);
     }
 
+    pub async fn set_player_not_ready(&self, player_id: Uuid) {
+        let mut game_state = self.game_state.lock().await;
+        game_state.set_player_not_ready(player_id);
+    }
+
     pub async fn mark_player_ready(&self, player_id: Uuid) {
         let mut game_state = self.game_state.lock().await;
         game_state.set_player_ready(player_id);
@@ -106,6 +112,10 @@ impl Game {
         for player_id in game_state.get_players().keys().copied() {
             universe.send(player_id, message).await;
         }
+    }
+
+    pub async fn send(&self, player_id: Uuid, message: &Message) {
+        self.universe().send(player_id, message).await;
     }
 
     pub async fn broadcast_state(&self) {
@@ -127,19 +137,22 @@ impl Game {
     }
 
 
-    pub async fn set_bid(&self, pid: Uuid, target: bid::Target){
+    pub async fn set_bid(&self, pid: Uuid, target: bid::Target) -> Result<(), ProtocolError> {
         let mut game_state = self.game_state.lock().await;
-        game_state.set_bid(pid, target);
+        game_state.set_bid(pid, target)?;
+        Ok(())
     }
 
-    pub async fn set_pass(&self, pid: Uuid){
+    pub async fn set_pass(&self, pid: Uuid) -> Result<(), ProtocolError> {
         let mut game_state = self.game_state.lock().await;
-        game_state.set_pass(pid);
+        game_state.set_pass(pid)?;
+        Ok(())
     }
 
-    pub async fn set_play(&self, pid: Uuid, card: cards::Card){
+    pub async fn set_play(&self, pid: Uuid, card: cards::Card) -> Result<(), ProtocolError> {
         let mut game_state = self.game_state.lock().await;
-        game_state.set_play(pid, card);
+        game_state.set_play(pid, card)?;
+        Ok(())
     }
 
     pub async fn call_king(&self, pid: Uuid, card: cards::Card){

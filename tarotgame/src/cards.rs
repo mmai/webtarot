@@ -119,8 +119,8 @@ pub enum Rank {
     Rank22 = 1 << 25,
 }
 
-/// Bit RANK_MASK over all ranks.
-const RANK_MASK: u64 = 16385; 
+/// Bit RANK_MASK over all ranks for non trump suits.
+const RANK_MASK: u64 = 16383; 
 
 impl Rank {
     /// Returns the rank corresponding to the given number:
@@ -627,6 +627,29 @@ mod tests {
             hand.remove(*card);
             assert!(!hand.has(*card));
         }
+    }
+
+    #[test]
+    fn test_has_any() {
+        let mut hand = Hand::new();
+        hand.add(Card::new(Suit::Spade, Rank::Rank1));
+        hand.add(Card::new(Suit::Spade, Rank::Rank10));
+        hand.add(Card::new(Suit::Diamond, Rank::Rank4));
+        hand.add(Card::new(Suit::Diamond, Rank::Rank5));
+        hand.add(Card::new(Suit::Club, Rank::Rank6));
+        hand.add(Card::new(Suit::Club, Rank::Rank9));
+        hand.add(Card::new(Suit::Club, Rank::Rank10));
+        hand.add(Card::new(Suit::Trump, Rank::Rank4));
+        hand.add(Card::new(Suit::Trump, Rank::Rank6));
+        hand.add(Card::new(Suit::Trump, Rank::Rank7));
+        hand.add(Card::new(Suit::Trump, Rank::Rank9));
+        hand.add(Card::new(Suit::Trump, Rank::Rank12));
+        hand.add(Card::new(Suit::Trump, Rank::Rank13));
+        hand.add(Card::new(Suit::Trump, Rank::Rank18));
+
+        assert!(!hand.has_any(Suit::Heart));
+        assert!(hand.has_any(Suit::Club));
+        assert!(hand.has_any(Suit::Trump));
     }
 
     #[test]

@@ -11,7 +11,7 @@ use crate::protocol::{
     AuthenticateCommand, ChatMessage, Command, JoinGameCommand, Message, ProtocolError,
     ProtocolErrorKind, SendTextCommand, SetPlayerRoleCommand,
     ShareCodenameCommand,
-    PlayCommand, BidCommand
+    PlayCommand, BidCommand, CallKingCommand, MakeDogCommand,
 };
 use crate::universe::Universe;
 
@@ -101,7 +101,8 @@ async fn on_player_message(
             Command::SetPlayerRole(cmd) => on_player_set_role(universe, player_id, cmd).await,
             Command::Bid(cmd) => on_player_bid(universe, player_id, cmd).await,
             Command::Play(cmd) => on_player_play(universe, player_id, cmd).await,
-            Command::Coinche => on_player_coinche(universe, player_id).await,
+            Command::CallKing(cmd) => on_player_call_king(universe, player_id, cmd).await,
+            Command::MakeDog(cmd) => on_player_make_dog(universe, player_id, cmd).await,
             Command::Pass => on_player_pass(universe, player_id).await,
 
             // this should not happen here.
@@ -247,6 +248,7 @@ pub async fn on_player_set_role(
             ));
         }
         game.set_player_role(player_id, cmd.role).await;
+        game.set_player_not_ready(player_id).await;
         game.broadcast_state().await;
         Ok(())
     } else {
@@ -265,10 +267,10 @@ pub async fn on_player_bid(
     if let Some(game) = universe.get_player_game(player_id).await {
         game.broadcast(&Message::Chat(ChatMessage {
             player_id,
-            text: format!("bid: {:?} {:?}", cmd.target, cmd.trump),
+            text: format!("bid: {:?}", cmd.target),
         }))
         .await;
-        game.set_bid(player_id, cmd.target, cmd.trump).await;
+        game.set_bid(player_id, cmd.target).await?;
         game.broadcast_state().await;
         Ok(())
     } else {
@@ -285,13 +287,16 @@ pub async fn on_player_play(
     cmd: PlayCommand,
 ) -> Result<(), ProtocolError> {
     if let Some(game) = universe.get_player_game(player_id).await {
-        game.broadcast(&Message::Chat(ChatMessage {
-            player_id,
-            text: format!("play: {}", cmd.card.to_string()),
-        }))
-        .await;
-        game.set_play(player_id, cmd.card).await;
-        game.broadcast_state().await;
+        if let Err(e) = game.set_play(player_id, cmd.card).await {
+            game.send(player_id, &Message::Error(e)).await;
+        } else {
+            game.broadcast(&Message::Chat(ChatMessage {
+                player_id,
+                text: format!("play: {}", cmd.card.to_string()),
+            }))
+            .await;
+            game.broadcast_state().await;
+        }
         Ok(())
     } else {
         Err(ProtocolError::new(
@@ -307,12 +312,12 @@ pub async fn on_player_pass(
     player_id: Uuid,
 ) -> Result<(), ProtocolError> {
     if let Some(game) = universe.get_player_game(player_id).await {
+        game.set_pass(player_id).await?;
         game.broadcast(&Message::Chat(ChatMessage {
             player_id,
             text: format!("pass"),
         }))
         .await;
-        game.set_pass(player_id).await;
         game.broadcast_state().await;
         Ok(())
     } else {
@@ -324,17 +329,18 @@ pub async fn on_player_pass(
 }
 
 
-pub async fn on_player_coinche(
+pub async fn on_player_call_king(
     universe: Arc<Universe>,
     player_id: Uuid,
+    cmd: CallKingCommand,
 ) -> Result<(), ProtocolError> {
     if let Some(game) = universe.get_player_game(player_id).await {
         game.broadcast(&Message::Chat(ChatMessage {
             player_id,
-            text: format!("coinche"),
+            text: format!("call king: {}", cmd.card.to_string()),
         }))
         .await;
-        game.set_coinche(player_id).await;
+        game.call_king(player_id, cmd.card).await;
         game.broadcast_state().await;
         Ok(())
     } else {
@@ -345,6 +351,22 @@ pub async fn on_player_coinche(
     }
 }
 
+pub async fn on_player_make_dog(
+    universe: Arc<Universe>,
+    player_id: Uuid,
+    cmd: MakeDogCommand,
+) -> Result<(), ProtocolError> {
+    if let Some(game) = universe.get_player_game(player_id).await {
+        game.make_dog(player_id, cmd.cards).await;
+        game.broadcast_state().await;
+        Ok(())
+    } else {
+        Err(ProtocolError::new(
+            ProtocolErrorKind::BadState,
+            "not in a game",
+        ))
+    }
+}
 
 pub async fn serve(public_dir: String, port: u16) {
     let universe = Arc::new(Universe::new());

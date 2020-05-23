@@ -25,6 +25,8 @@ pub enum PlayerRole {
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum PlayerAction {
     Bid,
+    CallKing,
+    MakeDog,
     Play,
 }
 
@@ -41,6 +43,8 @@ impl GamePlayerState {
         match turn {
             Turn::Bidding((_, pos)) if pos == self.pos => Some(PlayerAction::Bid),
             Turn::Playing(pos) if pos == self.pos => Some(PlayerAction::Play),
+            Turn::CallingKing if self.role == PlayerRole::Taker => Some(PlayerAction::CallKing),
+            Turn::MakingDog if self.role == PlayerRole::Taker => Some(PlayerAction::MakeDog),
             _ => None
         }
     }

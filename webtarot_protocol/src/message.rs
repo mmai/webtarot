@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::game::{GameInfo, GameStateSnapshot};
 use crate::player::{PlayerInfo, GamePlayerState, PlayerRole};
-use tarotgame::{cards, bid};
+use tarotgame::{cards, bid, deal};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
@@ -19,7 +19,8 @@ pub enum Command {
     Bid(BidCommand),
     Play(PlayCommand),
     Pass,
-    Coinche,
+    CallKing(CallKingCommand),
+    MakeDog(MakeDogCommand),
     SetPlayerRole(SetPlayerRoleCommand),
 }
 
@@ -65,6 +66,24 @@ impl ProtocolError {
     }
 }
 
+impl From<deal::PlayError> for ProtocolError {
+    fn from(error: deal::PlayError) -> Self {
+        ProtocolError {
+            kind: ProtocolErrorKind::BadState,
+            message: format!("play error: {}", error),
+        }
+    }
+}
+
+impl From<bid::BidError> for ProtocolError {
+    fn from(error: bid::BidError) -> Self {
+        ProtocolError {
+            kind: ProtocolErrorKind::BadState,
+            message: format!("bid error: {}", error),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthenticateCommand {
     pub nickname: String,
@@ -94,12 +113,21 @@ pub struct SetPlayerRoleCommand {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BidCommand {
     pub target: bid::Target,
-    pub trump: cards::Suit,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PlayCommand {
     pub card: cards::Card,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct CallKingCommand {
+    pub card: cards::Card,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MakeDogCommand {
+    pub cards: cards::Hand,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -10,7 +10,7 @@ use super::pos;
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Trick {
     /// Cards currently on the table (they are `None` until played).
-    pub cards: [Option<cards::Card>; 4],
+    pub cards: [Option<cards::Card>; super::NB_PLAYERS],
     /// First player in this trick.
     pub first: pos::PlayerPos,
     /// Current winner of the trick (updated after each card played).
@@ -23,7 +23,7 @@ impl Trick {
         Trick {
             first,
             winner: first,
-            cards: [None; 4],
+            cards: [None; super::NB_PLAYERS],
         }
     }
 
@@ -33,15 +33,15 @@ impl Trick {
         Trick {
             first: default,
             winner: default,
-            cards: [None; 4],
+            cards: [None; super::NB_PLAYERS],
         }
     }
 
     /// Returns the points value of this trick.
-    pub fn score(&self, trump: cards::Suit) -> i32 {
+    pub fn points(&self) -> f32 {
         self.cards
             .iter()
-            .map(|c| c.map_or(0, |c| points::score(c, trump)))
+            .map(|c| c.map_or(0.0, |c| points::points(c)))
             .sum()
     }
 
@@ -57,6 +57,29 @@ impl Trick {
         // self.cards[trick_pos]
     }
 
+    /// Returns the player who played a card
+    pub fn player_played(&self, card: cards::Card) -> Option<pos::PlayerPos> {
+        self.cards.iter().position(|c| c == &Some(card)).map(|idx| pos::PlayerPos::from_n(idx))
+    }
+
+    /// Returns `true` if `self` contains `card`.
+    pub fn has(self, card: cards::Card) -> bool {
+        self.cards.contains(&Some(card))
+    }
+
+    pub fn has_oudlers(self) -> (bool, bool, bool) {
+        let petit = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank1);
+        let vingtetun = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank21);
+        let excuse = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank22);
+        (
+            self.cards.contains(&Some(petit)),
+            self.cards.contains(&Some(vingtetun)),
+            self.cards.contains(&Some(excuse))
+        )
+    }
+
+
+
     /// Plays a card.
     ///
     /// Updates the winner.
@@ -66,15 +89,14 @@ impl Trick {
         &mut self,
         player: pos::PlayerPos,
         card: cards::Card,
-        trump: cards::Suit,
     ) -> bool {
         self.cards[player as usize] = Some(card);
         if player == self.first {
             return false;
         }
 
-        if points::strength(card, trump)
-            > points::strength(self.cards[self.winner as usize].unwrap(), trump)
+        if points::strength(card)
+            > points::strength(self.cards[self.winner as usize].unwrap())
         {
             self.winner = player
         }

@@ -12,11 +12,12 @@ use crate::api::Api;
 use crate::components::chat_box::{ChatBox, ChatLine, ChatLineData};
 use crate::components::player_list::PlayerList;
 use crate::components::bidding_actions::BiddingActions;
+use crate::components::call_king_action::CallKingAction;
 use crate::protocol::{
     Command, GameInfo, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
     PlayerInfo,
     SendTextCommand,
-    BidCommand, PlayCommand,
+    BidCommand, PlayCommand, CallKingCommand, MakeDogCommand,
     Turn,
 };
 use tarotgame::{bid, cards};
@@ -36,6 +37,8 @@ pub struct GamePage {
     game_state: Rc<GameStateSnapshot>,
     chat_line: String,
     chat_log: Vector<Rc<ChatLine>>,
+    dog: cards::Hand,
+    hand: cards::Hand,
 }
 
 pub enum Msg {
@@ -44,10 +47,13 @@ pub enum Msg {
     Disconnect,
     MarkReady,
     Continue,
-    Bid((bid::Target, cards::Suit)),
-    Coinche,
+    Bid(bid::Target),
     Pass,
     Play(cards::Card),
+    CallKing(cards::Card),
+    MakeDog,
+    AddToDog(cards::Card),
+    AddToHand(cards::Card),
     SetChatLine(String),
     ServerMessage(Message),
 }
@@ -96,6 +102,8 @@ impl Component for GamePage {
             })),
             game_state: Rc::new(GameStateSnapshot::default()),
             player_info: props.player_info,
+            dog: cards::Hand::new(),
+            hand: cards::Hand::new(),
         }
     }
 
@@ -104,6 +112,9 @@ impl Component for GamePage {
             Msg::ServerMessage(message) => match message {
                 Message::Chat(msg) => {
                     self.add_chat_message(msg.player_id, ChatLineData::Text(msg.text));
+                }
+                Message::Error(e) => {
+                    log!("error from server {:?}", e);
                 }
                 Message::PlayerConnected(state) => {
                     let player_id = state.player.id;
@@ -118,6 +129,8 @@ impl Component for GamePage {
                 }
                 Message::GameStateSnapshot(snapshot) => {
                     self.game_state = Rc::new(snapshot);
+                    self.dog = self.game_state.deal.initial_dog;
+                    self.hand = self.game_state.deal.hand;
                 }
                 _ => {}
             },
@@ -137,16 +150,27 @@ impl Component for GamePage {
             Msg::Disconnect => {
                 self.api.send(Command::LeaveGame);
             }
-            Msg::Bid((target, trump)) => {
-                log!("received bid {:?} {:?}", target, trump);
-                self.api.send(Command::Bid(BidCommand { target, trump }));
+            Msg::Bid(target) => {
+                log!("received bid {:?}", target);
+                self.api.send(Command::Bid(BidCommand { target }));
             }
             Msg::Pass => {
                 self.api.send(Command::Pass);
             }
-            Msg::Coinche => {
-                self.api.send(Command::Coinche);
+            Msg::CallKing(card) => {
+                self.api.send(Command::CallKing(CallKingCommand { card }));
             }
+            Msg::AddToHand(card) => {
+                self.hand.add(card);
+                self.dog.remove(card);
+            },
+            Msg::AddToDog(card) => {
+                self.dog.add(card);
+                self.hand.remove(card);
+            },
+            Msg::MakeDog => {
+                self.api.send(Command::MakeDog(MakeDogCommand { cards: self.dog }));
+            },
             Msg::Play(card) => {
                 self.api.send(Command::Play(PlayCommand { card }));
             }
@@ -234,7 +258,14 @@ impl Component for GamePage {
                    if !self.my_state().ready  { html! {
                      <div>
                         <div class="results">
-                            {format!("scores : {:?}", self.game_state.deal.points)}
+                            <pre>
+                                {format!("historique : {:?}", self.game_state.scores)}
+                            </pre>
+                            <strong>
+                                <pre>
+                                    {format!("scores : {:?}", self.game_state.deal.scores)}
+                                </pre>
+                            </strong>
                         </div>
                         <div class="toolbar">
                             <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
@@ -243,15 +274,52 @@ impl Component for GamePage {
                    }} else {
                      html! {}
                 },
-                _ => if player_action == Some(PlayerAction::Bid) {
+               Turn::CallingKing if player_action == Some(PlayerAction::CallKing) => {
+                   // Choose a queen if player has all kings
+                   // Choose a jack if player has all kings and all queens
+                   let my_hand = self.game_state.deal.hand;
+                   let rank = if my_hand.has_all_rank(cards::Rank::RankK) {
+                       if my_hand.has_all_rank(cards::Rank::RankQ) { cards::Rank::RankJ } else { cards::Rank::RankQ } 
+                   } else {
+                       cards::Rank::RankK
+                   };
+
+                    html! {
+                        <CallKingAction
+                            rank=rank
+                            on_call_king=self.link.callback(|card| Msg::CallKing(card))
+                            />
+                    }
+               },
+               Turn::MakingDog if player_action == Some(PlayerAction::MakeDog) => {
+                   html! {
+                       <div>
+                           <section class="hand">
+                           {
+                               for self.dog.list().iter().map(|card| {
+                                   let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                                   let clicked = card.clone();
+                                   html! {
+                                       <div class="card" style={style} onclick=self.link.callback(move |_| Msg::AddToHand(clicked))></div>
+                                   }
+                               })
+                           }
+                           </section>
+                           <button onclick=self.link.callback(move |_| Msg::MakeDog)>
+                           {{ "finish" }}
+                           </button>
+                       </div>
+                   }
+               },
+                _ if player_action == Some(PlayerAction::Bid) => 
                     html! {
                         <BiddingActions
                             game_state=self.game_state.clone()
                             on_bid=self.link.callback(|contract| Msg::Bid(contract))
                             on_pass=self.link.callback(|contract| Msg::Pass)
-                            on_coinche=self.link.callback(|_| Msg::Coinche) />
-                    }
-                } else {
+                            />
+                    },
+                _ => 
                     html! {
                         <div>
                             {if let Some(card) = card_played {
@@ -264,20 +332,29 @@ impl Component for GamePage {
                             }}
                         </div>
                     }
-                }
              }}
         </section>
 
         <section class="hand">
-        {
-            for self.game_state.deal.hand.list().iter().map(|card| {
+        { if self.game_state.turn != Turn::Pregame && self.game_state.turn != Turn::Interdeal {
+            html! {
+              for self.hand.list().iter().map(|card| {
                 let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
                 let clicked = card.clone();
                 html! {
-                    <div class="card" style={style} onclick=self.link.callback(move |_| Msg::Play(clicked))></div>
+                    <div class="card" style={style} 
+                    onclick=self.link.callback(move |_| 
+                        if player_action == Some(PlayerAction::MakeDog) {
+                            Msg::AddToDog(clicked)
+                        } else {
+                            Msg::Play(clicked)
+                        }) >
+                    </div>
                 }
             })
-        }
+        }} else {
+            html!{}
+        }}
         </section>
 
         <ChatBox log=self.chat_log.clone()/>
@@ -300,7 +377,6 @@ impl Component for GamePage {
                     <button class="primary" onclick=self.link.callback(|_| Msg::SendChat)>{"Chat"}</button>
             </div>
         </div>
-
     </div>
 
         }

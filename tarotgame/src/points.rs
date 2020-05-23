@@ -2,83 +2,80 @@
 
 use super::cards;
 
-/// Returns the number of points `card` is worth, with the current trump suit.
-pub fn score(card: cards::Card, trump: cards::Suit) -> i32 {
-    let r = card.rank();
-    if card.suit() == trump {
-        trump_score(r)
+pub fn score(points: f32, oudlers_count: u8) -> f32 {
+    let raw_points = match oudlers_count {
+        3 => points - 36.0,
+        2 => points - 41.0,
+        1 => points - 51.0,
+        _ => points - 56.0,
+    };
+    if raw_points < 0.0 {
+        raw_points - 25.0
     } else {
-        usual_score(r)
+        raw_points + 25.0
     }
 }
 
-/// Returns the strength of `card`, with the current trump suit.
-pub fn strength(card: cards::Card, trump: cards::Suit) -> i32 {
-    let r = card.rank();
-    if card.suit() == trump {
-        8 + trump_strength(r)
+/// Returns the number of points `card` is worth
+pub fn points(card: cards::Card) -> f32 {
+    match card.rank() {
+        cards::Rank::Rank1 if card.suit() == cards::Suit::Trump => 4.5, 
+        cards::Rank::Rank21 => 4.5,
+        cards::Rank::Rank22 => 4.5,
+        cards::Rank::RankJ => 1.5,
+        cards::Rank::RankC => 2.5,
+        cards::Rank::RankQ => 3.5,
+        cards::Rank::RankK => 4.5,
+        _ => 0.5,
+    }
+}
+
+/// Returns the strength of `card`
+pub fn strength(card: cards::Card) -> i32 {
+    let rank = card.rank();
+    if card.suit() == cards::Suit::Trump {
+        match rank {
+            cards::Rank::Rank1  => 21,
+            cards::Rank::Rank2  => 22,
+            cards::Rank::Rank3  => 23,
+            cards::Rank::Rank4  => 24,
+            cards::Rank::Rank5  => 25,
+            cards::Rank::Rank6  => 26,
+            cards::Rank::Rank7  => 27,
+            cards::Rank::Rank8  => 28,
+            cards::Rank::Rank9  => 29,
+            cards::Rank::Rank10 => 30,
+            cards::Rank::Rank11 => 31,
+            cards::Rank::Rank12 => 32,
+            cards::Rank::Rank13 => 33,
+            cards::Rank::Rank14 => 34,
+            cards::Rank::Rank15 => 35,
+            cards::Rank::Rank16 => 36,
+            cards::Rank::Rank17 => 37,
+            cards::Rank::Rank18 => 38,
+            cards::Rank::Rank19 => 39,
+            cards::Rank::Rank20 => 40,
+            cards::Rank::Rank21 => 41,
+            cards::Rank::Rank22 => 0,
+            _ => 0
+        }
     } else {
-        usual_strength(r)
-    }
-}
-
-/// Returns the score for the given rank when it is the trump.
-///
-/// # Panics
-/// If `rank` is invalid.
-pub fn trump_score(rank: cards::Rank) -> i32 {
-    match rank {
-        cards::Rank::RankJ => 20,
-        cards::Rank::Rank9 => 14,
-        _ => usual_score(rank),
-    }
-}
-
-/// Returns the score for the given rank when it is not the trump.
-///
-/// # Panics
-/// If `rank` is invalid.
-pub fn usual_score(rank: cards::Rank) -> i32 {
-    match rank {
-        cards::Rank::Rank7 | cards::Rank::Rank8 | cards::Rank::Rank9 => 0,
-        cards::Rank::RankJ => 2,
-        cards::Rank::RankQ => 3,
-        cards::Rank::RankK => 4,
-        cards::Rank::RankX => 10,
-        cards::Rank::RankA => 11,
-    }
-}
-
-/// Returns the strength for the given rank when it is the trump.
-///
-/// # Panics
-/// If `rank` is invalid.
-pub fn trump_strength(rank: cards::Rank) -> i32 {
-    match rank {
-        cards::Rank::Rank7 => 0,
-        cards::Rank::Rank8 => 1,
-        cards::Rank::RankQ => 2,
-        cards::Rank::RankK => 3,
-        cards::Rank::RankX => 4,
-        cards::Rank::RankA => 5,
-        cards::Rank::Rank9 => 6,
-        cards::Rank::RankJ => 7,
-    }
-}
-
-/// Returns the strength for the given rank when it is not the trump.
-///
-/// # Panics
-/// If `rank` is invalid.
-pub fn usual_strength(rank: cards::Rank) -> i32 {
-    match rank {
-        cards::Rank::Rank7 => 0,
-        cards::Rank::Rank8 => 1,
-        cards::Rank::Rank9 => 2,
-        cards::Rank::RankJ => 3,
-        cards::Rank::RankQ => 4,
-        cards::Rank::RankK => 5,
-        cards::Rank::RankX => 6,
-        cards::Rank::RankA => 7,
+        match rank {
+            cards::Rank::Rank1  => 1,
+            cards::Rank::Rank2  => 2,
+            cards::Rank::Rank3  => 3,
+            cards::Rank::Rank4  => 4,
+            cards::Rank::Rank5  => 5,
+            cards::Rank::Rank6  => 6,
+            cards::Rank::Rank7  => 7,
+            cards::Rank::Rank8  => 8,
+            cards::Rank::Rank9  => 9,
+            cards::Rank::Rank10 => 10,
+            cards::Rank::RankJ  => 11,
+            cards::Rank::RankC  => 12,
+            cards::Rank::RankQ  => 13,
+            cards::Rank::RankK  => 14,
+            _ => 0
+        }
     }
 }

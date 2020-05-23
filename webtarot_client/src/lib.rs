@@ -1,4 +1,4 @@
-#![recursion_limit = "1024"]
+#![recursion_limit = "2048"]
 
 #[macro_use]
 macro_rules! log {
@@ -15,7 +15,7 @@ mod views;
 
 use wasm_bindgen::prelude::*;
 
-pub(crate) use webgame_protocol as protocol;
+pub(crate) use webtarot_protocol as protocol;
 
 // A macro to provide `println!(..)`-style syntax for `console.log` logging.
 

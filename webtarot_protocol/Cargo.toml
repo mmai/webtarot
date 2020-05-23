@@ -1,7 +1,7 @@
 [package]
-name = "webgame_protocol"
+name = "webtarot_protocol"
 version = "0.1.0"
-authors = ["Armin Ronacher <armin.ronacher@active-4.com>"]
+authors = ["Henri Bourcereau <henri@bourcereau.fr>"]
 edition = "2018"
 
 [dependencies]

@@ -5,7 +5,7 @@ mod server;
 mod universe;
 mod utils;
 
-pub(crate) use webgame_protocol as protocol;
+pub(crate) use webtarot_protocol as protocol;
 
 #[tokio::main]
 pub async fn main() {

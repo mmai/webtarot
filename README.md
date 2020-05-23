@@ -2,7 +2,7 @@
 
 A online game of tarot in rust / webassembly
 
-Work in progress (not playable)
+Work in progress
 
 ## Usage
 

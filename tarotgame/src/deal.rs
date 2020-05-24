@@ -284,6 +284,9 @@ impl DealState {
         if self.partner != self.contract.author {
             taking_points += self.points[self.partner as usize];
         }
+        if self.contract.target != bid::Target::GardeContre {
+            taking_points += points::hand_points(self.dog);
+        }
         let base_points = self.contract.target.multiplier() as f32 * points::score(taking_points, self.oudlers_count);
 
         let mut scores = [0.0; super::NB_PLAYERS];

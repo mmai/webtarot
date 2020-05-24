@@ -30,6 +30,12 @@ pub fn points(card: cards::Card) -> f32 {
     }
 }
 
+pub fn hand_points(hand: cards::Hand) -> f32 {
+    hand.list().iter()
+        .map(|c| points(*c))
+        .sum()
+}
+
 /// Returns the strength of `card`
 pub fn strength(card: cards::Card) -> i32 {
     let rank = card.rank();

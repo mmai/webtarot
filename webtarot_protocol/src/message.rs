@@ -22,6 +22,7 @@ pub enum Command {
     CallKing(CallKingCommand),
     MakeDog(MakeDogCommand),
     SetPlayerRole(SetPlayerRoleCommand),
+    DebugUi(DebugUiCommand), // Used to send a custom state to a client, allows to quickly view the UI at a given state of the game without having to play all the hands leading to this state.
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Hash)]
@@ -87,6 +88,12 @@ impl From<bid::BidError> for ProtocolError {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthenticateCommand {
     pub nickname: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DebugUiCommand {
+    pub player_id: Uuid,
+    pub snapshot: GameStateSnapshot,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

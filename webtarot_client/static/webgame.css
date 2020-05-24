@@ -225,7 +225,7 @@ p.turn-info {
 .player {
   grid-row-start: 1;
   width: 16vh;
-  height: 30vh;
+  height: 27vh;
 }
 
 .current-player {
@@ -249,7 +249,7 @@ p.turn-info {
   grid-template-columns: repeat(auto-fit,  minmax(10px, max-content)) ;
   justify-content: center;
   width: 90%;
-  height: 30vh;
+  height: 27vh;
   margin-left: auto;
   margin-right: auto;
   min-width: 0;

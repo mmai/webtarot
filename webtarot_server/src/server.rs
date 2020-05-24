@@ -12,6 +12,7 @@ use crate::protocol::{
     ProtocolErrorKind, SendTextCommand, SetPlayerRoleCommand,
     ShareCodenameCommand,
     PlayCommand, BidCommand, CallKingCommand, MakeDogCommand,
+    DebugUiCommand,
 };
 use crate::universe::Universe;
 
@@ -84,6 +85,7 @@ async fn on_player_message(
     if !universe.player_is_authenticated(player_id).await {
         match cmd {
             Command::Authenticate(data) => on_player_authenticate(universe, player_id, data).await,
+            Command::DebugUi(data) => on_debug_ui(universe, data).await,//For deebug purposes only
             _ => Err(ProtocolError::new(
                 ProtocolErrorKind::NotAuthenticated,
                 "cannot perform this command unauthenticated",
@@ -104,6 +106,7 @@ async fn on_player_message(
             Command::CallKing(cmd) => on_player_call_king(universe, player_id, cmd).await,
             Command::MakeDog(cmd) => on_player_make_dog(universe, player_id, cmd).await,
             Command::Pass => on_player_pass(universe, player_id).await,
+            Command::DebugUi(data) => on_debug_ui(universe, data).await,
 
             // this should not happen here.
             Command::Authenticate(..) => Err(ProtocolError::new(
@@ -141,6 +144,16 @@ async fn on_join_game(
 async fn on_leave_game(universe: Arc<Universe>, player_id: Uuid) -> Result<(), ProtocolError> {
     universe.remove_player_from_game(player_id).await;
     universe.send(player_id, &Message::GameLeft).await;
+    Ok(())
+}
+
+async fn on_debug_ui(
+    universe: Arc<Universe>,
+    cmd: DebugUiCommand,
+) -> Result<(), ProtocolError> {
+    universe
+        .send(cmd.player_id, &Message::GameStateSnapshot(cmd.snapshot))
+        .await;
     Ok(())
 }
 

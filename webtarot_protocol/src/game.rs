@@ -231,8 +231,17 @@ impl GameState {
 
     pub fn call_king(&mut self, pid: Uuid, card: cards::Card){
         let pos = self.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
-        if self.deal.deal_state_mut().unwrap().call_king(pos, card) {
-            self.turn = Turn::MakingDog;
+        let deal_state = self.deal.deal_state_mut().unwrap();
+        if deal_state.call_king(pos, card) {
+            // Next step : do we need to make a dog ?
+            let target = self.deal.deal_contract().unwrap().target;
+            if target == bid::Target::GardeSans || target == bid::Target::GardeContre {
+                //No dog
+                self.turn = Turn::from_deal(&self.deal);
+            } else {
+                //Dog
+                self.turn = Turn::MakingDog;
+            }
         }
     }
 

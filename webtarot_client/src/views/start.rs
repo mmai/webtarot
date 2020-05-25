@@ -1,3 +1,4 @@
+use tr::tr;
 use yew::agent::Bridged;
 use yew::{
     html, Bridge, Callback, Component, ComponentLink, Html, InputData, KeyboardEvent, Properties,
@@ -70,9 +71,9 @@ impl Component for StartPage {
     fn view(&self) -> Html {
         html! {
             <div class="wrapper">
-                <h1>{"Let's play Tarot together"}</h1>
+                <h1>{ tr!("Let's play Tarot together") }</h1>
                 <p class="explanation">
-                    {"Give yourself a name to play:"}
+                    { tr!("Give yourself a name to play:") }
                 </p>
                 <div class="toolbar">
                     <input value=&self.nickname

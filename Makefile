@@ -13,7 +13,7 @@ server-reload:
 .PHONY: server-reload
 
 compile:
-	cd webtarot_client && yarn && yarn run build
+	cd webtarot_client && yarn && yarn run build && yarn run css
 	cd webtarot_server && cargo build --release
 .PHONY: compile
 

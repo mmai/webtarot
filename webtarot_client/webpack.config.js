@@ -24,6 +24,14 @@ module.exports = (env, argv) => {
       filename: "webgame.js",
       webassemblyModuleFilename: "webgame.wasm",
     },
+
+    // module: {
+    //   rules: [{
+    //     test: /\.scss$/,
+    //     loader: ['style-loader', 'css-loader', 'sass-loader', 'postcss-loader']
+    //   }]
+    // },
+
     plugins: [
       new CopyWebpackPlugin([{
         from: './static',

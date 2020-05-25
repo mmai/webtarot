@@ -1,0 +1,278 @@
+@import url("https://fonts.googleapis.com/css?family=Inter:300,400,500,700&display=swap");
+@import url("https://fonts.googleapis.com/css?family=Courier+Prime:400,700&display=swap");
+
+html {
+  min-height: 100%;
+}
+
+body {
+  /* padding: 1em; */
+  font-family: "Inter", sans-serif;
+  font-size: 18px;
+  margin: 0;
+  background: rgb(233, 233, 233);
+  background: linear-gradient(
+    0deg,
+    rgba(233, 233, 233, 1) 0%,
+    rgba(189, 179, 169, 1) 100%
+  );
+}
+
+input,
+button,
+div.toolbar span {
+  display: inline-block;
+  font-family: "Inter", sans-serif;
+  font-size: 18px;
+  line-height: 40px !important;
+  outline: none;
+  border: 2px solid black;
+  border-radius: 4px;
+  padding: 0 12px;
+  vertical-align: middle;
+  background: white;
+  color: black;
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+input {
+  font-family: "Courier Prime", monospace;
+  font-weight: 400;
+  background: rgb(244, 244, 244);
+  background: linear-gradient(
+    0deg,
+    rgba(244, 244, 244, 1) 0%,
+    rgba(242, 238, 233, 1) 100%
+  );
+  padding-top: 4px;
+  line-height: 36px !important;
+  box-shadow: inset 5px 5px 10px -10px rgba(0, 0, 0, 0.7);
+}
+
+button.primary {
+  background: rgb(245, 130, 7);
+  color: white;
+}
+
+button.cancel {
+  background: rgb(113, 110, 107);
+  color: white;
+}
+
+input:disabled,
+button:disabled,
+input:disabled:hover,
+button:disabled:hover {
+  color: #888 !important;
+  background: #eee !important;
+  cursor: default;
+}
+
+button {
+  padding: 0 14px;
+}
+
+button:hover {
+  cursor: pointer;
+  background: black;
+  color: white;
+}
+
+h1 {
+  font-weight: 400;
+  margin: 0 0 12px 0;
+  padding: 0;
+}
+
+div.wrapper {
+  background: white;
+  border: 2px solid black;
+  padding: 20px;
+  border-radius: 3px;
+  overflow: visible;
+  margin: 30px 20px auto 20px;
+  box-shadow: 11px 10px 35px -14px rgba(0, 0, 0, 0.75);
+}
+
+/* div.game,                                                    */
+.box {
+  background: white;
+  border: 2px solid black;
+  border-radius: 3px;
+  padding: 8px;
+  margin: 8px 0;
+}
+
+.box h2 {
+  margin: -8px -8px 8px -8px;
+  padding: 8px 10px;
+  font-size: 15px;
+  font-weight: 700;
+  background: black;
+  color: white;
+}
+
+.box ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+div.box li {
+  margin: 0;
+  padding: 0;
+}
+
+p {
+  margin: 12px 0;
+}
+
+p.error {
+  color: rgb(199, 10, 10);
+  font-weight: 500;
+}
+
+div.toolbar {
+  clear: both;
+}
+
+div.toolbar * {
+  margin: 8px 0 !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+div.toolbar * + * {
+  border-left: none !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+div.toolbar *:last-child {
+  border-top-right-radius: 4px !important;
+  border-bottom-right-radius: 4px !important;
+  border-right: 2px solid black !important;
+}
+
+div.toolbar span {
+  background: #eee;
+}
+
+/* div.players {                                                */
+/*   width: 300px;                                              */
+/*   float: right;                                              */
+/*   margin-top: 0;                                             */
+/* }                                                            */
+
+/* div.players li.team-red span.nickname {                      */
+/*   color: red;                                                */
+/* }                                                            */
+
+/* div.players li.team-blue span.nickname {                     */
+/*   color: blue;                                               */
+/* }                                                            */
+
+.chat {
+  font-family: "Courier Prime", monospace;
+  max-height: 100%;
+}
+
+.chat ul {
+  overflow-y: auto;
+  max-height: 95%;
+}
+
+p.turn-info {
+  float: right;
+}
+
+
+.game {
+  display: grid;
+  grid-template-rows: [header] 50px [players] 1fr [action] 1fr [hand] 1fr [footer] 60px [bottom] 30px [end];
+  grid-template-columns: [game] auto [chat] 400px [end];
+  height:100%;
+  padding: 1em;
+  background: white;
+}
+
+.header {
+  grid-row-start: header;
+  grid-column-start: game;
+}
+
+.game-table {
+  grid-column-start: game;
+  display: flex;
+  flex-direction: column;
+}
+
+.players {
+  grid-column-start: game;
+
+  display: grid;
+  grid-template-rows: 100%;
+  justify-content: space-between;
+  padding: 1vh;
+  /* background-color:green; */
+}
+
+.player {
+  grid-row-start: 1;
+  width: 16vh;
+  height: 27vh;
+}
+
+.current-player {
+  border-top: 2px solid teal;
+  border-radius: 4px;
+}
+
+.actions {
+  grid-column-start: game;
+  grid-row-start: action;
+  display:grid;
+  justify-content:center;
+  padding: 1vh;
+  /* background-color:orange; */
+}
+
+.hand{
+  grid-column-start: game;
+  grid-row-end: footer;
+  display: grid;
+  grid-template-columns: repeat(auto-fit,  minmax(10px, max-content)) ;
+  justify-content: center;
+  width: 90%;
+  height: 27vh;
+  margin-left: auto;
+  margin-right: auto;
+  min-width: 0;
+  min-height: 0;
+  /* background-color:pink; */
+}
+
+.card{
+  width: 15vh;
+  height: 28vh;
+  background-image: var(--bg-image);
+  background-size: 15vh 28vh;
+  cursor: pointer;
+}
+
+.hand > .card:hover{
+  transform: scale(1.3);
+}
+
+.chat {
+  grid-row-start: players;
+  grid-row-end: footer;
+  grid-column-start: chat;
+}
+
+.footer {
+  grid-row-start: footer;
+  grid-column-start: game;
+  text-align: center;
+}

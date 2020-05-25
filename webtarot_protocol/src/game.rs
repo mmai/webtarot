@@ -429,7 +429,7 @@ mod tests {
         game.set_pass(id4).unwrap();
         assert_eq!(game.get_turn(), Turn::CallingKing);
         assert_eq!(game.player_by_pos(pos0).unwrap().role, PlayerRole::Taker);
-        game.call_king(id0, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK));
+        game.call_king(id0, cards::Card::new(cards::Suit::Club, cards::Rank::RankK));
         assert_eq!(game.get_turn(), Turn::MakingDog);
         let mut dog = cards::Hand::new();
         dog.add(cards::Card::new(cards::Suit::Heart, cards::Rank::RankC));

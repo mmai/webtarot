@@ -37,6 +37,16 @@ impl Universe {
         }
     }
 
+    /// for debug purposes: show all the players connected to the server, except player_id
+    pub async fn show_players(self: &Arc<Self>, player_id: Uuid) -> Vec<Uuid> {
+        let state = self.state.read().await;
+        let uuids:Vec<Uuid> = state.players.keys()
+            .filter(|k| *k != &player_id)
+            .map(|k| *k )
+            .collect();
+        uuids
+    }
+
     /// Starts a new game.
     pub async fn new_game(self: &Arc<Self>) -> Arc<Game> {
         let mut universe_state = self.state.write().await;

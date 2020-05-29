@@ -23,6 +23,7 @@ pub enum Command {
     MakeDog(MakeDogCommand),
     SetPlayerRole(SetPlayerRoleCommand),
     DebugUi(DebugUiCommand), // Used to send a custom state to a client, allows to quickly view the UI at a given state of the game without having to play all the hands leading to this state.
+    ShowUuid, // get uuid of connected client : for use with debugUi
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Hash)]

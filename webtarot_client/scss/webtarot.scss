@@ -47,7 +47,7 @@ input {
 }
 
 button.primary {
-  background: rgb(245, 130, 7);
+  background: #05652f;
   color: white;
 }
 
@@ -129,9 +129,6 @@ p.error {
   font-weight: 500;
 }
 
-div.toolbar {
-  clear: both;
-}
 
 div.toolbar * {
   margin: 8px 0 !important;
@@ -153,36 +150,6 @@ div.toolbar *:last-child {
 
 div.toolbar span {
   background: #eee;
-}
-
-/* div.players {                                                */
-/*   width: 300px;                                              */
-/*   float: right;                                              */
-/*   margin-top: 0;                                             */
-/* }                                                            */
-
-/* div.players li.team-red span.nickname {                      */
-/*   color: red;                                                */
-/* }                                                            */
-
-/* div.players li.team-blue span.nickname {                     */
-/*   color: blue;                                               */
-/* }                                                            */
-
-.chat {
-  font-family: "Courier Prime", monospace;
-  overflow-y: auto;
-  display:flex;
-  flex-direction:column;
-  max-height: 50vh;
-}
-
-.chat-messages {
-  flex: 1;
-  max-height: 95%;
-  overflow: auto;
-  display: flex;
-  flex-direction: column-reverse;
 }
 
 p.turn-info {
@@ -219,10 +186,22 @@ p.turn-info {
   /* background-color:green; */
 }
 
+
 .player {
   grid-row-start: 1;
   width: 16vh;
   height: 27vh;
+
+  .nickname {
+    border: 2px solid black;
+    border-radius: 3px;
+    padding: 6px;
+    margin: 6px 0;
+
+    background: black;
+    color: white;
+
+  }
 }
 
 .current-player {
@@ -270,4 +249,20 @@ p.turn-info {
   grid-row-start: players;
   grid-row-end: bottom;
   grid-column-start: chat;
+
+  background-color: lightgreen;
+  font-family: "Courier Prime", monospace;
+  overflow-y: auto;
+  display:flex;
+  flex-direction:column;
+  max-height: 50vh;
 }
+
+.chat-messages {
+  flex: 1;
+  max-height: 95%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column-reverse;
+}
+

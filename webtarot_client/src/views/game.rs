@@ -214,7 +214,6 @@ impl Component for GamePage {
         } else {
              html! {}
         }}
-        <h1>{format!("Game ({})", format_join_code(&self.game_info.join_code))}</h1>
       </header>
 
       <PlayerList game_state=self.game_state.clone() players=others/>
@@ -222,6 +221,7 @@ impl Component for GamePage {
         <section class=actions_classes>
             {match self.game_state.turn {
                Turn::Pregame => html! {
+                <div class="wrapper">
                     <div class="toolbar">
                     {if !self.my_state().ready  {
                         html! {<button class="primary" onclick=self.link.callback(|_| Msg::MarkReady)>{"Ready!"}</button>}
@@ -230,6 +230,8 @@ impl Component for GamePage {
                     }}
                         <button class="cancel" onclick=self.link.callback(|_| Msg::Disconnect)>{"Disconnect"}</button>
                     </div>
+                    <h1>{{ "join code:" }} <strong>{format!(" {}", format_join_code(&self.game_info.join_code))}</strong></h1>
+                 </div>
                 },
                Turn::Intertrick => 
                    if !self.my_state().ready  { html! {

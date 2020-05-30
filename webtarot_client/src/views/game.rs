@@ -1,10 +1,9 @@
-use std::mem;
 use std::rc::Rc;
 use im_rc::Vector;
 use uuid::Uuid;
 use yew::agent::Bridged;
 use yew::{
-    html, Bridge, Component, ComponentLink, Html, InputData, KeyboardEvent, Properties,
+    html, Bridge, Component, ComponentLink, Html, Properties,
     ShouldRender,
 };
 
@@ -35,15 +34,12 @@ pub struct GamePage {
     game_info: GameInfo,
     player_info: PlayerInfo,
     game_state: Rc<GameStateSnapshot>,
-    chat_line: String,
     chat_log: Vector<Rc<ChatLine>>,
     dog: cards::Hand,
     hand: cards::Hand,
 }
 
 pub enum Msg {
-    Ignore,
-    SendChat,
     Disconnect,
     MarkReady,
     Continue,
@@ -51,10 +47,10 @@ pub enum Msg {
     Pass,
     Play(cards::Card),
     CallKing(cards::Card),
+    SetChatLine(String),
     MakeDog,
     AddToDog(cards::Card),
     AddToHand(cards::Card),
-    SetChatLine(String),
     ServerMessage(Message),
 }
 
@@ -95,7 +91,6 @@ impl Component for GamePage {
             link,
             api,
             game_info: props.game_info,
-            chat_line: "".into(),
             chat_log: Vector::unit(Rc::new(ChatLine {
                 nickname: props.player_info.nickname.clone(),
                 data: ChatLineData::Connected,
@@ -134,12 +129,8 @@ impl Component for GamePage {
                 }
                 _ => {}
             },
-            Msg::SendChat => {
-                let text = mem::replace(&mut self.chat_line, "".into());
-                self.api.send(Command::SendText(SendTextCommand { text }));
-            }
             Msg::SetChatLine(text) => {
-                self.chat_line = text;
+                self.api.send(Command::SendText(SendTextCommand { text }));
             }
             Msg::Continue => {
                 self.api.send(Command::Continue);
@@ -174,7 +165,6 @@ impl Component for GamePage {
             Msg::Play(card) => {
                 self.api.send(Command::Play(PlayCommand { card }));
             }
-            Msg::Ignore => {}
         }
         true
     }
@@ -357,26 +347,10 @@ impl Component for GamePage {
         }}
         </section>
 
-        <ChatBox log=self.chat_log.clone()/>
+        <ChatBox log=self.chat_log.clone()
+                 on_send_chat=self.link.callback(|text| Msg::SetChatLine(text))
+        />
 
-        <div class="footer">
-            <div class="toolbar">
-                <span>{format!("{:?} ", &self.my_state().pos)}</span>
-                <span>{format!("{}: ", &self.player_info.nickname)}</span>
-                <input value=&self.chat_line
-                    placeholder="send some text"
-                    size="30"
-                    onkeypress=self.link.callback(|event: KeyboardEvent| {
-                        if event.key() == "Enter" {
-                            Msg::SendChat
-                        } else {
-                            Msg::Ignore
-                        }
-                    })
-                    oninput=self.link.callback(|e: InputData| Msg::SetChatLine(e.value)) />
-                    <button class="primary" onclick=self.link.callback(|_| Msg::SendChat)>{"Chat"}</button>
-            </div>
-        </div>
     </div>
 
         }

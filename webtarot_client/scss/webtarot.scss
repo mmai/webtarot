@@ -10,12 +10,8 @@ body {
   font-family: "Inter", sans-serif;
   font-size: 18px;
   margin: 0;
-  background: rgb(233, 233, 233);
-  background: linear-gradient(
-    0deg,
-    rgba(233, 233, 233, 1) 0%,
-    rgba(189, 179, 169, 1) 100%
-  );
+  background: #038604;
+  background-image: url("greenmat.png");
 }
 
 input,
@@ -175,12 +171,18 @@ div.toolbar span {
 
 .chat {
   font-family: "Courier Prime", monospace;
-  max-height: 100%;
+  overflow-y: auto;
+  display:flex;
+  flex-direction:column;
+  max-height: 50vh;
 }
 
-.chat ul {
-  overflow-y: auto;
+.chat-messages {
+  flex: 1;
   max-height: 95%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column-reverse;
 }
 
 p.turn-info {
@@ -190,11 +192,10 @@ p.turn-info {
 
 .game {
   display: grid;
-  grid-template-rows: [header] 50px [players] 1fr [action] 1fr [hand] 1fr [footer] 60px [bottom] 30px [end];
+  grid-template-rows: [header] 50px [players] 1fr [action] 1fr [hand] 1fr [bottom] 30px [end];
   grid-template-columns: [game] auto [chat] 400px [end];
   height:100%;
   padding: 1em;
-  background: white;
 }
 
 .header {
@@ -240,7 +241,7 @@ p.turn-info {
 
 .hand{
   grid-column-start: game;
-  grid-row-end: footer;
+  grid-row-end: bottom;
   display: grid;
   grid-template-columns: repeat(auto-fit,  minmax(10px, max-content)) ;
   justify-content: center;
@@ -267,12 +268,6 @@ p.turn-info {
 
 .chat {
   grid-row-start: players;
-  grid-row-end: footer;
+  grid-row-end: bottom;
   grid-column-start: chat;
-}
-
-.footer {
-  grid-row-start: footer;
-  grid-column-start: game;
-  text-align: center;
 }

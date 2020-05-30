@@ -58,7 +58,8 @@ pub enum PlayError {
     InvalidPiss,
     /// A player did not raise on the last played trump
     NonRaisedTrump,
-
+    /// The first player tried to play the suit of the called king in the first trick
+    CallKingSuit,
     /// No last trick is available for display
     NoLastTrick,
 }
@@ -71,6 +72,7 @@ impl fmt::Display for PlayError {
             PlayError::IncorrectSuit => write!(f, "wrong suit played"),
             PlayError::InvalidPiss => write!(f, "you must use trumps"),
             PlayError::NonRaisedTrump => write!(f, "too weak trump played"),
+            PlayError::CallKingSuit => write!(f, "you cannot play the suit of the called king in the first trick"),
             PlayError::NoLastTrick => write!(f, "no trick has been played yet"),
         }
     }
@@ -186,12 +188,16 @@ impl DealState {
             return Err(PlayError::TurnError);
         }
 
+        let is_first_trick = self.tricks.len() == 1;
+
         // Is that a valid move?
         can_play(
             player,
             card,
             self.players[player as usize],
             self.current_trick(),
+            self.called_king,
+            is_first_trick,
         )?;
 
         // Play the card
@@ -284,6 +290,9 @@ impl DealState {
         if self.partner != self.contract.author {
             taking_points += self.points[self.partner as usize];
         }
+        if self.contract.target != bid::Target::GardeContre {
+            taking_points += points::hand_points(self.dog);
+        }
         let base_points = self.contract.target.multiplier() as f32 * points::score(taking_points, self.oudlers_count);
 
         let mut scores = [0.0; super::NB_PLAYERS];
@@ -350,6 +359,8 @@ pub fn can_play(
     card: cards::Card,
     hand: cards::Hand,
     trick: &trick::Trick,
+    called_king: Option<cards::Card>,
+    is_first_trick:bool,
 ) -> Result<(), PlayError> {
     // First, we need the card to be able to play
     if !hand.has(card) {
@@ -362,6 +373,14 @@ pub fn can_play(
     }
 
     if p == trick.first {
+        // First to play : everything is accepted except a card in the suit of the called king at the
+        // first trick of the deal if it is not the king itself
+        if called_king.is_some()                          // A king has been called (5 players variant)
+            && is_first_trick                             // and this is the first trick of the deal
+            && card.suit() == called_king.unwrap().suit() // and the card played is in the suit of the called king
+            && card.rank() != cards::Rank::RankK {        // and this is not the king itself
+                return Err(PlayError::CallKingSuit);
+        }
         return Ok(());
     }
 
@@ -512,6 +531,7 @@ mod tests {
         };
 
         let mut deal = DealState::new(pos::PlayerPos::P0, hands, dog, contract, pos::PlayerPos::P2);
+        deal.call_king(pos::PlayerPos::P0, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK));
 
         // Wrong turn
         assert_eq!(

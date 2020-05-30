@@ -82,12 +82,11 @@ impl Component for MenuPage {
             <div class="wrapper">
                 <h1>{"Let's get started"}</h1>
                 <p class="intro">{format!("Hello {}!", &self.player_info.nickname)}</p>
-                <p class="explanation">{"Start a new game or enter the code of a game to join."}</p>
+                <p class="explanation">{"Enter the code of a game to join"}</p>
                 <div class="toolbar">
-                    <button onclick=self.link.callback(|_| Msg::NewGame)>{"New Game"}</button>
                     <input value=&self.join_code
                         size="7"
-                        placeholder="JOINCOD"
+                        placeholder="JOIN CODE"
                         onkeypress=self.link.callback(|event: KeyboardEvent| {
                             if event.key() == "Enter" {
                                 Msg::JoinGame
@@ -97,6 +96,10 @@ impl Component for MenuPage {
                         })
                         oninput=self.link.callback(|e: InputData| Msg::SetJoinCode(e.value)) />
                     <button onclick=self.link.callback(|_| Msg::JoinGame)>{"Join Game"}</button>
+                </div>
+                <p class="explanation">{"...or start a new game."}</p>
+                <div class="toolbar">
+                    <button onclick=self.link.callback(|_| Msg::NewGame)>{"New Game"}</button>
                 </div>
                 {
                     if let Some(ref error) = self.error {

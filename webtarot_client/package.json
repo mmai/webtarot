@@ -5,11 +5,19 @@
     "dev": "webpack --mode development",
     "build": "webpack --mode production",
     "start:dev": "webpack-dev-server --mode development",
-    "start": "webpack-dev-server --mode production"
+    "start": "webpack-dev-server --mode production",
+    "css": "node-sass --output-style compressed scss/webtarot.scss > static/webtarot.css",
+    "css:dev": "node-sass --watch --recursive --source-map true --source-map-contents --output static scss"
   },
   "devDependencies": {
     "@wasm-tool/wasm-pack-plugin": "^1.1.0",
+    "autoprefixer": "^9.8.0",
     "copy-webpack-plugin": "^5.1.1",
+    "css-loader": "^3.5.3",
+    "node-sass": "^4.14.1",
+    "postcss-loader": "^3.0.0",
+    "sass-loader": "^8.0.2",
+    "style-loader": "^1.2.1",
     "webpack": "^4.42.0",
     "webpack-cli": "^3.3.11",
     "webpack-dev-server": "^3.10.3"

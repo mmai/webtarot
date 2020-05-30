@@ -231,8 +231,17 @@ impl GameState {
 
     pub fn call_king(&mut self, pid: Uuid, card: cards::Card){
         let pos = self.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
-        if self.deal.deal_state_mut().unwrap().call_king(pos, card) {
-            self.turn = Turn::MakingDog;
+        let deal_state = self.deal.deal_state_mut().unwrap();
+        if deal_state.call_king(pos, card) {
+            // Next step : do we need to make a dog ?
+            let target = self.deal.deal_contract().unwrap().target;
+            if target == bid::Target::GardeSans || target == bid::Target::GardeContre {
+                //No dog
+                self.turn = Turn::from_deal(&self.deal);
+            } else {
+                //Dog
+                self.turn = Turn::MakingDog;
+            }
         }
     }
 
@@ -420,7 +429,7 @@ mod tests {
         game.set_pass(id4).unwrap();
         assert_eq!(game.get_turn(), Turn::CallingKing);
         assert_eq!(game.player_by_pos(pos0).unwrap().role, PlayerRole::Taker);
-        game.call_king(id0, cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK));
+        game.call_king(id0, cards::Card::new(cards::Suit::Club, cards::Rank::RankK));
         assert_eq!(game.get_turn(), Turn::MakingDog);
         let mut dog = cards::Hand::new();
         dog.add(cards::Card::new(cards::Suit::Heart, cards::Rank::RankC));

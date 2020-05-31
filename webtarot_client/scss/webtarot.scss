@@ -12,6 +12,7 @@ body {
   margin: 0;
   background: #038604;
   background-image: url("greenmat.png");
+  color: white;
 }
 
 input,
@@ -83,6 +84,7 @@ h1 {
 
 div.wrapper {
   background: white;
+  color: black;
   border: 2px solid black;
   padding: 20px;
   border-radius: 3px;
@@ -193,20 +195,22 @@ p.turn-info {
   height: 27vh;
 
   .nickname {
-    border: 2px solid black;
+    border: 2px solid white;
     border-radius: 3px;
     padding: 6px;
     margin: 6px 0;
 
-    background: black;
-    color: white;
+    background: lightgray;
+    color: black;
 
   }
 }
 
 .current-player {
-  border-top: 2px solid teal;
-  border-radius: 4px;
+    .nickname {
+      background: orange;
+      color: black;
+    }
 }
 
 .actions {
@@ -251,6 +255,7 @@ p.turn-info {
   grid-column-start: chat;
 
   background-color: lightgreen;
+  color: black;
   font-family: "Courier Prime", monospace;
   overflow-y: auto;
   display:flex;

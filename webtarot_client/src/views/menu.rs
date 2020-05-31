@@ -95,11 +95,11 @@ impl Component for MenuPage {
                             }
                         })
                         oninput=self.link.callback(|e: InputData| Msg::SetJoinCode(e.value)) />
-                    <button onclick=self.link.callback(|_| Msg::JoinGame)>{"Join Game"}</button>
+                    <button class="primary" onclick=self.link.callback(|_| Msg::JoinGame)>{"Join Game"}</button>
                 </div>
                 <p class="explanation">{"...or start a new game."}</p>
                 <div class="toolbar">
-                    <button onclick=self.link.callback(|_| Msg::NewGame)>{"New Game"}</button>
+                    <button class="primary" onclick=self.link.callback(|_| Msg::NewGame)>{"New Game"}</button>
                 </div>
                 {
                     if let Some(ref error) = self.error {

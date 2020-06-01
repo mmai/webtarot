@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+- sounds
+- error messages
+- fix server crashing when playing at bidding phase
+
 ## 0.1.1
 
 - colors

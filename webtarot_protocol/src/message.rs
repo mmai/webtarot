@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::game::{GameInfo, GameStateSnapshot};
+use crate::game::{GameInfo, GameStateSnapshot, PlayEvent};
 use crate::player::{PlayerInfo, GamePlayerState, PlayerRole};
 use tarotgame::{cards, bid, deal};
 
@@ -149,6 +149,7 @@ pub enum Message {
     GameLeft,
     Authenticated(PlayerInfo),
     Error(ProtocolError),
+    PlayEvent(PlayEvent),
     GameStateSnapshot(GameStateSnapshot),
 }
 

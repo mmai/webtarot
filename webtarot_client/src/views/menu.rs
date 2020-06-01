@@ -80,8 +80,7 @@ impl Component for MenuPage {
     fn view(&self) -> Html {
         html! {
             <div class="wrapper">
-                <h1>{"Let's get started"}</h1>
-                <p class="intro">{format!("Hello {}!", &self.player_info.nickname)}</p>
+                <h1>{format!("Hello {}!", &self.player_info.nickname)}</h1>
                 <p class="explanation">{"Enter the code of a game to join"}</p>
                 <div class="toolbar">
                     <input value=&self.join_code

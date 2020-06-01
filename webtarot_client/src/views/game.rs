@@ -1,6 +1,7 @@
 use std::rc::Rc;
 use im_rc::Vector;
 use uuid::Uuid;
+use web_sys::HtmlAudioElement;
 use yew::agent::Bridged;
 use yew::{
     html, Bridge, Component, ComponentLink, Html, Properties,
@@ -18,9 +19,11 @@ use crate::protocol::{
     SendTextCommand,
     BidCommand, PlayCommand, CallKingCommand, MakeDogCommand,
     Turn,
+    PlayEvent,
 };
 use tarotgame::{bid, cards};
 use crate::utils::format_join_code;
+use crate::sound_player::SoundPlayer;
 
 #[derive(Clone, Properties)]
 pub struct Props {
@@ -37,12 +40,16 @@ pub struct GamePage {
     chat_log: Vector<Rc<ChatLine>>,
     dog: cards::Hand,
     hand: cards::Hand,
+    is_waiting: bool,
+    sound_player: SoundPlayer,
+    error: Option<String>,
 }
 
 pub enum Msg {
     Disconnect,
     MarkReady,
     Continue,
+    CloseError,
     Bid(bid::Target),
     Pass,
     Play(cards::Card),
@@ -87,6 +94,12 @@ impl Component for GamePage {
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let on_server_message = link.callback(Msg::ServerMessage);
         let api = Api::bridge(on_server_message);
+        let sound_paths = vec![
+            ("chat".into(), "sounds/misc_menu.ogg"),
+            ("card".into(), "sounds/cardPlace4.ogg"),
+            ("error".into(), "sounds/negative_2.ogg"),
+        ].into_iter().collect();
+
         GamePage {
             link,
             api,
@@ -99,6 +112,9 @@ impl Component for GamePage {
             player_info: props.player_info,
             dog: cards::Hand::new(),
             hand: cards::Hand::new(),
+            is_waiting: false,
+            sound_player: SoundPlayer::new(sound_paths),
+            error: None,
         }
     }
 
@@ -106,9 +122,19 @@ impl Component for GamePage {
         match msg {
             Msg::ServerMessage(message) => match message {
                 Message::Chat(msg) => {
+                    self.sound_player.play("chat".into());
                     self.add_chat_message(msg.player_id, ChatLineData::Text(msg.text));
                 }
+                Message::PlayEvent(evt) => {
+                    self.sound_player.play("card".into());
+                    let PlayEvent::Play(uuid, card) = evt;
+                    self.add_chat_message(uuid, ChatLineData::Text(format!("play: {}", card.to_string())));
+                    log!("play event {:?}", evt);
+                }
                 Message::Error(e) => {
+                    self.is_waiting = false;
+                    self.error = Some(e.message().into());
+                    self.sound_player.play("error".into());
                     log!("error from server {:?}", e);
                 }
                 Message::PlayerConnected(state) => {
@@ -123,6 +149,7 @@ impl Component for GamePage {
                     game_state.players.retain(|x| x.player.id != msg.player_id);
                 }
                 Message::GameStateSnapshot(snapshot) => {
+                    self.is_waiting = false;
                     self.game_state = Rc::new(snapshot);
                     self.dog = self.game_state.deal.initial_dog;
                     self.hand = self.game_state.deal.hand;
@@ -132,23 +159,31 @@ impl Component for GamePage {
             Msg::SetChatLine(text) => {
                 self.api.send(Command::SendText(SendTextCommand { text }));
             }
+            Msg::CloseError => {
+                self.error = None;
+            }
             Msg::Continue => {
+                self.is_waiting = true;
                 self.api.send(Command::Continue);
             }
             Msg::MarkReady => {
+                self.is_waiting = true;
                 self.api.send(Command::MarkReady);
             }
             Msg::Disconnect => {
                 self.api.send(Command::LeaveGame);
             }
             Msg::Bid(target) => {
+                self.is_waiting = true;
                 log!("received bid {:?}", target);
                 self.api.send(Command::Bid(BidCommand { target }));
             }
             Msg::Pass => {
+                self.is_waiting = true;
                 self.api.send(Command::Pass);
             }
             Msg::CallKing(card) => {
+                self.is_waiting = true;
                 self.api.send(Command::CallKing(CallKingCommand { card }));
             }
             Msg::AddToHand(card) => {
@@ -160,9 +195,11 @@ impl Component for GamePage {
                 self.hand.remove(card);
             },
             Msg::MakeDog => {
+                self.is_waiting = true;
                 self.api.send(Command::MakeDog(MakeDogCommand { cards: self.dog }));
             },
             Msg::Play(card) => {
+                self.is_waiting = true;
                 self.api.send(Command::Play(PlayCommand { card }));
             }
         }
@@ -198,6 +235,11 @@ impl Component for GamePage {
         // log!("others: {:?} others_before: {:?}", others, others_before);
         others.append(&mut others_before);
 
+        let mut game_classes = vec!["game"];
+        if self.is_waiting {
+            game_classes.push("waiting");
+        }
+
         let is_my_turn = self.game_state.get_playing_pos() == Some(self.my_state().pos);
         // let is_my_turn = self.game_state.turn.has_player_pos() && self.game_state.deal.current == self.my_state().pos;
         let mut actions_classes = vec!["actions"];
@@ -206,7 +248,7 @@ impl Component for GamePage {
         }
 
         html! {
-    <div class="game">
+    <div class=game_classes>
       <header>
         <p class="turn-info">{format!("Turn: {}", self.game_state.turn)}</p>
         {if let Some(contract) = &self.game_state.deal.contract {
@@ -219,6 +261,18 @@ impl Component for GamePage {
       <PlayerList game_state=self.game_state.clone() players=others/>
 
         <section class=actions_classes>
+            { if let Some(error) = &self.error  { html! {
+                <div class="error">
+                    <div>
+                        {format!("Error: {}", error)}
+                    </div>
+                    <div class="toolbar">
+                        <button class="btn-error" onclick=self.link.callback(|_| Msg::CloseError)>{"Ok"}</button>
+                    </div>
+                </div>
+            }} else { html! {} }}
+
+
             {match self.game_state.turn {
                Turn::Pregame => html! {
                 <div class="wrapper">
@@ -235,7 +289,7 @@ impl Component for GamePage {
                 },
                Turn::Intertrick => 
                    if !self.my_state().ready  { html! {
-                       <div>
+                       <div class="wrapper">
                            <div class="results">
                                {format!("trick for : {:?}", self.game_state.deal.last_trick.winner)}
                            </div>
@@ -248,7 +302,7 @@ impl Component for GamePage {
                 },
                Turn::Interdeal => 
                    if !self.my_state().ready  { html! {
-                     <div>
+                     <div class="wrapper">
                         <div class="results">
                             <pre>
                                 {format!("historique : {:?}", self.game_state.scores)}

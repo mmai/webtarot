@@ -12,6 +12,7 @@ mod app;
 mod components;
 mod utils;
 mod views;
+mod sound_player;
 
 use wasm_bindgen::prelude::*;
 

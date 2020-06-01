@@ -254,7 +254,9 @@ impl GameState {
 
     pub fn set_play(&mut self, pid: Uuid, card: cards::Card) -> Result<(), ProtocolError> {
         let pos = self.players.get(&pid).map(|p| p.pos).unwrap();
-        let state = self.deal.deal_state_mut().unwrap();
+        let state = self.deal.deal_state_mut().ok_or(
+            ProtocolError::new(ProtocolErrorKind::InternalError, "Unknown deal state")
+        )?;
         match state.play_card(pos, card)? {
             deal::TrickResult::Nothing => (),
             deal::TrickResult::TrickOver(_winner, deal::DealResult::Nothing) => self.end_trick(),
@@ -320,6 +322,11 @@ impl GameState {
         self.deal = Deal::Bidding(auction);
     }
 
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub enum PlayEvent {
+    Play( Uuid, cards::Card)
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

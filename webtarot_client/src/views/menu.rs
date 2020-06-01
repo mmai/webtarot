@@ -80,8 +80,7 @@ impl Component for MenuPage {
     fn view(&self) -> Html {
         html! {
             <div class="wrapper">
-                <h1>{"Let's get started"}</h1>
-                <p class="intro">{format!("Hello {}!", &self.player_info.nickname)}</p>
+                <h1>{format!("Hello {}!", &self.player_info.nickname)}</h1>
                 <p class="explanation">{"Enter the code of a game to join"}</p>
                 <div class="toolbar">
                     <input value=&self.join_code
@@ -95,11 +94,11 @@ impl Component for MenuPage {
                             }
                         })
                         oninput=self.link.callback(|e: InputData| Msg::SetJoinCode(e.value)) />
-                    <button onclick=self.link.callback(|_| Msg::JoinGame)>{"Join Game"}</button>
+                    <button class="primary" onclick=self.link.callback(|_| Msg::JoinGame)>{"Join Game"}</button>
                 </div>
                 <p class="explanation">{"...or start a new game."}</p>
                 <div class="toolbar">
-                    <button onclick=self.link.callback(|_| Msg::NewGame)>{"New Game"}</button>
+                    <button class="primary" onclick=self.link.callback(|_| Msg::NewGame)>{"New Game"}</button>
                 </div>
                 {
                     if let Some(ref error) = self.error {

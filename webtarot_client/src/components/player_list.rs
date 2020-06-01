@@ -47,21 +47,20 @@ impl Component for PlayerList {
                         if is_my_turn {
                             player_classes.push("current-player");
                         }
+                        player_classes.push(
+                            match state.role {
+                                PlayerRole::Taker => "role-taker",
+                                PlayerRole::Partner => "role-partner",
+                                PlayerRole::Opponent => "role-opponent",
+                                _ => "role-unknown",
+                            }
+                        );
 
                         html! {
 
                         <div class=player_classes>
                         <div class="nickname">
                         {&state.player.nickname}
-                        {format!("{:?}", &state.pos)}
-                        {format!(
-                            " {}",
-                            match state.role {
-                                PlayerRole::Taker => "(Taker)",
-                                PlayerRole::Spectator => "(Spectator)",
-                                _ => "",
-                            }
-                        )}
                         {
                             if self.game_state.turn == Turn::Pregame &&
                                 state.ready {

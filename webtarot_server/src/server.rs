@@ -12,6 +12,7 @@ use crate::protocol::{
     ProtocolErrorKind, SendTextCommand, SetPlayerRoleCommand,
     ShareCodenameCommand,
     PlayCommand, BidCommand, CallKingCommand, MakeDogCommand,
+    PlayEvent,
     DebugUiCommand,
 };
 use crate::universe::Universe;
@@ -321,11 +322,13 @@ pub async fn on_player_play(
         if let Err(e) = game.set_play(player_id, cmd.card).await {
             game.send(player_id, &Message::Error(e)).await;
         } else {
-            game.broadcast(&Message::Chat(ChatMessage {
-                player_id,
-                text: format!("play: {}", cmd.card.to_string()),
-            }))
+            game.broadcast(&Message::PlayEvent(PlayEvent::Play ( player_id, cmd.card )))
             .await;
+            // game.broadcast(&Message::Chat(ChatMessage {
+            //     player_id,
+            //     text: format!("play: {}", cmd.card.to_string()),
+            // }))
+            // .await;
             game.broadcast_state().await;
         }
         Ok(())

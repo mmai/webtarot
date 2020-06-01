@@ -21,7 +21,14 @@ console_error_panic_hook = "0.1.6"
 anyhow = "1.0.27"
 uuid = "0.8.1"
 serde = { version = "1.0.105", features = ["derive"] }
-web-sys = { version = "0.3.36", features = ["Window", "Location", "HtmlDivElement", "console"] }
+web-sys = { version = "0.3.36", features = [
+  "Window",
+  "Location",
+  "HtmlDivElement",
+  "HtmlAudioElement",
+  "console"
+  ] }
 im-rc = "14.3.0"
 stdweb = "0.4.20"
 strum = "0.18.0"
+js-sys = "0.3.40"

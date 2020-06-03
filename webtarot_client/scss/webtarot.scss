@@ -224,12 +224,13 @@ p.turn-info {
   margin: 2px;
 
   .nickname {
-    border: 2px solid black;
+    // border: 2px solid black;
     border-radius: 3px;
     padding: 6px;
     margin: 6px 0;
 
-    background: black;
+    // background: black;
+    background: linear-gradient(to right, black, rgba(0,0,0,0));
     color: white;
 
   }
@@ -289,6 +290,7 @@ p.turn-info {
   background-image: var(--bg-image);
   background-size: $card_width 28vh;
   cursor: pointer;
+  box-shadow: 5px 6px 15px -5px rgba(0, 0, 0, 0.75);
 }
 
 .hand > .card:hover{

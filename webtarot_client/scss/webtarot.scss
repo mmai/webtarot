@@ -268,9 +268,12 @@ p.turn-info {
   /* background-color:orange; */
 }
 
+section.hand {
+  grid-row-end: bottom;
+}
+
 .hand{
   grid-column-start: game;
-  grid-row-end: bottom;
   display: grid;
   grid-template-columns: repeat(auto-fit,  minmax(10px, max-content)) ;
   justify-content: center;
@@ -280,7 +283,6 @@ p.turn-info {
   margin-right: auto;
   min-width: 0;
   min-height: 0;
-  /* background-color:pink; */
 }
 
 .card{
@@ -289,6 +291,7 @@ p.turn-info {
   background-image: var(--bg-image);
   background-size: $card_width 28vh;
   cursor: pointer;
+  box-shadow: 11px 10px 35px -14px rgba(0, 0, 0, 0.75);
 }
 
 .hand > .card:hover{

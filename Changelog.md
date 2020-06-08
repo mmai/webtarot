@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- nix front packaging
+
 ## 0.2.0
 
 - sounds

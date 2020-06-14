@@ -180,11 +180,10 @@ p.turn-info {
   height: 27vh;
   margin: 2px; }
   .player .nickname {
-    border: 2px solid black;
     border-radius: 3px;
     padding: 6px;
     margin: 6px 0;
-    background: black;
+    background: linear-gradient(to right, black, rgba(0, 0, 0, 0));
     color: white; }
 
 /*
@@ -236,7 +235,7 @@ section.hand {
   background-image: var(--bg-image);
   background-size: 15vh 28vh;
   cursor: pointer;
-  box-shadow: 11px 10px 35px -14px rgba(0, 0, 0, 0.75); }
+  box-shadow: 5px 6px 15px -5px rgba(0, 0, 0, 0.75); }
 
 .hand > .card:hover {
   transform: scale(1.3); }
@@ -252,6 +251,22 @@ section.hand {
   display: flex;
   flex-direction: column;
   max-height: 50vh; }
+
+table.scores {
+  border-collapse: collapse; }
+  table.scores td, table.scores th {
+    border: 1px solid #ddd;
+    padding: 8px; }
+  table.scores tr:nth-child(even) {
+    background-color: #f2f2f2; }
+  table.scores tr:hover {
+    background-color: #ddd; }
+  table.scores th {
+    padding-top: 8px;
+    padding-bottom: 8px;
+    text-align: left;
+    background-color: black;
+    color: white; }
 
 .chat-messages {
   flex: 1;

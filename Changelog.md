@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.3
+
+- maj static files
+
 ## 0.2.2
 
 - new deal when all players pass

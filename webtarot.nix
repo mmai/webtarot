@@ -10,13 +10,13 @@ in
 
 rustPlatform.buildRustPackage rec {
   pname = "webtarot";
-  version = "0.2.2";
+  version = "0.2.4";
 
   src = pkgs.fetchFromGitHub {
     owner = "mmai";
     repo = pname;
     rev = "v${version}";
-    sha256 = "00id9mqiwivvb3rhvds18a395mas7223pijs4gvgin956rlx5k4y";
+    sha256 = "0z1dpdcpinybr5rqd013l0c7wmm63rnkxbg5c3ci1f7005xyi068";
   };
   # src = ./.;
 

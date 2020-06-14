@@ -13,6 +13,7 @@ use crate::components::chat_box::{ChatBox, ChatLine, ChatLineData};
 use crate::components::player_list::PlayerList;
 use crate::components::bidding_actions::BiddingActions;
 use crate::components::call_king_action::CallKingAction;
+use crate::components::scores::Scores;
 use crate::protocol::{
     Command, GameInfo, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
     PlayerInfo,
@@ -301,18 +302,13 @@ impl Component for GamePage {
                        html! {}
                 },
                Turn::Interdeal => 
-                   if !self.my_state().ready  { html! {
+                   if !self.my_state().ready  { 
+                       let scores: Vec<Vec<f32>> = self.game_state.scores.iter().map(|score| score.to_vec()).collect();
+                       let players: Vec<String> = self.game_state.players.iter().map(|pl| pl.player.nickname.clone()).collect();
+
+                       html! {
                      <div class="wrapper">
-                        <div class="results">
-                            <pre>
-                                {format!("historique : {:?}", self.game_state.scores)}
-                            </pre>
-                            <strong>
-                                <pre>
-                                    {format!("scores : {:?}", self.game_state.deal.scores)}
-                                </pre>
-                            </strong>
-                        </div>
+                        <Scores players=players scores=scores />
                         <div class="toolbar">
                             <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
                         </div>

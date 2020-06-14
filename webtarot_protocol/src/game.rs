@@ -193,7 +193,6 @@ impl GameState {
                 }
                 if count == NB_PLAYERS {
                     if self.turn == Turn::Interdeal { // ongoing game
-                        self.next_deal();
                         self.update_turn();
                     } else { // new game
                         self.turn = Turn::Bidding((bid::AuctionState::Bidding, pos::PlayerPos::P0));
@@ -222,9 +221,11 @@ impl GameState {
             ProtocolError::new(ProtocolErrorKind::InternalError, "unknown auction")
         )?;
         let pass_result = auction.pass(pos);
-        if Ok(bid::AuctionState::Over) == pass_result  {
-            self.complete_auction()?;
-        }
+        match pass_result {
+            Ok(bid::AuctionState::Over) => self.complete_auction()?,
+            Ok(bid::AuctionState::Cancelled) => self.next_deal(),
+            _ => ()
+        };
         self.update_turn();
         Ok(())
     }
@@ -317,8 +318,8 @@ impl GameState {
     }
 
     fn next_deal(&mut self) {
-        let auction = bid::Auction::new(self.first);
         self.first = self.first.next();
+        let auction = bid::Auction::new(self.first);
         self.deal = Deal::Bidding(auction);
     }
 
@@ -384,8 +385,45 @@ pub struct GameInfo {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tarotgame::{deal_seeded_hands, bid, cards};
+    use tarotgame::{deal_hands, deal_seeded_hands, bid, cards};
     // use tarotgame::{bid, cards, pos, deal, trick};
+
+    #[test]
+    fn test_all_pass() {
+        let mut game = GameState::default();
+        let pos0 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player0")});
+        let pos1 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player1")});
+        let pos2 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player2")});
+        let pos3 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player3")});
+        let pos4 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player4")});
+
+        assert_eq!(true, game.is_joinable());
+
+        let id0 = game.player_by_pos(pos0).unwrap().player.id;
+        let id1 = game.player_by_pos(pos1).unwrap().player.id;
+        let id2 = game.player_by_pos(pos2).unwrap().player.id;
+        let id3 = game.player_by_pos(pos3).unwrap().player.id;
+        let id4 = game.player_by_pos(pos4).unwrap().player.id;
+        game.set_player_ready(id0);
+        game.set_player_ready(id1);
+        game.set_player_ready(id2);
+        game.set_player_ready(id3);
+        game.set_player_ready(id4);
+        assert_eq!(false, game.is_joinable());
+        assert_eq!(game.get_turn(), Turn::Bidding((bid::AuctionState::Bidding, pos0)));
+
+        let hands_deal1 = game.deal.hands();
+
+        game.set_pass(id0).unwrap();
+        game.set_pass(id1).unwrap();
+        game.set_pass(id2).unwrap();
+        game.set_pass(id3).unwrap();
+        game.set_pass(id4).unwrap();
+
+        //5 passes : should start a new deal
+        assert_eq!(game.get_turn(), Turn::Bidding((bid::AuctionState::Bidding, pos1)));
+        assert_ne!(game.deal.hands(), hands_deal1);
+    }
 
     #[test]
     fn test_game() {

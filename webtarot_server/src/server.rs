@@ -8,7 +8,7 @@ use uuid::Uuid;
 use warp::{ws, Filter};
 
 use crate::protocol::{
-    AuthenticateCommand, ChatMessage, Command, JoinGameCommand, Message, ProtocolError,
+    AuthenticateCommand, ChatMessage, ServerStatus, Command, JoinGameCommand, Message, ProtocolError,
     ProtocolErrorKind, SendTextCommand, SetPlayerRoleCommand,
     ShareCodenameCommand,
     PlayCommand, BidCommand, CallKingCommand, MakeDogCommand,
@@ -88,6 +88,7 @@ async fn on_player_message(
             Command::Authenticate(data) => on_player_authenticate(universe, player_id, data).await,
 
             //For debug purposes only
+            Command::ShowServerStatus => on_server_status(universe, player_id).await,
             Command::ShowUuid => on_show_uuid(universe, player_id).await,
             Command::DebugUi(data) => on_debug_ui(universe, data).await,
 
@@ -115,6 +116,7 @@ async fn on_player_message(
             //For debug purposes only
             Command::ShowUuid => on_show_uuid(universe, player_id).await,
             Command::DebugUi(data) => on_debug_ui(universe, data).await,
+            Command::ShowServerStatus => on_server_status(universe, player_id).await,
 
             // this should not happen here.
             Command::Authenticate(..) => Err(ProtocolError::new(
@@ -162,6 +164,18 @@ async fn on_show_uuid(
     let pid = universe.show_players(player_id).await[0];
     universe
         .send(player_id, &Message::Chat(ChatMessage { player_id:pid, text:String::new() }))
+        .await;
+    Ok(())
+}
+
+async fn on_server_status(
+    universe: Arc<Universe>,
+    player_id: Uuid,
+) -> Result<(), ProtocolError> {
+    let players = universe.show_players(player_id).await;
+    let games = universe.show_games().await;
+    universe
+        .send(player_id, &Message::ServerStatus(ServerStatus { players, games }))
         .await;
     Ok(())
 }

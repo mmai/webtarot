@@ -7,6 +7,7 @@ use warp::ws;
 
 use crate::game::Game;
 use crate::protocol::{Message, PlayerInfo, ProtocolError, ProtocolErrorKind};
+use crate::protocol::GameInfo;
 use crate::utils::generate_join_code;
 
 pub struct UniversePlayerState {
@@ -35,6 +36,15 @@ impl Universe {
                 joinable_games: HashMap::new(),
             })),
         }
+    }
+
+    /// show all the active games
+    pub async fn show_games(self: &Arc<Self>) -> Vec<GameInfo> {
+        let state = self.state.read().await;
+        let games = state.games.iter()
+            .map(|(uuid, g)| g.game_info() )
+            .collect();
+        games
     }
 
     /// for debug purposes: show all the players connected to the server, except player_id

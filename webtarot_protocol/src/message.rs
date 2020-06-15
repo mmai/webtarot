@@ -24,6 +24,7 @@ pub enum Command {
     SetPlayerRole(SetPlayerRoleCommand),
     DebugUi(DebugUiCommand), // Used to send a custom state to a client, allows to quickly view the UI at a given state of the game without having to play all the hands leading to this state.
     ShowUuid, // get uuid of connected client : for use with debugUi
+    ShowServerStatus, // get server infos : active games, players connected...
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Hash)]
@@ -141,6 +142,7 @@ pub struct MakeDogCommand {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Message {
+    ServerStatus(ServerStatus),
     Chat(ChatMessage),
     PlayerConnected(GamePlayerState),
     PlayerDisconnected(PlayerDisconnectedMessage),
@@ -151,6 +153,12 @@ pub enum Message {
     Error(ProtocolError),
     PlayEvent(PlayEvent),
     GameStateSnapshot(GameStateSnapshot),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ServerStatus {
+    pub players: Vec<Uuid>,
+    pub games: Vec<GameInfo>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

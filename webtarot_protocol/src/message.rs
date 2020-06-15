@@ -8,6 +8,7 @@ use tarotgame::{cards, bid, deal};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
 pub enum Command {
+    Ping,
     Authenticate(AuthenticateCommand),
     SendText(SendTextCommand),
     ShareCodename(ShareCodenameCommand),
@@ -142,6 +143,7 @@ pub struct MakeDogCommand {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Message {
+    Pong,
     ServerStatus(ServerStatus),
     Chat(ChatMessage),
     PlayerConnected(GamePlayerState),

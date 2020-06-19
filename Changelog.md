@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.5
+
+- keep alive websocket
+
 ## 0.2.3
 
 - maj static files

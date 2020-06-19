@@ -16,7 +16,7 @@ rustPlatform.buildRustPackage rec {
     owner = "mmai";
     repo = pname;
     rev = "v${version}";
-    sha256 = "0z1dpdcpinybr5rqd013l0c7wmm63rnkxbg5c3ci1f7005xyi068";
+    sha256 = "1v5pzg1arj2z9kwvkcnlzwgfghrjqcy6jh3vxvpd3gaylf4hrhz2";
   };
   # src = ./.;
 

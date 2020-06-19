@@ -7,8 +7,11 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 use warp::{ws, Filter};
 
+//For keep alive ping pong
+use std::time::Duration;
+
 use crate::protocol::{
-    AuthenticateCommand, ChatMessage, Command, JoinGameCommand, Message, ProtocolError,
+    AuthenticateCommand, ChatMessage, ServerStatus, Command, JoinGameCommand, Message, ProtocolError,
     ProtocolErrorKind, SendTextCommand, SetPlayerRoleCommand,
     ShareCodenameCommand,
     PlayCommand, BidCommand, CallKingCommand, MakeDogCommand,
@@ -18,6 +21,7 @@ use crate::protocol::{
 use crate::universe::Universe;
 
 async fn on_player_connected(universe: Arc<Universe>, ws: ws::WebSocket) {
+
     let (user_ws_tx, mut user_ws_rx) = ws.split();
     let (tx, rx) = mpsc::unbounded_channel();
 
@@ -29,6 +33,23 @@ async fn on_player_connected(universe: Arc<Universe>, ws: ws::WebSocket) {
 
     let player_id = universe.add_player(tx).await;
     log::info!("player {:#?} connected", player_id);
+
+    //keep alive : send a ping every 50 seconds
+    // let when = Duration::from_millis(50000);
+    // let interval = tokio::time::interval(when);
+    // let task = interval.for_each(move |_| {
+    //     let _  = tx.send(Ok(ws::Message::ping(Vec::new())));
+    //     Ok(())
+    // })
+    // .map_err(|e| panic!("delay errored; err={:?}", e));
+    // ... or ?
+    // let task = loop {
+    //     interval.next().await;
+    //     tx.send(Ok(ws::Message::ping(Vec::new())));
+    //
+    // }
+    //end keep alive
+
 
     while let Some(result) = user_ws_rx.next().await {
         match result {
@@ -88,6 +109,7 @@ async fn on_player_message(
             Command::Authenticate(data) => on_player_authenticate(universe, player_id, data).await,
 
             //For debug purposes only
+            Command::ShowServerStatus => on_server_status(universe, player_id).await,
             Command::ShowUuid => on_show_uuid(universe, player_id).await,
             Command::DebugUi(data) => on_debug_ui(universe, data).await,
 
@@ -111,10 +133,12 @@ async fn on_player_message(
             Command::CallKing(cmd) => on_player_call_king(universe, player_id, cmd).await,
             Command::MakeDog(cmd) => on_player_make_dog(universe, player_id, cmd).await,
             Command::Pass => on_player_pass(universe, player_id).await,
+            Command::Ping => on_ping(universe, player_id).await,
 
             //For debug purposes only
             Command::ShowUuid => on_show_uuid(universe, player_id).await,
             Command::DebugUi(data) => on_debug_ui(universe, data).await,
+            Command::ShowServerStatus => on_server_status(universe, player_id).await,
 
             // this should not happen here.
             Command::Authenticate(..) => Err(ProtocolError::new(
@@ -155,6 +179,16 @@ async fn on_leave_game(universe: Arc<Universe>, player_id: Uuid) -> Result<(), P
     Ok(())
 }
 
+async fn on_ping(
+    universe: Arc<Universe>,
+    player_id: Uuid,
+) -> Result<(), ProtocolError> {
+    universe
+        .send(player_id, &Message::Pong)
+        .await;
+    Ok(())
+}
+
 async fn on_show_uuid(
     universe: Arc<Universe>,
     player_id: Uuid,
@@ -162,6 +196,18 @@ async fn on_show_uuid(
     let pid = universe.show_players(player_id).await[0];
     universe
         .send(player_id, &Message::Chat(ChatMessage { player_id:pid, text:String::new() }))
+        .await;
+    Ok(())
+}
+
+async fn on_server_status(
+    universe: Arc<Universe>,
+    player_id: Uuid,
+) -> Result<(), ProtocolError> {
+    let players = universe.show_players(player_id).await;
+    let games = universe.show_games().await;
+    universe
+        .send(player_id, &Message::ServerStatus(ServerStatus { players, games }))
         .await;
     Ok(())
 }

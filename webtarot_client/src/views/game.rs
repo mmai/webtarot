@@ -1,8 +1,10 @@
 use std::rc::Rc;
+use std::time::Duration;
 use im_rc::Vector;
 use uuid::Uuid;
 use web_sys::HtmlAudioElement;
 use yew::agent::Bridged;
+use yew::services::{IntervalService, Task};
 use yew::{
     html, Bridge, Component, ComponentLink, Html, Properties,
     ShouldRender,
@@ -33,6 +35,7 @@ pub struct Props {
 }
 
 pub struct GamePage {
+    keepalive_job: Box<dyn Task>,
     link: ComponentLink<GamePage>,
     api: Box<dyn Bridge<Api>>,
     game_info: GameInfo,
@@ -47,6 +50,7 @@ pub struct GamePage {
 }
 
 pub enum Msg {
+    Ping,
     Disconnect,
     MarkReady,
     Continue,
@@ -93,6 +97,13 @@ impl Component for GamePage {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let mut interval = IntervalService::new();
+        // Ping server every 50s in order to keep alive the websocket 
+        let keepalive = interval.spawn(
+            Duration::from_secs(50), 
+            link.callback(|_| Msg::Ping).into()
+            );
+
         let on_server_message = link.callback(Msg::ServerMessage);
         let api = Api::bridge(on_server_message);
         let sound_paths = vec![
@@ -102,6 +113,7 @@ impl Component for GamePage {
         ].into_iter().collect();
 
         GamePage {
+            keepalive_job: Box::new(keepalive),
             link,
             api,
             game_info: props.game_info,
@@ -157,6 +169,10 @@ impl Component for GamePage {
                 }
                 _ => {}
             },
+            Msg::Ping => {
+                self.api.send(Command::Ping);
+                // log!("ping ?");
+            }
             Msg::SetChatLine(text) => {
                 self.api.send(Command::SendText(SendTextCommand { text }));
             }

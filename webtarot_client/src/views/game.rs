@@ -353,23 +353,35 @@ impl Component for GamePage {
                             />
                     }
                },
-               Turn::MakingDog if player_action == Some(PlayerAction::MakeDog) => {
+               Turn::MakingDog => {
                    html! {
                        <div>
                            <section class="hand">
                            {
                                for self.dog.list().iter().map(|card| {
                                    let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
-                                   let clicked = card.clone();
-                                   html! {
-                                       <div class="card" style={style} onclick=self.link.callback(move |_| Msg::AddToHand(clicked))></div>
+                                   if player_action == Some(PlayerAction::MakeDog) {
+                                       let clicked = card.clone();
+                                       html! {
+                                           <div class="card" style={style} onclick=self.link.callback(move |_| Msg::AddToHand(clicked))></div>
+                                       }
+                                   } else {
+                                       html! {
+                                           <div class="card" style={style}></div>
+                                       }
                                    }
                                })
                            }
                            </section>
-                           <button onclick=self.link.callback(move |_| Msg::MakeDog)>
-                           {{ "finish" }}
-                           </button>
+                           { if player_action == Some(PlayerAction::MakeDog) {
+                               html! {
+                               <button onclick=self.link.callback(move |_| Msg::MakeDog)>
+                               {{ "finish" }}
+                               </button>
+                             }} else {
+                                 html!{}
+                             }
+                           }
                        </div>
                    }
                },
@@ -389,7 +401,10 @@ impl Component for GamePage {
                                 html! {
                                     <div class="card" style={style}></div>
                                 }
-                            } else {
+                            } else if player_action == Some(PlayerAction::Play) {
+                                html!{
+                                    <div><strong> {{ "Your turn to play!" }} </strong> </div>
+                            }} else {
                                 html!{}
                             }}
                         </div>

@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use std::time::Duration;
+use std::f32;
 use im_rc::Vector;
 use uuid::Uuid;
 use web_sys::HtmlAudioElement;
@@ -326,8 +327,20 @@ impl Component for GamePage {
                        let scores: Vec<Vec<f32>> = self.game_state.scores.iter().map(|score| score.to_vec()).collect();
                        let players: Vec<String> = self.game_state.players.iter().map(|pl| pl.player.nickname.clone()).collect();
 
+                       let taker_won = self.game_state.deal.taker_diff > 0.0;
+                       let diff_abs = f32::abs(self.game_state.deal.taker_diff);
+                       let contract_message = if taker_won {
+                           format!("Contract succeded by {} points", diff_abs)
+                       } else {
+                           format!("Contract failed by {} points", diff_abs)
+                       };
+
+                       let dog_message = format!("Dog : {}", self.game_state.deal.dog.to_string());
+
                        html! {
                      <div class="wrapper">
+                         <div> {{ contract_message }} </div>
+                         <div> {{ dog_message }} </div>
                         <Scores players=players scores=scores />
                         <div class="toolbar">
                             <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
@@ -403,7 +416,7 @@ impl Component for GamePage {
                                 }
                             } else if player_action == Some(PlayerAction::Play) {
                                 html!{
-                                    <div><strong> {{ "Your turn to play!" }} </strong> </div>
+                                    <div class="yourturn"> {{ "Your turn to play!" }} </div>
                             }} else {
                                 html!{}
                             }}

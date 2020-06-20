@@ -2,18 +2,19 @@
 
 use super::cards;
 
-pub fn score(points: f32, oudlers_count: u8) -> f32 {
+pub fn score(points: f32, oudlers_count: u8) -> (f32, f32) {
     let raw_points = match oudlers_count {
         3 => points - 36.0,
         2 => points - 41.0,
         1 => points - 51.0,
         _ => points - 56.0,
     };
-    if raw_points < 0.0 {
+    let points = if raw_points < 0.0 {
         raw_points - 25.0
     } else {
         raw_points + 25.0
-    }
+    };
+    (raw_points, points)
 }
 
 /// Returns the number of points `card` is worth

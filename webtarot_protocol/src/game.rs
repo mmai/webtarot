@@ -105,15 +105,18 @@ impl GameState {
         }
         players.sort_by(|a, b| a.pos.to_n().cmp(&b.pos.to_n()));
         let pos = self.players[&player_id].pos;
+        let mut scores = [0.0; 5];
+        let mut dog = cards::Hand::new();
+        let mut taker_diff = 0.0;
         let deal = match self.deal.deal_state() {
             Some(state) => { // In Playing phase
-                let  scores =  match state.get_deal_result() {
-                    deal::DealResult::Nothing => [0.0; 5],
-                    deal::DealResult::GameOver {points: _, taker_won: _, scores } => scores
+                if let deal::DealResult::GameOver {points: _, taker_diff: diff, scores: lscores } = state.get_deal_result() {
+                     scores = lscores;
+                     taker_diff = diff;
+                     dog = state.dog();
                 };
-                let last_trick = if self.turn == Turn::Intertrick {
+                let last_trick = if self.turn == Turn::Intertrick && !self.was_last_trick() {
                     // intertrick : there is at least a trick done
-                    // (current_trick() returns the new empty one)
                     state.last_trick().unwrap().clone()
                 } else {
                     state.current_trick().clone()
@@ -130,6 +133,8 @@ impl GameState {
                     // last_trick: state.tricks.last().unwrap_or(trick::Trick::default()),
                     last_trick,
                     initial_dog,
+                    dog,
+                    taker_diff,
                 }
             },
             None => DealSnapshot { // In bidding phase
@@ -139,6 +144,8 @@ impl GameState {
                 scores: [0.0;NB_PLAYERS],
                 last_trick: trick::Trick::default(),
                 initial_dog: cards::Hand::new(),
+                dog,
+                taker_diff,
             }
         };
         GameStateSnapshot {
@@ -261,7 +268,7 @@ impl GameState {
         match state.play_card(pos, card)? {
             deal::TrickResult::Nothing => (),
             deal::TrickResult::TrickOver(_winner, deal::DealResult::Nothing) => self.end_trick(),
-            deal::TrickResult::TrickOver(_winner, deal::DealResult::GameOver{points: _, taker_won: _, scores}) => {
+            deal::TrickResult::TrickOver(_winner, deal::DealResult::GameOver{points: _, taker_diff: _, scores}) => {
                 self.scores.push(scores);
                 self.end_last_trick();
             }
@@ -400,6 +407,8 @@ impl Default for GameStateSnapshot {
                 scores: [0.0;NB_PLAYERS],
                 last_trick: trick::Trick::new(pos),
                 initial_dog: cards::Hand::new(),
+                dog: cards::Hand::new(),
+                taker_diff: 0.0,
             }
         }
     }

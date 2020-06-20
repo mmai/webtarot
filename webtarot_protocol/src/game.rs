@@ -355,6 +355,35 @@ impl GameStateSnapshot {
             _ => None
         }
     }
+
+    pub fn pos_player_name(&self, pos: pos::PlayerPos) -> String {
+        self.players.iter()
+            .find(|p| p.pos == pos)
+            .map(|found| &found.player.nickname)
+            .unwrap() // panic on invalid pos
+            .into()
+    }
+
+    pub fn current_player_name(&self) -> String {
+        let found_name = self.get_playing_pos().map(|pos| {
+            self.pos_player_name(pos)
+        });
+
+        if let Some(name) = found_name {
+            format!("{}", name)
+        } else {
+            "".into()
+        }
+    }
+
+    // pub fn get_playing_player(&self) -> Option<&GamePlayerState> {
+    //     self.get_playing_player().map(|pos| {
+    //         self.players.iter()
+    //             .find(|p| p.pos == pos)
+    //             .map(|found| &found)
+    //     }).flatten()
+    // }
+
 }
 
 impl Default for GameStateSnapshot {

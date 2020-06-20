@@ -267,7 +267,7 @@ impl Component for GamePage {
         html! {
     <div class=game_classes>
       <header>
-        <p class="turn-info">{format!("Turn: {}", self.game_state.turn)}</p>
+        <p class="turn-info">{format!("Turn: {} {}", self.game_state.current_player_name(), self.game_state.turn)}</p>
         {if let Some(contract) = &self.game_state.deal.contract {
              html! {<p class="deal-info">{format!("Contract: {}", contract.to_string())}</p>}
         } else {
@@ -305,10 +305,14 @@ impl Component for GamePage {
                  </div>
                 },
                Turn::Intertrick => 
-                   if !self.my_state().ready  { html! {
+                   if !self.my_state().ready  { 
+                       let winner_pos = self.game_state.deal.last_trick.winner;
+                       let winner_name = self.game_state.pos_player_name(winner_pos);
+                       html! {
                        <div class="wrapper">
                            <div class="results">
-                               {format!("trick for : {:?}", self.game_state.deal.last_trick.winner)}
+                           { "trick for " }
+                       <strong>{ winner_name }</strong>
                            </div>
                            <div class="toolbar">
                                <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>

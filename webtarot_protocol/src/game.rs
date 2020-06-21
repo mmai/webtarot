@@ -420,6 +420,13 @@ pub struct GameInfo {
     pub join_code: String,
 }
 
+//Used for server diagnostics
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GameExtendedInfo {
+    pub game: GameInfo,
+    pub players: Vec<Uuid>
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

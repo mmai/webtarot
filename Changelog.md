@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.6
+
+- keep websocket alive : server sends ping every 55s (default nginx timeout = 60s)
+- show dog at deal end
+- show points margin to contract at deal end
+- extended server status
+- message 'your turn to play!'
+- bidding stops after everybody talked
+- show players names instead of position
+
 ## 0.2.5
 
 - keep alive websocket

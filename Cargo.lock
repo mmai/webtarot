@@ -1812,7 +1812,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_client"
-version = "0.1.0"
+version = "0.2.6"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
@@ -1833,7 +1833,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_protocol"
-version = "0.1.0"
+version = "0.2.6"
 dependencies = [
  "serde",
  "tarotgame",

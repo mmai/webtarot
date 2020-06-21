@@ -459,6 +459,7 @@ pub async fn serve(public_dir: String, port: u16) {
             .and(warp::ws())
             .and(warp::any().map(move || universe.clone()))
             .map(|ws: warp::ws::Ws, universe: Arc<Universe>| {
+                // when the connection is upgraded to a websocket
                 ws.on_upgrade(move |ws| on_player_connected(universe, ws))
             })
         // .or(warp::fs::dir("public/")); // Static files

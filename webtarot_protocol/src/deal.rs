@@ -75,6 +75,8 @@ pub struct DealSnapshot {
     pub scores: [f32; NB_PLAYERS],
     pub last_trick: trick::Trick,
     pub initial_dog: cards::Hand,
+    pub dog: cards::Hand,
+    pub taker_diff: f32,
     // pub tricks: Vec<trick::Trick>,
 }
 

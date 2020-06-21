@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use std::time::Duration;
+use std::f32;
 use im_rc::Vector;
 use uuid::Uuid;
 use web_sys::HtmlAudioElement;
@@ -267,7 +268,7 @@ impl Component for GamePage {
         html! {
     <div class=game_classes>
       <header>
-        <p class="turn-info">{format!("Turn: {}", self.game_state.turn)}</p>
+        <p class="turn-info">{format!("Turn: {} {}", self.game_state.current_player_name(), self.game_state.turn)}</p>
         {if let Some(contract) = &self.game_state.deal.contract {
              html! {<p class="deal-info">{format!("Contract: {}", contract.to_string())}</p>}
         } else {
@@ -305,10 +306,14 @@ impl Component for GamePage {
                  </div>
                 },
                Turn::Intertrick => 
-                   if !self.my_state().ready  { html! {
+                   if !self.my_state().ready  { 
+                       let winner_pos = self.game_state.deal.last_trick.winner;
+                       let winner_name = self.game_state.pos_player_name(winner_pos);
+                       html! {
                        <div class="wrapper">
                            <div class="results">
-                               {format!("trick for : {:?}", self.game_state.deal.last_trick.winner)}
+                           { "trick for " }
+                       <strong>{ winner_name }</strong>
                            </div>
                            <div class="toolbar">
                                <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
@@ -322,8 +327,20 @@ impl Component for GamePage {
                        let scores: Vec<Vec<f32>> = self.game_state.scores.iter().map(|score| score.to_vec()).collect();
                        let players: Vec<String> = self.game_state.players.iter().map(|pl| pl.player.nickname.clone()).collect();
 
+                       let taker_won = self.game_state.deal.taker_diff > 0.0;
+                       let diff_abs = f32::abs(self.game_state.deal.taker_diff);
+                       let contract_message = if taker_won {
+                           format!("Contract succeded by {} points", diff_abs)
+                       } else {
+                           format!("Contract failed by {} points", diff_abs)
+                       };
+
+                       let dog_message = format!("Dog : {}", self.game_state.deal.dog.to_string());
+
                        html! {
                      <div class="wrapper">
+                         <div> {{ contract_message }} </div>
+                         <div> {{ dog_message }} </div>
                         <Scores players=players scores=scores />
                         <div class="toolbar">
                             <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
@@ -349,23 +366,35 @@ impl Component for GamePage {
                             />
                     }
                },
-               Turn::MakingDog if player_action == Some(PlayerAction::MakeDog) => {
+               Turn::MakingDog => {
                    html! {
                        <div>
                            <section class="hand">
                            {
                                for self.dog.list().iter().map(|card| {
                                    let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
-                                   let clicked = card.clone();
-                                   html! {
-                                       <div class="card" style={style} onclick=self.link.callback(move |_| Msg::AddToHand(clicked))></div>
+                                   if player_action == Some(PlayerAction::MakeDog) {
+                                       let clicked = card.clone();
+                                       html! {
+                                           <div class="card" style={style} onclick=self.link.callback(move |_| Msg::AddToHand(clicked))></div>
+                                       }
+                                   } else {
+                                       html! {
+                                           <div class="card" style={style}></div>
+                                       }
                                    }
                                })
                            }
                            </section>
-                           <button onclick=self.link.callback(move |_| Msg::MakeDog)>
-                           {{ "finish" }}
-                           </button>
+                           { if player_action == Some(PlayerAction::MakeDog) {
+                               html! {
+                               <button onclick=self.link.callback(move |_| Msg::MakeDog)>
+                               {{ "finish" }}
+                               </button>
+                             }} else {
+                                 html!{}
+                             }
+                           }
                        </div>
                    }
                },
@@ -385,7 +414,10 @@ impl Component for GamePage {
                                 html! {
                                     <div class="card" style={style}></div>
                                 }
-                            } else {
+                            } else if player_action == Some(PlayerAction::Play) {
+                                html!{
+                                    <div class="yourturn"> {{ "Your turn to play!" }} </div>
+                            }} else {
                                 html!{}
                             }}
                         </div>

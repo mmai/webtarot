@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::game::{GameInfo, GameStateSnapshot, PlayEvent};
+use crate::game::{GameInfo, GameExtendedInfo, GameStateSnapshot, PlayEvent};
 use crate::player::{PlayerInfo, GamePlayerState, PlayerRole};
 use tarotgame::{cards, bid, deal};
 
@@ -160,7 +160,7 @@ pub enum Message {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ServerStatus {
     pub players: Vec<Uuid>,
-    pub games: Vec<GameInfo>,
+    pub games: Vec<GameExtendedInfo>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

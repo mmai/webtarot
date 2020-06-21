@@ -26,12 +26,14 @@ impl fmt::Display for Turn {
                 Turn::Pregame => "pre-game",
                 Turn::Intertrick => "inter trick",
                 Turn::Interdeal => "inter deal",
-                Turn::Bidding((_, pos)) => {
-                    strpos = format!("{:?} to bid", pos);
+                Turn::Bidding((_, _pos)) => {
+                    strpos = format!("bidding");
+                    // strpos = format!("{:?} to bid", pos);
                     &strpos
                 }
-                Turn::Playing(pos) => {
-                    strpos = format!("{:?} to play", pos);
+                Turn::Playing(_pos) => {
+                    strpos = format!("playing");
+                    // strpos = format!("{:?} to play", pos);
                     &strpos
                 }
                 Turn::Endgame => "end",

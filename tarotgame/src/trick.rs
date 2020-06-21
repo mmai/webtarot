@@ -95,8 +95,9 @@ impl Trick {
             return false;
         }
 
-        if points::strength(card)
-            > points::strength(self.cards[self.winner as usize].unwrap())
+        let winner_card = self.cards[self.winner as usize].unwrap();
+        if points::strength(card) > points::strength(winner_card)
+            && (card.suit() == winner_card.suit() || card.suit() == cards::Suit::Trump )
         {
             self.winner = player
         }
@@ -109,5 +110,35 @@ impl Trick {
     /// Returns `None` if the trick hasn't started yet.
     pub fn suit(&self) -> Option<cards::Suit> {
         self.cards[self.first as usize].map(|c| c.suit())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{cards, pos};
+
+    #[test]
+    fn test_play_card() {
+        let mut trick = Trick::default();
+        trick.play_card(
+            pos::PlayerPos::P0,
+            cards::Card::new(cards::Suit::Club, cards::Rank::Rank5)
+        );
+        assert_eq!( trick.winner, pos::PlayerPos::P0);
+
+        //Higher card
+        trick.play_card(
+            pos::PlayerPos::P1,
+            cards::Card::new(cards::Suit::Club, cards::Rank::Rank8)
+        );
+        assert_eq!( trick.winner, pos::PlayerPos::P1);
+
+        //Higher rank bug wrong color
+        trick.play_card(
+            pos::PlayerPos::P2,
+            cards::Card::new(cards::Suit::Heart, cards::Rank::Rank10)
+        );
+        assert_eq!( trick.winner, pos::PlayerPos::P1);
     }
 }

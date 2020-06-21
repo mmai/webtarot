@@ -20,7 +20,7 @@ use crate::protocol::{
 };
 use crate::universe::Universe;
 
-async fn on_player_connected(universe: Arc<Universe>, ws: ws::WebSocket) {
+async fn on_player_connected(universe: Arc<Universe>, uuid: String, ws: ws::WebSocket) {
 
     let (user_ws_tx, mut user_ws_rx) = ws.split();
     let (tx, rx) = mpsc::unbounded_channel();
@@ -31,7 +31,7 @@ async fn on_player_connected(universe: Arc<Universe>, ws: ws::WebSocket) {
         }
     }));
 
-    let player_id = universe.add_player(tx).await;
+    let player_id = universe.add_player(tx, uuid).await;
     log::info!("player {:#?} connected", player_id);
 
     //keep alive : send a ping every 50 seconds
@@ -457,10 +457,11 @@ pub async fn serve(public_dir: String, port: u16) {
 
         let routes = warp::path("ws") // Websockets on /ws entry point
             .and(warp::ws())
+            .and(warp::path::param()) // enable params on websocket : ws/monparam
             .and(warp::any().map(move || universe.clone()))
-            .map(|ws: warp::ws::Ws, universe: Arc<Universe>| {
+            .map(|ws: warp::ws::Ws, uuid, universe: Arc<Universe>| {
                 // when the connection is upgraded to a websocket
-                ws.on_upgrade(move |ws| on_player_connected(universe, ws))
+                ws.on_upgrade(move |ws| on_player_connected(universe, uuid, ws))
             })
         // .or(warp::fs::dir("public/")); // Static files
         .or(warp::fs::dir(pdir)); // Static files

@@ -119,9 +119,18 @@ impl Universe {
     pub async fn add_player(
         &self,
         tx: mpsc::UnboundedSender<Result<ws::Message, warp::Error>>,
+        uuid: String,
     ) -> Uuid {
-        let player_id = Uuid::new_v4();
         let mut universe_state = self.state.write().await;
+        let mut player_id = Uuid::new_v4();
+        if let Ok(player_uuid) = Uuid::parse_str(&uuid) {
+            //Check if player is in a active game
+            if let Some(game) = self.get_player_game(player_uuid).await {
+                return player_id
+            }
+        }
+
+        //Create player
         universe_state.players.insert(
             player_id,
             UniversePlayerState {

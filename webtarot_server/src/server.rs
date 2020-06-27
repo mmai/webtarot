@@ -95,6 +95,7 @@ async fn on_player_message(
     let cmd: Command = match serde_json::from_str(&req_json) {
         Ok(req) => req,
         Err(err) => {
+            log::debug!("error parsing json {}", err);
             return Err(ProtocolError::new(
                 ProtocolErrorKind::InvalidCommand,
                 err.to_string(),

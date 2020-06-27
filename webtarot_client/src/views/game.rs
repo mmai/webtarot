@@ -265,63 +265,19 @@ impl Component for GamePage {
             actions_classes.push("current-player");
         }
 
-        html! {
-    <div class=game_classes>
-      <header>
-        <p class="turn-info">{format!("Turn: {} {}", self.game_state.current_player_name(), self.game_state.turn)}</p>
-        {if let Some(contract) = &self.game_state.deal.contract {
-             html! {<p class="deal-info">{format!("Contract: {}", contract.to_string())}</p>}
-        } else {
-             html! {}
-        }}
-      </header>
-
-      <PlayerList game_state=self.game_state.clone() players=others/>
-
-        <section class=actions_classes>
-            { if let Some(error) = &self.error  { html! {
-                <div class="error">
-                    <div>
-                        {format!("Error: {}", error)}
-                    </div>
-                    <div class="toolbar">
-                        <button class="btn-error" onclick=self.link.callback(|_| Msg::CloseError)>{"Ok"}</button>
-                    </div>
-                </div>
-            }} else { html! {} }}
-
-
-            {match self.game_state.turn {
-               Turn::Pregame => html! {
-                <div class="wrapper">
-                    <div class="toolbar">
-                    {if !self.my_state().ready  {
-                        html! {<button class="primary" onclick=self.link.callback(|_| Msg::MarkReady)>{"Ready!"}</button>}
-                    } else {
-                        html! {}
-                    }}
-                        <button class="cancel" onclick=self.link.callback(|_| Msg::Disconnect)>{"Disconnect"}</button>
-                    </div>
-                    <h1>{{ "join code:" }} <strong>{format!(" {}", format_join_code(&self.game_info.join_code))}</strong></h1>
-                 </div>
-                },
+        let messageContent: Option<Html> = match self.game_state.turn {
                Turn::Intertrick => 
                    if !self.my_state().ready  { 
                        let winner_pos = self.game_state.deal.last_trick.winner;
                        let winner_name = self.game_state.pos_player_name(winner_pos);
-                       html! {
-                       <div class="wrapper">
+                       Some(html! { 
                            <div class="results">
-                           { "trick for " }
-                       <strong>{ winner_name }</strong>
+                               { "trick for " }
+                               <strong>{ winner_name }</strong>
                            </div>
-                           <div class="toolbar">
-                               <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
-                           </div>
-                       </div>
-                   }} else {
-                       html! {}
-                },
+
+                       })
+                   } else { None },
                Turn::Interdeal => 
                    if !self.my_state().ready  { 
                        let scores: Vec<Vec<f32>> = self.game_state.scores.iter().map(|score| score.to_vec()).collect();
@@ -337,17 +293,68 @@ impl Component for GamePage {
 
                        let dog_message = format!("Dog : {}", self.game_state.deal.dog.to_string());
 
-                       html! {
-                     <div class="wrapper">
+                       Some(html! {
+                     <div>
                          <div> {{ contract_message }} </div>
                          <div> {{ dog_message }} </div>
                         <Scores players=players scores=scores />
-                        <div class="toolbar">
-                            <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
-                        </div>
                      </div>
-                   }} else {
-                     html! {}
+                   })} else { None },
+              _ => None
+        };
+
+        html! {
+    <div class=game_classes>
+      <header>
+        <p class="turn-info">{format!("Turn: {} {}", self.game_state.current_player_name(), self.game_state.turn)}</p>
+        {if let Some(contract) = &self.game_state.deal.contract {
+             html! {<p class="deal-info">{format!("Contract: {}", contract.to_string())}</p>}
+        } else {
+             html! {}
+        }}
+      </header>
+
+      <PlayerList game_state=self.game_state.clone() players=others/>
+
+        { if let Some(error) = &self.error  { html! {
+          <div class="notify-wrapper">
+            <div class="error notify">
+                <div>
+                    {format!("Error: {}", error)}
+                </div>
+                <div class="toolbar">
+                    <button class="btn-error" onclick=self.link.callback(|_| Msg::CloseError)>{"Ok"}</button>
+                </div>
+              </div>
+            </div>
+        }} else { html! {} }}
+
+        { if let Some(message) = messageContent  { html! {
+          <div class="notify-wrapper">
+            <div class="notify wrapper">
+                { message }
+
+                <div class="toolbar">
+                    <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
+                </div>
+            </div>
+        </div>
+        }} else { html! {} }}
+
+        <section class=actions_classes>
+            {match self.game_state.turn {
+               Turn::Pregame => html! {
+                <div class="wrapper">
+                    <div class="toolbar">
+                    {if !self.my_state().ready  {
+                        html! {<button class="primary" onclick=self.link.callback(|_| Msg::MarkReady)>{"Ready!"}</button>}
+                    } else {
+                        html! {}
+                    }}
+                        <button class="cancel" onclick=self.link.callback(|_| Msg::Disconnect)>{"Disconnect"}</button>
+                    </div>
+                    <h1>{{ "join code:" }} <strong>{format!(" {}", format_join_code(&self.game_info.join_code))}</strong></h1>
+                 </div>
                 },
                Turn::CallingKing if player_action == Some(PlayerAction::CallKing) => {
                    // Choose a queen if player has all kings

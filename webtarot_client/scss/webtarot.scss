@@ -2,6 +2,7 @@
 @import url("https://fonts.googleapis.com/css?family=Courier+Prime:400,700&display=swap");
 
 $card_width: 15vh;
+$gamepadding: 1em;
 
 html {
   min-height: 100%;
@@ -110,11 +111,33 @@ div.error {
   box-shadow: 11px 10px 35px -14px rgba(0, 0, 0, 0.75);
 }
 
+
+.withtooltip .tooltip {
+  visibility: hidden;
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+ 
+  position: absolute;
+  z-index: 1;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.withtooltip:hover .tooltip {
+  visibility: visible;
+}
+
+
 div.notify-wrapper {
-    height: 100%;
     position: absolute;
-    text-align: center;
+    height: 100%;
     width: 100%;
+    margin: -#{$gamepadding};
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.2);
 }
 
 .notify {
@@ -201,13 +224,12 @@ p.turn-info {
   float: right;
 }
 
-
 .game {
   display: grid;
   grid-template-rows: [header] 50px [players] 1fr [action] 1fr [hand] 1fr [bottom] 30px [end];
   grid-template-columns: [game] auto [chat] 400px [end];
   height:100%;
-  padding: 1em;
+  padding: $gamepadding;
 }
 
 .header {

@@ -306,9 +306,12 @@ impl Component for GamePage {
         html! {
     <div class=game_classes>
       <header>
-        <p class="turn-info">{format!("Turn: {} {}", self.game_state.current_player_name(), self.game_state.turn)}</p>
+        <p class="turn-info">{format!("{} {}", self.game_state.current_player_name(), self.game_state.turn)}</p>
         {if let Some(contract) = &self.game_state.deal.contract {
-             html! {<p class="deal-info">{format!("Contract: {}", contract.to_string())}</p>}
+             let king_info = if let Some(king) = &self.game_state.deal.king {
+                format!(" ({})", king.to_string())
+             } else { "".into() };
+             html! {<p class="deal-info">{format!("{} {}", contract.to_string(), king_info)}</p>}
         } else {
              html! {}
         }}

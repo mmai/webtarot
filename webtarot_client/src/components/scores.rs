@@ -44,7 +44,7 @@ impl Component for Scores {
         html! {
             <table class="scores">
                 <tr>
-                <th>{"#"}</th>
+                <th></th>
                 {
                     for self.players.iter().map(|nickname| {
                         html! {

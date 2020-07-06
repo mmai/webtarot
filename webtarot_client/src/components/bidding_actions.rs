@@ -3,6 +3,8 @@ use std::rc::Rc;
 use strum::IntoEnumIterator;
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender, Callback};
 
+use tr::tr;
+
 use crate::protocol::GameStateSnapshot;
 use tarotgame::bid;
 
@@ -60,7 +62,7 @@ impl Component for BiddingActions {
         html! {
             <section class="bidding">
                 <button onclick=self.link.callback(move |_| Msg::Pass)>
-                {"Pass"}
+                { tr!("Pass") }
                 </button>
                 {
                     for bid::Target::iter()

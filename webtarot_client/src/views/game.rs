@@ -10,6 +10,7 @@ use yew::{
     html, Bridge, Component, ComponentLink, Html, Properties,
     ShouldRender,
 };
+use tr::tr;
 
 use crate::api::Api;
 use crate::components::chat_box::{ChatBox, ChatLine, ChatLineData};
@@ -272,7 +273,7 @@ impl Component for GamePage {
                        let winner_name = self.game_state.pos_player_name(winner_pos);
                        Some(html! { 
                            <div class="results">
-                               { "trick for " }
+                               { tr!("trick for ") }
                                <strong>{ winner_name }</strong>
                            </div>
 
@@ -286,12 +287,12 @@ impl Component for GamePage {
                        let taker_won = self.game_state.deal.taker_diff > 0.0;
                        let diff_abs = f32::abs(self.game_state.deal.taker_diff);
                        let contract_message = if taker_won {
-                           format!("Contract succeded by {} points", diff_abs)
+                           tr!("Contract succeded by {0} points", diff_abs)
                        } else {
-                           format!("Contract failed by {} points", diff_abs)
+                           tr!("Contract failed by {0} points", diff_abs)
                        };
 
-                       let dog_message = format!("Dog : {}", self.game_state.deal.dog.to_string());
+                       let dog_message = tr!("Dog : {0}", self.game_state.deal.dog.to_string());
 
                        Some(html! {
                      <div>
@@ -323,7 +324,7 @@ impl Component for GamePage {
           <div class="notify-wrapper">
             <div class="error notify">
                 <div>
-                    {format!("Error: {}", error)}
+                    {tr!("Error: {0}", error)}
                 </div>
                 <div class="toolbar">
                     <button class="btn-error" onclick=self.link.callback(|_| Msg::CloseError)>{"Ok"}</button>
@@ -350,13 +351,13 @@ impl Component for GamePage {
                 <div class="wrapper">
                     <div class="toolbar">
                     {if !self.my_state().ready  {
-                        html! {<button class="primary" onclick=self.link.callback(|_| Msg::MarkReady)>{"Ready!"}</button>}
+                        html! {<button class="primary" onclick=self.link.callback(|_| Msg::MarkReady)>{ tr!("Ready!")}</button>}
                     } else {
                         html! {}
                     }}
-                        <button class="cancel" onclick=self.link.callback(|_| Msg::Disconnect)>{"Disconnect"}</button>
+                        <button class="cancel" onclick=self.link.callback(|_| Msg::Disconnect)>{ tr!("Disconnect") }</button>
                     </div>
-                    <h1>{{ "join code:" }} <strong>{format!(" {}", format_join_code(&self.game_info.join_code))}</strong></h1>
+                    <h1>{{ tr!("join code:") }} <strong>{format!(" {}", format_join_code(&self.game_info.join_code))}</strong></h1>
                  </div>
                 },
                Turn::CallingKing if player_action == Some(PlayerAction::CallKing) => {
@@ -399,7 +400,7 @@ impl Component for GamePage {
                            { if player_action == Some(PlayerAction::MakeDog) {
                                html! {
                                <button onclick=self.link.callback(move |_| Msg::MakeDog)>
-                               {{ "finish" }}
+                               {{ tr!("finish") }}
                                </button>
                              }} else {
                                  html!{}
@@ -426,7 +427,7 @@ impl Component for GamePage {
                                 }
                             } else if player_action == Some(PlayerAction::Play) {
                                 html!{
-                                    <div class="yourturn"> {{ "Your turn to play!" }} </div>
+                                    <div class="yourturn"> {{ tr!("Your turn to play!") }} </div>
                             }} else {
                                 html!{}
                             }}

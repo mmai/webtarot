@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::protocol::{
     ProtocolError,
     GameState,
-    GameInfo, Message, PlayerDisconnectedMessage, PlayerRole,
+    GameInfo, GameExtendedInfo, Message, PlayerDisconnectedMessage, PlayerRole,
 };
 use crate::universe::Universe;
 use tarotgame::{bid, cards};
@@ -34,6 +34,16 @@ impl Game {
 
     pub fn join_code(&self) -> &str {
         &self.join_code
+    }
+
+    //Used for server diagnostics
+    pub async fn game_extended_info(&self) -> GameExtendedInfo {
+        let game_state = self.game_state.lock().await;
+        let players: Vec<_> = game_state.get_players().keys().cloned().collect();
+        GameExtendedInfo {
+            game: self.game_info(),
+            players
+        }
     }
 
     pub fn game_info(&self) -> GameInfo {

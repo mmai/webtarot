@@ -1,6 +1,6 @@
 [package]
 name = "webtarot_server"
-version = "0.1.0"
+version = "0.3.0"
 authors = ["Henri Bourcereau <henri@bourcereau.fr>"]
 edition = "2018"
 
@@ -21,3 +21,4 @@ listenfd = "0.3.3"
 hyper = "0.13.4"
 lazy_static = "1.4.0"
 clap = "2.33.0"
+tokio-timer = "0.2.13"

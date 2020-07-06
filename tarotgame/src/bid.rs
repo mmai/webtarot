@@ -62,7 +62,7 @@ impl ToString for Target {
     }
 }
 
-/// Contract taken by a team.
+/// Contract taken
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Contract {
     /// Initial author of the contract.
@@ -98,10 +98,19 @@ pub enum AuctionState {
     Cancelled,
 }
 
+/// Bidding status for a player
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+pub enum BidStatus {
+    Todo,
+    Passed,
+    Bid,
+}
+
+
 /// Represents the entire auction process.
 pub struct Auction {
-    history: Vec<Contract>,
-    pass_count: usize,
+    contract: Option<Contract>,
+    players_status: [BidStatus; super::NB_PLAYERS], 
     first: pos::PlayerPos,
     state: AuctionState,
     players: [cards::Hand; super::NB_PLAYERS],
@@ -140,8 +149,8 @@ impl Auction {
     pub fn new(first: pos::PlayerPos) -> Self {
         let (hands, dog) = super::deal_hands();
         Auction {
-            history: Vec::new(),
-            pass_count: 0,
+            contract: None,
+            players_status: [BidStatus::Todo; super::NB_PLAYERS],
             state: AuctionState::Bidding,
             first,
             players: hands,
@@ -165,23 +174,44 @@ impl Auction {
             return Err(BidError::AuctionClosed);
         }
 
-        if !self.history.is_empty()
-            && target.multiplier() <= self.history[self.history.len() - 1].target.multiplier()
-        {
-            return Err(BidError::NonRaisedTarget);
+        if let Some(contract) = self.contract.clone() {
+            if target.multiplier() <= contract.target.multiplier() {
+                return Err(BidError::NonRaisedTarget);
+            }
         }
 
         Ok(())
     }
 
-    /// Returns the player that is expected to play next.
+    fn get_player_status(&self, pos: pos::PlayerPos) -> BidStatus {
+        self.players_status[pos.to_n()]
+    }
+
+    fn set_player_status(&mut self, pos: pos::PlayerPos, status: BidStatus) {
+        self.players_status[pos.to_n()] = status;
+    }
+
+    /// Returns the player that is expected to bid next.
     pub fn next_player(&self) -> pos::PlayerPos {
-        let base = if let Some(contract) = self.history.last() {
+        let pos_init = if let Some(contract) = self.contract.clone() {
             contract.author.next()
         } else {
             self.first
         };
-        base.next_n(self.pass_count)
+
+        let mut next_pos = pos_init;
+        while self.get_player_status(next_pos) != BidStatus::Todo {
+            next_pos = next_pos.next();
+            if next_pos == pos_init {
+                panic!("all players have talked")
+            }
+        }
+        next_pos
+    }
+
+    /// Check if there are still players waiting for bidding
+    fn no_player_left(&self) -> bool {
+        !self.players_status.contains(&BidStatus::Todo)
     }
 
     /// Bid a new, higher contract.
@@ -196,16 +226,20 @@ impl Auction {
 
         self.can_bid(target)?;
 
-        // If we're all the way to the top, there's nowhere else to go
-        if target == Target::GardeContre {
-            self.state = AuctionState::Over;
+        // Reset previous bidder status
+        if let Some(contract) = self.contract.clone() {
+            self.set_player_status(contract.author, BidStatus::Todo);
         }
 
         let contract = Contract::new(pos, target);
-        self.history.push(contract);
-        self.pass_count = 0;
+        self.contract = Some(contract);
+        self.set_player_status(pos, BidStatus::Bid);
 
-        // Only stops the bids if the guy asked for a capot
+        // If we're all the way to the top, there's nowhere else to go
+        if self.no_player_left() || target == Target::GardeContre {
+            self.state = AuctionState::Over;
+        }
+
         Ok(self.state)
     }
 
@@ -213,11 +247,7 @@ impl Auction {
     ///
     /// Returns `None` if no contract was offered yet.
     pub fn current_contract(&self) -> Option<&Contract> {
-        if self.history.is_empty() {
-            None
-        } else {
-            Some(&self.history[self.history.len() - 1])
-        }
+        self.contract.as_ref()
     }
 
     /// Returns the players cards.
@@ -236,17 +266,15 @@ impl Auction {
         if pos != self.next_player() {
             return Err(BidError::TurnError);
         }
+        self.set_player_status(pos, BidStatus::Passed);
 
-        self.pass_count += 1;
-
-        // After 4 passes, we're back to the contract author, and we can start.
-        if !self.history.is_empty() {
-            if self.pass_count >= super::NB_PLAYERS - 1 {
-                self.state = AuctionState::Over;
+        if self.no_player_left() {
+            self.state = if self.contract.is_some() {
+                AuctionState::Over
+            } else {
+                AuctionState::Cancelled
             }
-        } else if self.pass_count >= super::NB_PLAYERS {
-            self.state = AuctionState::Cancelled;
-        };
+        }
 
         Ok(self.state)
     }
@@ -254,19 +282,22 @@ impl Auction {
     /// Consumes a complete auction to enter the second deal phase.
     ///
     /// If the auction was ready, returns `Ok<DealState>`
-    pub fn complete(&mut self) -> Result<deal::DealState, BidError> {
+    pub fn complete(&self) -> Result<deal::DealState, BidError> {
         if self.state != AuctionState::Over {
             Err(BidError::AuctionRunning)
-        } else if self.history.is_empty() {
-            Err(BidError::NoContract)
+        // } else if self.contract.is_none() {
         } else {
-            Ok(deal::DealState::new(
-                self.first,
-                self.players,
-                self.dog,
-                self.history.pop().expect("contract history empty"),
-                pos::PlayerPos::P0, //XXX placeholder
-            ))
+            if let Some(contract) = self.contract.clone() {
+                Ok(deal::DealState::new(
+                    self.first,
+                    self.players,
+                    self.dog,
+                    contract,
+                    pos::PlayerPos::P0, //XXX placeholder
+                ))
+            } else {
+                Err(BidError::NoContract)
+            }
         }
     }
 }
@@ -282,37 +313,35 @@ mod tests {
 
         assert!(auction.state == AuctionState::Bidding);
 
-        // First four people pass.
         assert_eq!(auction.pass(pos::PlayerPos::P0), Ok(AuctionState::Bidding));
         assert_eq!(auction.pass(pos::PlayerPos::P1), Ok(AuctionState::Bidding));
-        assert_eq!(auction.pass(pos::PlayerPos::P2), Ok(AuctionState::Bidding));
-        assert_eq!(auction.pass(pos::PlayerPos::P3), Ok(AuctionState::Bidding));
 
-        assert_eq!(auction.pass(pos::PlayerPos::P1), Err(BidError::TurnError));
+        assert_eq!(auction.pass(pos::PlayerPos::P3), Err(BidError::TurnError));
+
+        assert_eq!(auction.pass(pos::PlayerPos::P2), Ok(AuctionState::Bidding));
+
 
         // Someone bids.
         assert_eq!(
-            auction.bid(pos::PlayerPos::P4, Target::Garde),
+            auction.bid(pos::PlayerPos::P3, Target::Garde),
             Ok(AuctionState::Bidding)
         );
+
         assert_eq!(
-            auction.bid(pos::PlayerPos::P0, Target::Garde).err(),
+            auction.bid(pos::PlayerPos::P4, Target::Garde).err(),
             Some(BidError::NonRaisedTarget)
         );
-        assert_eq!(
-            auction.bid(pos::PlayerPos::P1, Target::GardeSans).err(),
-            Some(BidError::TurnError)
-        );
-        assert_eq!(auction.pass(pos::PlayerPos::P0), Ok(AuctionState::Bidding));
         // Surbid
         assert_eq!(
-            auction.bid(pos::PlayerPos::P1, Target::GardeSans),
+            auction.bid(pos::PlayerPos::P4, Target::GardeSans),
             Ok(AuctionState::Bidding)
         );
-        assert_eq!(auction.pass(pos::PlayerPos::P2), Ok(AuctionState::Bidding));
-        assert_eq!(auction.pass(pos::PlayerPos::P3), Ok(AuctionState::Bidding));
-        assert_eq!(auction.pass(pos::PlayerPos::P4), Ok(AuctionState::Bidding));
-        assert_eq!(auction.pass(pos::PlayerPos::P0), Ok(AuctionState::Over));
+
+        // Allready passed
+        assert_eq!(auction.pass(pos::PlayerPos::P0), Err(BidError::TurnError));
+
+        // Last to pass
+        assert_eq!(auction.pass(pos::PlayerPos::P3), Ok(AuctionState::Over));
 
         assert!(auction.state == AuctionState::Over);
 

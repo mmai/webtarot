@@ -43,29 +43,40 @@ impl Component for PlayerList {
                     for self.players.iter().map(|state| {
                         let card_played = self.game_state.deal.last_trick.card_played(state.pos);
                         let is_my_turn = self.game_state.get_playing_pos() == Some(state.pos);
+
+                        let scores = self.game_state.scores.last().unwrap_or(&[0.0;5]);
+                        let my_points= scores[state.pos.to_n()];
                         let mut player_classes = vec!["player"];
                         if is_my_turn {
                             player_classes.push("current-player");
                         }
+                        player_classes.push(
+                            match state.role {
+                                PlayerRole::Taker => "role-taker",
+                                PlayerRole::Partner => "role-partner",
+                                PlayerRole::Opponent => "role-opponent",
+                                _ => "role-unknown",
+                            }
+                        );
 
                         html! {
 
                         <div class=player_classes>
-                        <div class="nickname">
+                        <div class="nickname withtooltip">
                         {&state.player.nickname}
-                        {format!("{:?}", &state.pos)}
-                        {format!(
-                            " {}",
-                            match state.role {
-                                PlayerRole::Taker => "(Taker)",
-                                PlayerRole::Spectator => "(Spectator)",
-                                _ => "",
-                            }
-                        )}
                         {
                             if self.game_state.turn == Turn::Pregame &&
                                 state.ready {
                                 html! { " — ready" }
+                            } else {
+                                html!{}
+                            }
+                        }
+                        {
+                            if self.game_state.turn != Turn::Pregame {
+                                html! {
+                                    <span class="tooltip">{ format!("points : {}", my_points )  }</span>
+                                }
                             } else {
                                 html!{}
                             }

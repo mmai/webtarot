@@ -72,9 +72,12 @@ pub struct DealSnapshot {
     pub hand: cards::Hand,
     pub current: pos::PlayerPos,
     pub contract: Option<bid::Contract>,
+    pub king: Option<cards::Card>,
     pub scores: [f32; NB_PLAYERS],
     pub last_trick: trick::Trick,
     pub initial_dog: cards::Hand,
+    pub dog: cards::Hand, // set to empty hand until the deal is over
+    pub taker_diff: f32,
     // pub tricks: Vec<trick::Trick>,
 }
 

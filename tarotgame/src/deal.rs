@@ -32,7 +32,7 @@ pub enum DealResult {
         /// Worth of won tricks
         points: [f32; super::NB_PLAYERS],
         /// Winning team
-        taker_won: bool,
+        taker_diff: f32,
         /// Score for this deal
         scores: [f32; super::NB_PLAYERS],
     },
@@ -102,6 +102,11 @@ impl DealState {
     /// Returns the dog
     pub fn dog(&self) -> cards::Hand {
         self.dog
+    }
+
+    /// Returns the called king
+    pub fn king(&self) -> Option<cards::Card> {
+        self.called_king
     }
 
     //TODO return Result instead of bool
@@ -293,7 +298,8 @@ impl DealState {
         if self.contract.target != bid::Target::GardeContre {
             taking_points += points::hand_points(self.dog);
         }
-        let base_points = self.contract.target.multiplier() as f32 * points::score(taking_points, self.oudlers_count);
+        let (taker_diff, score) = points::score(taking_points, self.oudlers_count);
+        let base_points = self.contract.target.multiplier() as f32 * score;
 
         let mut scores = [0.0; super::NB_PLAYERS];
         for position in pos::POSITIONS_LIST.iter() {
@@ -308,7 +314,7 @@ impl DealState {
 
         DealResult::GameOver {
             points: self.points,
-            taker_won: base_points > 0.0,
+            taker_diff,
             scores,
         }
     }

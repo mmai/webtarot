@@ -1,13 +1,14 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::game::{GameInfo, GameStateSnapshot};
+use crate::game::{GameInfo, GameExtendedInfo, GameStateSnapshot, PlayEvent};
 use crate::player::{PlayerInfo, GamePlayerState, PlayerRole};
 use tarotgame::{cards, bid, deal};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
 pub enum Command {
+    Ping,
     Authenticate(AuthenticateCommand),
     SendText(SendTextCommand),
     ShareCodename(ShareCodenameCommand),
@@ -23,6 +24,8 @@ pub enum Command {
     MakeDog(MakeDogCommand),
     SetPlayerRole(SetPlayerRoleCommand),
     DebugUi(DebugUiCommand), // Used to send a custom state to a client, allows to quickly view the UI at a given state of the game without having to play all the hands leading to this state.
+    ShowUuid, // get uuid of connected client : for use with debugUi
+    ShowServerStatus, // get server infos : active games, players connected...
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Hash)]
@@ -140,6 +143,8 @@ pub struct MakeDogCommand {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Message {
+    Pong,
+    ServerStatus(ServerStatus),
     Chat(ChatMessage),
     PlayerConnected(GamePlayerState),
     PlayerDisconnected(PlayerDisconnectedMessage),
@@ -148,7 +153,14 @@ pub enum Message {
     GameLeft,
     Authenticated(PlayerInfo),
     Error(ProtocolError),
+    PlayEvent(PlayEvent),
     GameStateSnapshot(GameStateSnapshot),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ServerStatus {
+    pub players: Vec<Uuid>,
+    pub games: Vec<GameExtendedInfo>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

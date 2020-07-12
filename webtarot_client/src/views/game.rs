@@ -304,10 +304,22 @@ impl Component for GamePage {
               _ => None
         };
 
+        let player = self.game_state.current_player_name();
+        let turn_info = match self.game_state.turn {
+            Turn::Pregame => tr!("pre-game"),
+            Turn::Intertrick => tr!("inter trick"),
+            Turn::Interdeal => tr!("inter deal"),
+            Turn::Bidding(_) => tr!("{0} bidding", player),
+            Turn::Playing(_) => tr!("{0} playing", player),
+            Turn::Endgame => tr!("end"),
+            Turn::CallingKing => tr!("calling king"),
+            Turn::MakingDog => tr!("making dog"),
+        };
+
         html! {
     <div class=game_classes>
       <header>
-        <p class="turn-info">{format!("{} {}", self.game_state.current_player_name(), self.game_state.turn)}</p>
+        <p class="turn-info">{turn_info}</p>
         {if let Some(contract) = &self.game_state.deal.contract {
              let king_info = if let Some(king) = &self.game_state.deal.king {
                 format!(" ({})", king.to_string())
@@ -320,11 +332,27 @@ impl Component for GamePage {
 
       <PlayerList game_state=self.game_state.clone() players=others/>
 
-        { if let Some(error) = &self.error  { html! {
+        { if let Some(error) = &self.error  { 
+            let error_str = match error.as_str() {
+            "bid: auctions are closed" => tr!("auctions are closed"),
+            "bid: invalid turn order" => tr!("invalid turn order"),
+            "bid: bid must be higher than current contract" => tr!("bid must be higher than current contract"),
+            "bid: the auction are still running" => tr!("the auction are still running"),
+            "bid: no contract was offered" => tr!("no contract was offered"),
+            "play: invalid turn order" => tr!("invalid turn order"),
+            "play: you can only play cards you have" => tr!("you can only play cards you have" ),
+            "play: wrong suit played" => tr!("wrong suit played" ),
+            "play: you must use trumps" => tr!("you must use trumps" ),
+            "play: too weak trump played" => tr!("too weak trump played" ),
+            "play: you cannot play the suit of the called king in the first trick" => tr!("you cannot play the suit of the called king in the first trick" ),
+            "play: no trick has been played yet" => tr!("no trick has been played yet" ),
+            _ => error.to_string()
+            };
+            html! {
           <div class="notify-wrapper">
             <div class="error notify">
                 <div>
-                    {tr!("Error: {0}", error)}
+                { error_str } 
                 </div>
                 <div class="toolbar">
                     <button class="btn-error" onclick=self.link.callback(|_| Msg::CloseError)>{"Ok"}</button>

@@ -8,13 +8,144 @@ macro_rules! log {
 }
 
 mod api;
-mod app;
 mod components;
 mod utils;
 mod views;
 mod sound_player;
 
 use wasm_bindgen::prelude::*;
+use yew::agent::Bridged;
+use yew::{html, Bridge, Component, ComponentLink, Html, ShouldRender};
+use yew::services::IntervalService;
+use yew::services::interval::IntervalTask;
+
+use crate::api::Api;
+use crate::protocol::{GameInfo, Message, PlayerInfo, Command};
+use crate::views::game::GamePage;
+use crate::views::menu::MenuPage;
+use crate::views::start::StartPage;
+
+use yew::prelude::*;
+
+use lazy_static::lazy_static;
+use rust_embed::RustEmbed;
+use i18n_embed::{
+    language_loader, I18nEmbed,
+    WebLanguageRequester,
+};
+
+#[derive(RustEmbed, I18nEmbed)]
+#[folder = "i18n/mo"]
+struct Translations;
+
+language_loader!(WebLanguageLoader);//Creates language loader struct
+lazy_static! {
+    static ref LANGUAGE_LOADER: WebLanguageLoader = WebLanguageLoader::new();
+}
+static TRANSLATIONS: Translations = Translations;
+
+pub struct App {
+    _api: Box<dyn Bridge<Api>>,
+    link: ComponentLink<Self>,
+    state: AppState,
+    player_info: Option<PlayerInfo>,
+    game_info: Option<GameInfo>,
+}
+
+#[derive(Debug)]
+enum AppState {
+    Start,
+    Authenticated,
+    InGame,
+}
+
+pub enum Msg {
+    Ping,
+    Authenticated(PlayerInfo),
+    GameJoined(GameInfo),
+    ServerMessage(Message),
+}
+
+fn spawn_pings(
+    interval_service: &mut IntervalService,
+    link: &ComponentLink<App>,
+) -> IntervalTask {
+    interval_service.spawn(
+        std::time::Duration::from_secs(50),
+        link.callback(|()| Msg::Ping),
+    )
+}
+
+impl Component for App {
+    type Message = Msg;
+    type Properties = ();
+
+    fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
+        //i18N
+        let language_loader = WebLanguageLoader::new();
+        let requested_languages = WebLanguageRequester::requested_languages();
+        i18n_embed::select(&*LANGUAGE_LOADER, &TRANSLATIONS, &requested_languages);
+
+
+        //Ping to keep alive websocket
+        let mut interval_service = IntervalService::new();
+        let _pinger = spawn_pings(&mut interval_service, &link);
+
+        let on_server_message = link.callback(Msg::ServerMessage);
+        let _api = Api::bridge(on_server_message);
+        App {
+            link,
+            _api,
+            state: AppState::Start,
+            player_info: None,
+            game_info: None,
+        }
+    }
+
+    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+        match msg {
+            Msg::Authenticated(player_info) => {
+                self.state = AppState::Authenticated;
+                self.player_info = Some(player_info);
+            }
+            Msg::GameJoined(game_info) => {
+                self.state = AppState::InGame;
+                self.game_info = Some(game_info);
+            }
+            Msg::ServerMessage(Message::GameLeft) => {
+                self.state = AppState::Authenticated;
+                self.game_info = None;
+            }
+            Msg::Ping => {
+                log!("sending ping");
+                self._api.send(Command::Ping);
+            }
+            Msg::ServerMessage(_) => {}
+        }
+        true
+    }
+
+    fn view(&self) -> Html {
+        html! {
+            {match self.state {
+                AppState::Start => html! {
+                    <StartPage on_authenticate=self.link.callback(Msg::Authenticated) />
+                },
+                AppState::Authenticated => html! {
+                    <MenuPage
+                        player_info=self.player_info.as_ref().unwrap().clone(),
+                        on_game_joined=self.link.callback(Msg::GameJoined) />
+                },
+                AppState::InGame => html! {
+                    <GamePage
+                        player_info=self.player_info.as_ref().unwrap().clone(),
+                        game_info=self.game_info.as_ref().unwrap().clone(),
+                         />
+                }
+            }}
+        }
+    }
+}
 
 pub(crate) use webtarot_protocol as protocol;
 
@@ -24,6 +155,6 @@ pub(crate) use webtarot_protocol as protocol;
 pub fn run_app() -> Result<(), JsValue> {
     console_error_panic_hook::set_once();
     web_logger::init();
-    yew::start_app::<crate::app::App>();
+    yew::start_app::<App>();
     Ok(())
 }

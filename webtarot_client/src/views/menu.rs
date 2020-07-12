@@ -4,6 +4,8 @@ use yew::{
     ShouldRender,
 };
 
+use tr::tr;
+
 use crate::api::Api;
 use crate::protocol::{Command, GameInfo, JoinGameCommand, Message, PlayerInfo};
 use crate::utils::format_join_code;
@@ -80,12 +82,12 @@ impl Component for MenuPage {
     fn view(&self) -> Html {
         html! {
             <div class="wrapper">
-                <h1>{format!("Hello {}!", &self.player_info.nickname)}</h1>
-                <p class="explanation">{"Enter the code of a game to join"}</p>
+                <h1>{tr!("Hello {0}!", &self.player_info.nickname)}</h1>
+                <p class="explanation">{ tr!("Enter the code of a game to join") }</p>
                 <div class="toolbar">
                     <input value=&self.join_code
                         size="7"
-                        placeholder="JOIN CODE"
+                        placeholder="CODE"
                         onkeypress=self.link.callback(|event: KeyboardEvent| {
                             if event.key() == "Enter" {
                                 Msg::JoinGame
@@ -94,16 +96,16 @@ impl Component for MenuPage {
                             }
                         })
                         oninput=self.link.callback(|e: InputData| Msg::SetJoinCode(e.value)) />
-                    <button class="primary" onclick=self.link.callback(|_| Msg::JoinGame)>{"Join Game"}</button>
+                    <button class="primary" onclick=self.link.callback(|_| Msg::JoinGame)>{ tr!("Join Game")}</button>
                 </div>
-                <p class="explanation">{"...or start a new game."}</p>
+                <p class="explanation">{ tr!("...or start a new game.")}</p>
                 <div class="toolbar">
-                    <button class="primary" onclick=self.link.callback(|_| Msg::NewGame)>{"New Game"}</button>
+                    <button class="primary" onclick=self.link.callback(|_| Msg::NewGame)>{ tr!("New Game")}</button>
                 </div>
                 {
                     if let Some(ref error) = self.error {
                         html! {
-                            <p class="error">{format!("uh oh: {}", error)}</p>
+                            <p class="error">{tr!("Error: {0}", error)}</p>
                         }
                     } else {
                         html!{}

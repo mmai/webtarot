@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use tr::tr;
+
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender};
 
 use crate::protocol::{GameStateSnapshot, PlayerRole, GamePlayerState, Turn};
@@ -67,7 +69,7 @@ impl Component for PlayerList {
                         {
                             if self.game_state.turn == Turn::Pregame &&
                                 state.ready {
-                                html! { " — ready" }
+                                html! { tr!(" — ready") }
                             } else {
                                 html!{}
                             }
@@ -75,7 +77,7 @@ impl Component for PlayerList {
                         {
                             if self.game_state.turn != Turn::Pregame {
                                 html! {
-                                    <span class="tooltip">{ format!("points : {}", my_points )  }</span>
+                                    <span class="tooltip">{ tr!("points : {0}", my_points )  }</span>
                                 }
                             } else {
                                 html!{}

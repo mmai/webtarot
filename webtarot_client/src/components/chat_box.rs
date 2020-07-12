@@ -5,6 +5,8 @@ use im_rc::Vector;
 use web_sys::Element;
 use yew::{html, Component, ComponentLink, Html, InputData, KeyboardEvent, NodeRef, Properties, ShouldRender, Callback};
 
+use tr::tr;
+
 #[derive(PartialEq)]
 pub enum ChatLineData {
     Connected,
@@ -96,6 +98,7 @@ impl Component for ChatBox {
     }
 
     fn view(&self) -> Html {
+        let input_placeholder_text = tr!("send some text" );
         html! {
             <aside class="chat box">
                 <h2>{"Chat"}</h2>
@@ -109,7 +112,7 @@ impl Component for ChatBox {
                     </ul>
                 </div>
                 <div class="toolbar">
-                <input value=&self.chat_line placeholder="send some text" size="30"
+                <input value=&self.chat_line placeholder=input_placeholder_text size="30"
                        onkeypress=self.link.callback(|event: KeyboardEvent| {
                             if event.key() == "Enter" {
                                 Msg::SendChat

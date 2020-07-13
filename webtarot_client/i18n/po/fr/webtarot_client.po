@@ -1,0 +1,190 @@
+# French translations for webtarot_client package.
+# Copyright (C) 2020 THE webtarot_client'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the webtarot_client package.
+#  <henri@henri-desktop>, 2020.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: webtarot_client 0.2.6\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2020-07-12 17:01+0000\n"
+"PO-Revision-Date: 2020-07-11 18:47+0200\n"
+"Last-Translator:  <henri@henri-desktop>\n"
+"Language-Team: French <traduc@traduc.org>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: src/components/chat_box.rs:101
+msgid "send some text"
+msgstr "envoyez un message"
+
+#: src/components/player_list.rs:72
+msgid " — ready"
+msgstr " - prêt"
+
+#: src/components/player_list.rs:80
+msgid "points : {0}"
+msgstr "points : {0}"
+
+#: src/components/bidding_actions.rs:65
+msgid "Pass"
+msgstr "Passer"
+
+#: src/views/game.rs:276
+msgid "trick for "
+msgstr "Pli remporté par "
+
+#: src/views/game.rs:290
+msgid "Contract succeded by {0} points"
+msgstr "Contrat réussi de {0} points"
+
+#: src/views/game.rs:292
+msgid "Contract failed by {0} points"
+msgstr "Contrat chuté de {0} points"
+
+#: src/views/game.rs:295
+msgid "Dog : {0}"
+msgstr "Chien : {0}"
+
+#: src/views/game.rs:309
+msgid "pre-game"
+msgstr "Préparation de la partie"
+
+#: src/views/game.rs:310
+msgid "inter trick"
+msgstr "fin du pli"
+
+#: src/views/game.rs:311
+msgid "inter deal"
+msgstr "nouvelle donne"
+
+#: src/views/game.rs:312
+msgid "{0} bidding"
+msgstr "à {0} de dire"
+
+#: src/views/game.rs:313
+msgid "{0} playing"
+msgstr "à {0} de jouer"
+
+#: src/views/game.rs:314
+msgid "end"
+msgstr "fin"
+
+#: src/views/game.rs:315
+msgid "calling king"
+msgstr "le preneur appelle un roi"
+
+#: src/views/game.rs:316
+msgid "making dog"
+msgstr "le preneur fait son chien"
+
+#: src/views/game.rs:337
+msgid "auctions are closed"
+msgstr "les enchères sont terminées"
+
+#: src/views/game.rs:338 src/views/game.rs:342
+msgid "invalid turn order"
+msgstr "ce n'est pas votre tour"
+
+#: src/views/game.rs:339
+msgid "bid must be higher than current contract"
+msgstr "l'enchère doit être supérieure au contrat en cours"
+
+#: src/views/game.rs:340
+msgid "the auction are still running"
+msgstr "les enchères ne sont pas terminées"
+
+#: src/views/game.rs:341
+msgid "no contract was offered"
+msgstr "aucun contrat proposé"
+
+#: src/views/game.rs:343
+msgid "you can only play cards you have"
+msgstr "vous ne possédez pas cette carte"
+
+#: src/views/game.rs:344
+msgid "wrong suit played"
+msgstr "mauvaise couleur"
+
+#: src/views/game.rs:345
+msgid "you must use trumps"
+msgstr "vous devez jouer un atout"
+
+#: src/views/game.rs:346
+msgid "too weak trump played"
+msgstr "atout trop faible"
+
+#: src/views/game.rs:347
+msgid "you cannot play the suit of the called king in the first trick"
+msgstr "il est interdit de jouer de la couler du roi appelé au premier tour"
+
+#: src/views/game.rs:348
+msgid "no trick has been played yet"
+msgstr "aucun pli n'a encore été réalisé"
+
+#: src/views/game.rs:382
+msgid "Ready!"
+msgstr "Prêt!"
+
+#: src/views/game.rs:386
+msgid "Disconnect"
+msgstr "Se déconnecter"
+
+#: src/views/game.rs:388
+msgid "join code:"
+msgstr "Code partie :"
+
+#: src/views/game.rs:431
+msgid "finish"
+msgstr "terminer"
+
+#: src/views/game.rs:458
+msgid "Your turn to play!"
+msgstr "C'est à vous de jouer!"
+
+#: src/views/menu.rs:85
+msgid "Hello {0}!"
+msgstr "Bonjour {0}!"
+
+#: src/views/menu.rs:86
+msgid "Enter the code of a game to join"
+msgstr "Entrez le code d'une partie à rejoindre"
+
+#: src/views/menu.rs:99
+msgid "Join Game"
+msgstr "Rejoindre"
+
+#: src/views/menu.rs:101
+msgid "...or start a new game."
+msgstr "...ou démarrez une nouvelle partie"
+
+#: src/views/menu.rs:103
+msgid "New Game"
+msgstr "Nouvelle partie"
+
+#: src/views/menu.rs:108
+msgid "Error: {0}"
+msgstr "Erreur : {0}"
+
+#: src/views/start.rs:73
+msgid "nickname"
+msgstr "nom"
+
+#: src/views/start.rs:76
+msgid "Let's play Tarot together"
+msgstr "Jouons au tarot"
+
+#: src/views/start.rs:78
+msgid "Give yourself a nickname to play:"
+msgstr "Entrez votre nom"
+
+#: src/views/start.rs:94
+msgid "Play"
+msgstr "Jouer"
+
+#: src/views/start.rs:99
+msgid "not good: {0}"
+msgstr "problème : {0}"

@@ -133,6 +133,10 @@ impl Component for GamePage {
         }
     }
 
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        false
+    }
+
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::ServerMessage(message) => match message {

@@ -30,6 +30,10 @@ impl Component for CallKingAction {
         }
     }
 
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        false
+    }
+
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::CallKing(card) => {

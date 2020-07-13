@@ -22,7 +22,7 @@ use yew::services::storage::{Area, StorageService};
 use yew::format::Json;
 
 use crate::api::Api;
-use crate::protocol::{GameInfo, Message, PlayerInfo, Command};
+use crate::protocol::{GameInfo, Message, PlayerInfo, Command, AuthenticateCommand};
 use crate::views::game::GamePage;
 use crate::views::menu::MenuPage;
 use crate::views::start::StartPage;
@@ -49,7 +49,7 @@ lazy_static! {
 static TRANSLATIONS: Translations = Translations;
 
 pub struct App {
-    _api: Box<dyn Bridge<Api>>,
+    api: Box<dyn Bridge<Api>>,
     link: ComponentLink<Self>,
     storage: StorageService,
     state: AppState,
@@ -57,7 +57,7 @@ pub struct App {
     game_info: Option<GameInfo>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum AppState {
     Start,
     Authenticated,
@@ -87,14 +87,6 @@ impl Component for App {
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
         let storage = StorageService::new(Area::Local).expect("storage was disabled by the user");
-        let player_info = {
-            if let Json(Ok(restored_info)) = storage.restore(KEY) {
-                log!("player info: {:?}", restored_info);
-                Some(restored_info)
-            } else {
-                None 
-            }
-        };
 
         //i18N
         let requested_languages = WebLanguageRequester::requested_languages();
@@ -105,11 +97,21 @@ impl Component for App {
         let _pinger = spawn_pings(&mut interval_service, &link);
 
         let on_server_message = link.callback(Msg::ServerMessage);
-        let _api = Api::bridge(on_server_message);
+        let mut api = Api::bridge(on_server_message);
+
+        let player_info: Option<PlayerInfo> = {
+            if let Json(Ok(restored_info)) = storage.restore(KEY) {
+                log!("player info: {:?}", restored_info);
+                Some(restored_info)
+            } else {
+                None 
+            }
+        };
+
         App {
             storage,
             link,
-            _api,
+            api,
             state: AppState::Start,
             player_info,
             game_info: None,
@@ -127,24 +129,37 @@ impl Component for App {
                 self.state = AppState::InGame;
                 self.game_info = Some(game_info);
             }
+            Msg::ServerMessage(Message::Connected) => {
+                // Authenticate with stored name
+                if let Some(info) = self.player_info.clone() {
+                    self.api.send(Command::Authenticate(AuthenticateCommand {
+                        nickname: info.nickname,
+                    }));
+                }
+            }
             Msg::ServerMessage(Message::GameLeft) => {
                 self.state = AppState::Authenticated;
                 self.game_info = None;
             }
             Msg::Ping => {
                 log!("sending ping");
-                self._api.send(Command::Ping);
+                self.api.send(Command::Ping);
             }
             Msg::ServerMessage(_) => {}
         }
         true
     }
 
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        false
+    }
+
     fn view(&self) -> Html {
         html! {
             {match self.state {
                 AppState::Start => html! {
-                    <StartPage on_authenticate=self.link.callback(Msg::Authenticated) />
+                    <StartPage 
+                        on_authenticate=self.link.callback(Msg::Authenticated) />
                 },
                 AppState::Authenticated => html! {
                     <MenuPage

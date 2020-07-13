@@ -31,6 +31,10 @@ impl Component for Scores {
         false
     }
 
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        false
+    }
+
 
     fn view(&self) -> Html {
         let mut total = vec![0.0,0.0,0.0,0.0,0.0];

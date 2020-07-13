@@ -29,16 +29,17 @@ pub struct Api {
     state: ApiState,
 }
 
-fn get_websocket_location() -> String {
+fn get_websocket_location(uuid: Option<&str>) -> String {
     let location = web_sys::window().unwrap().location();
     format!(
-        "{}://{}/ws",
+        "{}://{}/ws/{}",
         if location.protocol().unwrap() == "https:" {
             "wss"
         } else {
             "ws"
         },
-        location.host().unwrap()
+        location.host().unwrap(),
+        uuid.unwrap_or("new")
     )
 }
 
@@ -63,7 +64,7 @@ impl Agent for Api {
         });
         let mut ws_service = WebSocketService::new();
         let ws = ws_service
-            .connect(&get_websocket_location(), on_message, on_notification)
+            .connect(&get_websocket_location(None), on_message, on_notification)
             .unwrap();
 
         Api {
@@ -91,6 +92,10 @@ impl Agent for Api {
             Msg::Connected => {
                 log::info!("Connected web socket!");
                 self.state = ApiState::Connected;
+                for sub in self.subscribers.iter() {
+                    log::info!("sending connnected");
+                    self.link.respond(*sub, Message::Connected);
+                }
             }
             Msg::ConnectionLost => {
                 log::info!("Lost connection on web socket!");

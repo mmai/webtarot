@@ -121,16 +121,17 @@ impl Universe {
         tx: mpsc::UnboundedSender<Result<ws::Message, warp::Error>>,
         uuid: String,
     ) -> Uuid {
-        let mut universe_state = self.state.write().await;
-        let mut player_id = Uuid::new_v4();
+        // Check validity of given uuid
         if let Ok(player_uuid) = Uuid::parse_str(&uuid) {
             //Check if player is in a active game
-            if let Some(game) = self.get_player_game(player_uuid).await {
-                return player_id
+            if let Some(_game) = self.get_player_game(player_uuid).await {
+                return player_uuid
             }
         }
 
         //Create player
+        let mut universe_state = self.state.write().await;
+        let player_id = Uuid::new_v4();
         universe_state.players.insert(
             player_id,
             UniversePlayerState {

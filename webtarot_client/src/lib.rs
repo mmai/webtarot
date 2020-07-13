@@ -18,6 +18,8 @@ use yew::agent::Bridged;
 use yew::{html, Bridge, Component, ComponentLink, Html, ShouldRender};
 use yew::services::IntervalService;
 use yew::services::interval::IntervalTask;
+use yew::services::storage::{Area, StorageService};
+use yew::format::Json;
 
 use crate::api::Api;
 use crate::protocol::{GameInfo, Message, PlayerInfo, Command};
@@ -34,6 +36,8 @@ use i18n_embed::{
     WebLanguageRequester,
 };
 
+const KEY: &str = "webtarot.self";
+
 #[derive(RustEmbed, I18nEmbed)]
 #[folder = "i18n/mo"]
 struct Translations;
@@ -47,6 +51,7 @@ static TRANSLATIONS: Translations = Translations;
 pub struct App {
     _api: Box<dyn Bridge<Api>>,
     link: ComponentLink<Self>,
+    storage: StorageService,
     state: AppState,
     player_info: Option<PlayerInfo>,
     game_info: Option<GameInfo>,
@@ -81,11 +86,19 @@ impl Component for App {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let storage = StorageService::new(Area::Local).expect("storage was disabled by the user");
+        let player_info = {
+            if let Json(Ok(restored_info)) = storage.restore(KEY) {
+                log!("player info: {:?}", restored_info);
+                Some(restored_info)
+            } else {
+                None 
+            }
+        };
+
         //i18N
-        let language_loader = WebLanguageLoader::new();
         let requested_languages = WebLanguageRequester::requested_languages();
         i18n_embed::select(&*LANGUAGE_LOADER, &TRANSLATIONS, &requested_languages);
-
 
         //Ping to keep alive websocket
         let mut interval_service = IntervalService::new();
@@ -94,10 +107,11 @@ impl Component for App {
         let on_server_message = link.callback(Msg::ServerMessage);
         let _api = Api::bridge(on_server_message);
         App {
+            storage,
             link,
             _api,
             state: AppState::Start,
-            player_info: None,
+            player_info,
             game_info: None,
         }
     }
@@ -106,6 +120,7 @@ impl Component for App {
         match msg {
             Msg::Authenticated(player_info) => {
                 self.state = AppState::Authenticated;
+                self.storage.store(KEY, Json(&player_info));
                 self.player_info = Some(player_info);
             }
             Msg::GameJoined(game_info) => {

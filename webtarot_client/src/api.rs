@@ -3,8 +3,9 @@ use std::collections::HashSet;
 use yew::agent::{Agent, AgentLink, Context, HandlerId};
 use yew::format::Json;
 use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
+use yew::services::storage::{Area, StorageService};
 
-use crate::protocol::{Command, Message};
+use crate::protocol::{Command, Message, PlayerInfo};
 
 #[derive(Debug)]
 pub enum ApiState {
@@ -29,6 +30,14 @@ pub struct Api {
 }
 
 fn get_websocket_location(uuid: Option<&str>) -> String {
+    let storage = StorageService::new(Area::Local).expect("storage was disabled by the user");
+    let player_info: Option<PlayerInfo> = if let Json(Ok(restored_info)) =  storage.restore("webtarot.self") {
+        Some(restored_info)
+    } else {
+        None
+    };
+
+
     let location = web_sys::window().unwrap().location();
     format!(
         "{}://{}/ws/{}",
@@ -38,7 +47,7 @@ fn get_websocket_location(uuid: Option<&str>) -> String {
             "ws"
         },
         location.host().unwrap(),
-        uuid.unwrap_or("new")
+        player_info.map(|pinfo| pinfo.id.to_string()).unwrap_or("new".into())
     )
 }
 

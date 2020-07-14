@@ -119,31 +119,46 @@ impl Universe {
     pub async fn add_player(
         &self,
         tx: mpsc::UnboundedSender<Result<ws::Message, warp::Error>>,
+        guid: String,
         uuid: String,
     ) -> Uuid {
+        log::info!("adding player {} in {}", uuid, guid);
+        //Defaults for a new player
+        let mut player_id = Uuid::new_v4();
+        let mut nickname: String = "anonymous".into();
+        let mut game_id: Option<Uuid> = None;
+        let mut is_authenticated = false;
+
+        log::info!("check validity");
         // Check validity of given uuid
-        if let Ok(player_uuid) = Uuid::parse_str(&uuid) {
+        if let (Ok(player_uuid),  Ok(game_uid)) = (Uuid::parse_str(&uuid), Uuid::parse_str(&guid)) {
+            log::info!("check active game");
             //Check if player is in a active game
-            if let Some(_game) = self.get_player_game(player_uuid).await {
-                return player_uuid
+            if let Some(player_info) = self.find_player_game(game_uid, player_uuid).await {
+                log::info!("found game for player {:?}", player_uuid);
+                player_id = player_uuid;
+                game_id = Some(game_uid);
+                is_authenticated = true; 
+                nickname = player_info.nickname; 
             }
         }
 
-        //Create player
+        log::info!("register player");
+        //Register player
         let mut universe_state = self.state.write().await;
-        let player_id = Uuid::new_v4();
         universe_state.players.insert(
             player_id,
             UniversePlayerState {
                 player_info: PlayerInfo {
                     id: player_id,
-                    nickname: "anonymous".into(),
+                    nickname,
                 },
-                game_id: None,
-                is_authenticated: false,
+                game_id,
+                is_authenticated,
                 tx,
             },
         );
+        log::info!(" player inserted");
         player_id
     }
 
@@ -234,8 +249,24 @@ impl Universe {
             .cloned()
     }
 
+    /// Find a game with the player
+    pub async fn find_player_game(&self, game_id: Uuid, player_id: Uuid) -> Option<PlayerInfo> {
+        log::info!("find_player_game : before read state");
+        let universe_state = self.state.read().await;
+        log::info!("find_player_game : after read state");
+        let mut player = None;
+            log::info!("current games: {:?}", universe_state.games);
+        if let Some(game) = universe_state.games.get(&game_id) {
+            log::info!("find_player_game : before get_player");
+            player = game.get_player(&player_id).await;
+            log::info!("find_player_game : after get_player");
+        }
+        player
+    }
+
     /// Makes the player leave the game they are in.
     pub async fn remove_player_from_game(&self, player_id: Uuid) {
+        log::info!("removing player {:?}", player_id);
         if let Some(game) = self.get_player_game(player_id).await {
             game.remove_player(player_id).await;
         }

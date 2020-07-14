@@ -5,7 +5,7 @@ use yew::format::Json;
 use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 use yew::services::storage::{Area, StorageService};
 
-use crate::protocol::{Command, Message, PlayerInfo};
+use crate::protocol::{Command, Message, PlayerInfo, GameInfo};
 
 #[derive(Debug)]
 pub enum ApiState {
@@ -36,18 +36,24 @@ fn get_websocket_location(uuid: Option<&str>) -> String {
     } else {
         None
     };
+    let game_info: Option<GameInfo> = if let Json(Ok(restored_info)) =  storage.restore("webtarot.game") {
+        Some(restored_info)
+    } else {
+        None
+    };
 
 
     let location = web_sys::window().unwrap().location();
     format!(
-        "{}://{}/ws/{}",
+        "{}://{}/ws/{}_{}",
         if location.protocol().unwrap() == "https:" {
             "wss"
         } else {
             "ws"
         },
         location.host().unwrap(),
-        player_info.map(|pinfo| pinfo.id.to_string()).unwrap_or("new".into())
+        player_info.map(|pinfo| pinfo.id.to_string()).unwrap_or("new".into()),
+        game_info.map(|ginfo| ginfo.game_id.to_string()).unwrap_or("new".into())
     )
 }
 

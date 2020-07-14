@@ -35,6 +35,7 @@ use i18n_embed::{
 };
 
 const KEY: &str = "webtarot.self";
+const KEY_GAME: &str = "webtarot.game";
 
 #[derive(RustEmbed, I18nEmbed)]
 #[folder = "i18n/mo"]
@@ -104,13 +105,22 @@ impl Component for App {
             }
         };
 
+        let game_info: Option<GameInfo> = {
+            if let Json(Ok(restored_info)) =  storage.restore(KEY_GAME) {
+                log!("game info: {:?}", restored_info);
+                Some(restored_info)
+            } else {
+                None 
+            }
+        };
+
         App {
             storage,
             link,
             api,
             state: AppState::Start,
             player_info,
-            game_info: None,
+            game_info,
         }
     }
 
@@ -123,6 +133,7 @@ impl Component for App {
             }
             Msg::GameJoined(game_info) => {
                 self.state = AppState::InGame;
+                self.storage.store(KEY_GAME, Json(&game_info));
                 self.game_info = Some(game_info);
             }
             Msg::ServerMessage(Message::Connected) => {

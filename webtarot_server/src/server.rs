@@ -20,8 +20,8 @@ use crate::protocol::{
 };
 use crate::universe::Universe;
 
-async fn on_player_connected(universe: Arc<Universe>, uuid: String, ws: ws::WebSocket) {
-
+// async fn on_player_connected(universe: Arc<Universe>, guid: String, uuid: String, ws: ws::WebSocket) { 
+async fn on_player_connected(universe: Arc<Universe>, guid_uuid: String, ws: ws::WebSocket) { 
     let (user_ws_tx, mut user_ws_rx) = ws.split();
     let (tx, rx) = mpsc::unbounded_channel();
 
@@ -31,8 +31,12 @@ async fn on_player_connected(universe: Arc<Universe>, uuid: String, ws: ws::WebS
         }
     }));
 
-    let player_id = universe.add_player(tx, uuid).await;
-    log::info!("player {:#?} connected", player_id);
+    log::info!("uid infos: {}", guid_uuid);
+    let uid_elems: Vec<&str> = guid_uuid.split("_").collect();
+    let guid = uid_elems[0].into();
+    let uuid = uid_elems[1].into();
+    let player_id = universe.add_player(tx, guid, uuid).await;
+    log::info!("player {:?} connected", player_id);
 
     //keep alive : send a ping every 50 seconds
     // let when = Duration::from_millis(50000);
@@ -175,6 +179,10 @@ async fn on_join_game(
 }
 
 async fn on_leave_game(universe: Arc<Universe>, player_id: Uuid) -> Result<(), ProtocolError> {
+    log::info!(
+        "player {:?} leaving game",
+        player_id
+    );
     universe.remove_player_from_game(player_id).await;
     universe.send(player_id, &Message::GameLeft).await;
     Ok(())
@@ -460,9 +468,9 @@ pub async fn serve(public_dir: String, port: u16) {
             .and(warp::ws())
             .and(warp::path::param()) // enable params on websocket : ws/monparam
             .and(warp::any().map(move || universe.clone()))
-            .map(|ws: warp::ws::Ws, uuid, universe: Arc<Universe>| {
+            .map(|ws: warp::ws::Ws, guid_uuid, universe: Arc<Universe>| {
                 // when the connection is upgraded to a websocket
-                ws.on_upgrade(move |ws| on_player_connected(universe, uuid, ws))
+                ws.on_upgrade(move |ws| on_player_connected(universe, guid_uuid, ws))
             })
         // .or(warp::fs::dir("public/")); // Static files
         .or(warp::fs::dir(pdir)); // Static files

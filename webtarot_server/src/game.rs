@@ -2,11 +2,13 @@ use std::sync::{Arc, Weak};
 use tokio::sync::Mutex;
 
 use uuid::Uuid;
+use std::fmt;
 
 use crate::protocol::{
     ProtocolError,
     GameState,
     GameInfo, GameExtendedInfo, Message, PlayerDisconnectedMessage, PlayerRole,
+    PlayerInfo
 };
 use crate::universe::Universe;
 use tarotgame::{bid, cards};
@@ -16,6 +18,15 @@ pub struct Game {
     join_code: String,
     universe: Weak<Universe>,
     game_state: Arc<Mutex<GameState>>,
+}
+
+impl fmt::Debug for Game {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Game")
+         .field("id", &self.id)
+         .field("join_code", &self.join_code)
+         .finish()
+    }
 }
 
 impl Game {
@@ -140,6 +151,16 @@ impl Game {
                 )
                 .await;
         }
+    }
+
+    pub async fn get_player(&self, player_id: &Uuid) -> Option<PlayerInfo> {
+        let mut player: Option<PlayerInfo> = None;
+        log::info!("get_player : before lock await");
+        if let Some(state) = self.game_state.lock().await.get_players().get(player_id) {
+            player = Some(state.player.clone());
+        }
+        log::info!("get_player : after lock await");
+        player
     }
 
     pub async fn is_empty(&self) -> bool {

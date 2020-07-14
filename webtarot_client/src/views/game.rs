@@ -99,9 +99,8 @@ impl Component for GamePage {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let mut interval = IntervalService::new();
         // Ping server every 50s in order to keep alive the websocket 
-        let keepalive = interval.spawn(
+        let keepalive = IntervalService::spawn(
             Duration::from_secs(50), 
             link.callback(|_| Msg::Ping).into()
             );

@@ -11,7 +11,7 @@ dwarf-debug-info = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-yew = { version = "0.15" }
+yew = "0.17.2"
 webtarot_protocol = { path = "../webtarot_protocol" }
 tarotgame = { path = "../tarotgame" }
 wasm-bindgen = "0.2.59"

@@ -27,8 +27,6 @@ use crate::views::game::GamePage;
 use crate::views::menu::MenuPage;
 use crate::views::start::StartPage;
 
-use yew::prelude::*;
-
 use lazy_static::lazy_static;
 use rust_embed::RustEmbed;
 use i18n_embed::{
@@ -72,10 +70,9 @@ pub enum Msg {
 }
 
 fn spawn_pings(
-    interval_service: &mut IntervalService,
     link: &ComponentLink<App>,
 ) -> IntervalTask {
-    interval_service.spawn(
+    IntervalService::spawn(
         std::time::Duration::from_secs(50),
         link.callback(|()| Msg::Ping),
     )
@@ -93,14 +90,13 @@ impl Component for App {
         i18n_embed::select(&*LANGUAGE_LOADER, &TRANSLATIONS, &requested_languages);
 
         //Ping to keep alive websocket
-        let mut interval_service = IntervalService::new();
-        let _pinger = spawn_pings(&mut interval_service, &link);
+        let _pinger = spawn_pings(&link);
 
         let on_server_message = link.callback(Msg::ServerMessage);
         let mut api = Api::bridge(on_server_message);
 
         let player_info: Option<PlayerInfo> = {
-            if let Json(Ok(restored_info)) = storage.restore(KEY) {
+            if let Json(Ok(restored_info)) =  storage.restore(KEY) {
                 log!("player info: {:?}", restored_info);
                 Some(restored_info)
             } else {

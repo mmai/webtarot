@@ -24,7 +24,6 @@ pub enum Msg {
 pub struct Api {
     link: AgentLink<Api>,
     ws: WebSocketTask,
-    ws_service: WebSocketService,
     subscribers: HashSet<HandlerId>,
     state: ApiState,
 }
@@ -44,7 +43,7 @@ fn get_websocket_location(uuid: Option<&str>) -> String {
 }
 
 impl Agent for Api {
-    type Reach = Context;
+    type Reach = Context<Self>;
     type Message = Msg;
     type Input = Command;
     type Output = Message;
@@ -62,15 +61,12 @@ impl Agent for Api {
             WebSocketStatus::Opened => Msg::Connected,
             WebSocketStatus::Closed | WebSocketStatus::Error => Msg::ConnectionLost,
         });
-        let mut ws_service = WebSocketService::new();
-        let ws = ws_service
-            .connect(&get_websocket_location(None), on_message, on_notification)
+        let ws = WebSocketService::connect(&get_websocket_location(None), on_message, on_notification)
             .unwrap();
 
         Api {
             link,
             ws,
-            ws_service,
             state: ApiState::Connecting,
             subscribers: HashSet::new(),
         }
@@ -93,7 +89,6 @@ impl Agent for Api {
                 log::info!("Connected web socket!");
                 self.state = ApiState::Connected;
                 for sub in self.subscribers.iter() {
-                    log::info!("sending connnected");
                     self.link.respond(*sub, Message::Connected);
                 }
             }

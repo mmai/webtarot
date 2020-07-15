@@ -96,10 +96,14 @@ async fn on_player_connected(universe: Arc<Universe>, guid_uuid: String, ws: ws:
 }
 
 async fn on_player_disconnected(universe: Arc<Universe>, player_id: Uuid) {
-    // Uncomment if you don't want to keep the player in the game (he will not be able to reconnnect) 
-    // if let Some(game) = universe.get_player_game(player_id).await {
-    //     game.remove_player(player_id).await;
-    // }
+    // If all players have disconnected, we remove the game itself
+    if let Some(game) = universe.get_player_game(player_id).await {
+        // At this point we check if there is only this disconnecting user left
+        if game.connected_players().await.len() < 2 {
+            universe.remove_game(game.id()).await;
+            log::info!("last user disconnecting, closing game");
+        }
+    }
     universe.remove_player(player_id).await;
     log::info!("user {:#?} disconnected", player_id);
 }
@@ -109,6 +113,12 @@ async fn on_player_message(
     player_id: Uuid,
     msg: ws::Message,
 ) -> Result<(), ProtocolError> {
+    if msg.is_ping() {
+        // XXX A warp ping. where does it come from ? Whatever, we manage it like our custom pings
+        log::error!("received a warp ping: {:?}", msg);
+        return on_ping(universe, player_id).await;
+    }
+
     let req_json = match msg.to_str() {
         Ok(text) => text,
         Err(()) => {

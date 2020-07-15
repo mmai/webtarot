@@ -94,6 +94,18 @@ impl Game {
         self.broadcast(&Message::PlayerConnected(player)).await;
     }
 
+    pub async fn connected_players(&self) -> Vec<Uuid>  {
+        let mut connected_ids: Vec<Uuid> = vec![];
+        let game_state = self.game_state.lock().await;
+        for player in game_state.get_players() {
+            let uuid = *player.0;
+            if self.universe().player_is_authenticated(uuid).await {
+                connected_ids.push(uuid);
+            }
+        }
+        connected_ids
+    }
+
     pub async fn remove_player(&self, player_id: Uuid) {
         self.universe().set_player_game_id(player_id, None).await;
 

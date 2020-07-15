@@ -74,7 +74,7 @@ impl From<deal::PlayError> for ProtocolError {
     fn from(error: deal::PlayError) -> Self {
         ProtocolError {
             kind: ProtocolErrorKind::BadState,
-            message: format!("play error: {}", error),
+            message: format!("play: {}", error),
         }
     }
 }
@@ -83,7 +83,7 @@ impl From<bid::BidError> for ProtocolError {
     fn from(error: bid::BidError) -> Self {
         ProtocolError {
             kind: ProtocolErrorKind::BadState,
-            message: format!("bid error: {}", error),
+            message: format!("bid: {}", error),
         }
     }
 }
@@ -143,6 +143,7 @@ pub struct MakeDogCommand {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Message {
+    Connected,
     Pong,
     ServerStatus(ServerStatus),
     Chat(ChatMessage),

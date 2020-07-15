@@ -3,8 +3,9 @@ use std::collections::HashSet;
 use yew::agent::{Agent, AgentLink, Context, HandlerId};
 use yew::format::Json;
 use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
+use yew::services::storage::{Area, StorageService};
 
-use crate::protocol::{Command, Message};
+use crate::protocol::{Command, Message, PlayerInfo, GameInfo};
 
 #[derive(Debug)]
 pub enum ApiState {
@@ -24,26 +25,40 @@ pub enum Msg {
 pub struct Api {
     link: AgentLink<Api>,
     ws: WebSocketTask,
-    ws_service: WebSocketService,
     subscribers: HashSet<HandlerId>,
     state: ApiState,
 }
 
-fn get_websocket_location() -> String {
+fn get_websocket_location(uuid: Option<&str>) -> String {
+    let storage = StorageService::new(Area::Local).expect("storage was disabled by the user");
+    let player_info: Option<PlayerInfo> = if let Json(Ok(restored_info)) =  storage.restore("webtarot.self") {
+        Some(restored_info)
+    } else {
+        None
+    };
+    let game_info: Option<GameInfo> = if let Json(Ok(restored_info)) =  storage.restore("webtarot.game") {
+        Some(restored_info)
+    } else {
+        None
+    };
+
+
     let location = web_sys::window().unwrap().location();
     format!(
-        "{}://{}/ws",
+        "{}://{}/ws/{}_{}",
         if location.protocol().unwrap() == "https:" {
             "wss"
         } else {
             "ws"
         },
-        location.host().unwrap()
+        location.host().unwrap(),
+        game_info.map(|ginfo| ginfo.game_id.to_string()).unwrap_or("new".into()),
+        player_info.map(|pinfo| pinfo.id.to_string()).unwrap_or("new".into()),
     )
 }
 
 impl Agent for Api {
-    type Reach = Context;
+    type Reach = Context<Self>;
     type Message = Msg;
     type Input = Command;
     type Output = Message;
@@ -61,15 +76,12 @@ impl Agent for Api {
             WebSocketStatus::Opened => Msg::Connected,
             WebSocketStatus::Closed | WebSocketStatus::Error => Msg::ConnectionLost,
         });
-        let mut ws_service = WebSocketService::new();
-        let ws = ws_service
-            .connect(&get_websocket_location(), on_message, on_notification)
+        let ws = WebSocketService::connect(&get_websocket_location(None), on_message, on_notification)
             .unwrap();
 
         Api {
             link,
             ws,
-            ws_service,
             state: ApiState::Connecting,
             subscribers: HashSet::new(),
         }
@@ -91,6 +103,9 @@ impl Agent for Api {
             Msg::Connected => {
                 log::info!("Connected web socket!");
                 self.state = ApiState::Connected;
+                for sub in self.subscribers.iter() {
+                    self.link.respond(*sub, Message::Connected);
+                }
             }
             Msg::ConnectionLost => {
                 log::info!("Lost connection on web socket!");

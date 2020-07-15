@@ -1,6 +1,6 @@
 [package]
 name = "webtarot_client"
-version = "0.2.6"
+version = "0.3.0"
 authors = ["Henri Bourcereau <henri@bourcereau.fr>"]
 edition = "2018"
 
@@ -11,7 +11,7 @@ dwarf-debug-info = true
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-yew = { version = "0.14.1", features = ["web_sys"] }
+yew = "0.17.2"
 webtarot_protocol = { path = "../webtarot_protocol" }
 tarotgame = { path = "../tarotgame" }
 wasm-bindgen = "0.2.59"
@@ -27,8 +27,12 @@ web-sys = { version = "0.3.36", features = [
   "HtmlDivElement",
   "HtmlAudioElement",
   "console"
-  ] }
-im-rc = "14.3.0"
-stdweb = "0.4.20"
-strum = "0.18.0"
+  ] }                                 
+im-rc = "14.3.0"                      
+stdweb = "0.4.20"                     
+strum = "0.18.0"                      
+tr = { version = "0.1", default-features = false, features = ["gettext"] }
+rust-embed = { version = "5.5.1", features = ["debug-embed"] }
+i18n-embed = { version = "0.6", features = ["web-sys-requester"] }
 js-sys = "0.3.40"
+lazy_static = "1.4.0"

@@ -20,8 +20,8 @@ use crate::protocol::{
 };
 use crate::universe::Universe;
 
-async fn on_player_connected(universe: Arc<Universe>, ws: ws::WebSocket) {
-
+// async fn on_player_connected(universe: Arc<Universe>, guid: String, uuid: String, ws: ws::WebSocket) { 
+async fn on_player_connected(universe: Arc<Universe>, guid_uuid: String, ws: ws::WebSocket) { 
     let (user_ws_tx, mut user_ws_rx) = ws.split();
     let (tx, rx) = mpsc::unbounded_channel();
 
@@ -31,8 +31,34 @@ async fn on_player_connected(universe: Arc<Universe>, ws: ws::WebSocket) {
         }
     }));
 
-    let player_id = universe.add_player(tx).await;
-    log::info!("player {:#?} connected", player_id);
+    //Debug
+    let games = universe.show_games().await;
+    // log::info!("games before searching {:?}", games);
+
+    // log::info!("uid infos: {}", guid_uuid);
+    let uid_elems: Vec<&str> = guid_uuid.split("_").collect();
+    let guid = uid_elems[0];
+    let uuid = if uid_elems.len() > 1 {
+        uid_elems[1]
+    } else {
+        "none"
+    };
+    let (player_info, gameuid) = universe.add_player(tx, guid.into(), uuid.into()).await;
+    let player_id = player_info.id;
+    log::info!("player {:?} connected", player_id);
+    if universe.player_is_authenticated(player_id).await {
+        universe
+            .send(player_id, &Message::Authenticated(player_info.clone()))
+            .await;
+    }
+    if let Some(game_id) = gameuid {
+        if let Some(game) = universe.get_game(game_id).await {
+            universe
+                .send(player_id, &Message::GameJoined(game.game_info()))
+                .await;
+            game.broadcast_state().await;
+        }
+    }
 
     //keep alive : send a ping every 50 seconds
     // let when = Duration::from_millis(50000);
@@ -70,8 +96,13 @@ async fn on_player_connected(universe: Arc<Universe>, ws: ws::WebSocket) {
 }
 
 async fn on_player_disconnected(universe: Arc<Universe>, player_id: Uuid) {
+    // If all players have disconnected, we remove the game itself
     if let Some(game) = universe.get_player_game(player_id).await {
-        game.remove_player(player_id).await;
+        // At this point we check if there is only this disconnecting user left
+        if game.connected_players().await.len() < 2 {
+            universe.remove_game(game.id()).await;
+            log::info!("last user disconnecting, closing game");
+        }
     }
     universe.remove_player(player_id).await;
     log::info!("user {:#?} disconnected", player_id);
@@ -82,6 +113,12 @@ async fn on_player_message(
     player_id: Uuid,
     msg: ws::Message,
 ) -> Result<(), ProtocolError> {
+    if msg.is_ping() {
+        // XXX A warp ping. where does it come from ? Whatever, we manage it like our custom pings
+        log::error!("received a warp ping: {:?}", msg);
+        return on_ping(universe, player_id).await;
+    }
+
     let req_json = match msg.to_str() {
         Ok(text) => text,
         Err(()) => {
@@ -95,6 +132,7 @@ async fn on_player_message(
     let cmd: Command = match serde_json::from_str(&req_json) {
         Ok(req) => req,
         Err(err) => {
+            log::debug!("error parsing json {}", err);
             return Err(ProtocolError::new(
                 ProtocolErrorKind::InvalidCommand,
                 err.to_string(),
@@ -174,6 +212,10 @@ async fn on_join_game(
 }
 
 async fn on_leave_game(universe: Arc<Universe>, player_id: Uuid) -> Result<(), ProtocolError> {
+    log::info!(
+        "player {:?} leaving game",
+        player_id
+    );
     universe.remove_player_from_game(player_id).await;
     universe.send(player_id, &Message::GameLeft).await;
     Ok(())
@@ -457,10 +499,11 @@ pub async fn serve(public_dir: String, port: u16) {
 
         let routes = warp::path("ws") // Websockets on /ws entry point
             .and(warp::ws())
+            .and(warp::path::param()) // enable params on websocket : ws/monparam
             .and(warp::any().map(move || universe.clone()))
-            .map(|ws: warp::ws::Ws, universe: Arc<Universe>| {
+            .map(|ws: warp::ws::Ws, guid_uuid, universe: Arc<Universe>| {
                 // when the connection is upgraded to a websocket
-                ws.on_upgrade(move |ws| on_player_connected(universe, ws))
+                ws.on_upgrade(move |ws| on_player_connected(universe, guid_uuid, ws))
             })
         // .or(warp::fs::dir("public/")); // Static files
         .or(warp::fs::dir(pdir)); // Static files

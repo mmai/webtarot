@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use tr::tr;
+
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender};
 
 use crate::protocol::{GameStateSnapshot, PlayerRole, GamePlayerState, Turn};
@@ -43,6 +45,9 @@ impl Component for PlayerList {
                     for self.players.iter().map(|state| {
                         let card_played = self.game_state.deal.last_trick.card_played(state.pos);
                         let is_my_turn = self.game_state.get_playing_pos() == Some(state.pos);
+
+                        let scores = self.game_state.scores.last().unwrap_or(&[0.0;5]);
+                        let my_points= scores[state.pos.to_n()];
                         let mut player_classes = vec!["player"];
                         if is_my_turn {
                             player_classes.push("current-player");
@@ -59,12 +64,21 @@ impl Component for PlayerList {
                         html! {
 
                         <div class=player_classes>
-                        <div class="nickname">
+                        <div class="nickname withtooltip">
                         {&state.player.nickname}
                         {
                             if self.game_state.turn == Turn::Pregame &&
                                 state.ready {
-                                html! { " — ready" }
+                                html! { tr!(" — ready") }
+                            } else {
+                                html!{}
+                            }
+                        }
+                        {
+                            if self.game_state.turn != Turn::Pregame {
+                                html! {
+                                    <span class="tooltip">{ tr!("points : {0}", my_points )  }</span>
+                                }
                             } else {
                                 html!{}
                             }

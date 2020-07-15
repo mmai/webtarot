@@ -10,6 +10,7 @@ use yew::{
     html, Bridge, Component, ComponentLink, Html, Properties,
     ShouldRender,
 };
+use tr::tr;
 
 use crate::api::Api;
 use crate::components::chat_box::{ChatBox, ChatLine, ChatLineData};
@@ -98,9 +99,8 @@ impl Component for GamePage {
     type Properties = Props;
 
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let mut interval = IntervalService::new();
         // Ping server every 50s in order to keep alive the websocket 
-        let keepalive = interval.spawn(
+        let keepalive = IntervalService::spawn(
             Duration::from_secs(50), 
             link.callback(|_| Msg::Ping).into()
             );
@@ -130,6 +130,10 @@ impl Component for GamePage {
             sound_player: SoundPlayer::new(sound_paths),
             error: None,
         }
+    }
+
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        false
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
@@ -265,63 +269,19 @@ impl Component for GamePage {
             actions_classes.push("current-player");
         }
 
-        html! {
-    <div class=game_classes>
-      <header>
-        <p class="turn-info">{format!("Turn: {} {}", self.game_state.current_player_name(), self.game_state.turn)}</p>
-        {if let Some(contract) = &self.game_state.deal.contract {
-             html! {<p class="deal-info">{format!("Contract: {}", contract.to_string())}</p>}
-        } else {
-             html! {}
-        }}
-      </header>
-
-      <PlayerList game_state=self.game_state.clone() players=others/>
-
-        <section class=actions_classes>
-            { if let Some(error) = &self.error  { html! {
-                <div class="error">
-                    <div>
-                        {format!("Error: {}", error)}
-                    </div>
-                    <div class="toolbar">
-                        <button class="btn-error" onclick=self.link.callback(|_| Msg::CloseError)>{"Ok"}</button>
-                    </div>
-                </div>
-            }} else { html! {} }}
-
-
-            {match self.game_state.turn {
-               Turn::Pregame => html! {
-                <div class="wrapper">
-                    <div class="toolbar">
-                    {if !self.my_state().ready  {
-                        html! {<button class="primary" onclick=self.link.callback(|_| Msg::MarkReady)>{"Ready!"}</button>}
-                    } else {
-                        html! {}
-                    }}
-                        <button class="cancel" onclick=self.link.callback(|_| Msg::Disconnect)>{"Disconnect"}</button>
-                    </div>
-                    <h1>{{ "join code:" }} <strong>{format!(" {}", format_join_code(&self.game_info.join_code))}</strong></h1>
-                 </div>
-                },
+        let messageContent: Option<Html> = match self.game_state.turn {
                Turn::Intertrick => 
                    if !self.my_state().ready  { 
                        let winner_pos = self.game_state.deal.last_trick.winner;
                        let winner_name = self.game_state.pos_player_name(winner_pos);
-                       html! {
-                       <div class="wrapper">
+                       Some(html! { 
                            <div class="results">
-                           { "trick for " }
-                       <strong>{ winner_name }</strong>
+                               { tr!("trick for ") }
+                               <strong>{ winner_name }</strong>
                            </div>
-                           <div class="toolbar">
-                               <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
-                           </div>
-                       </div>
-                   }} else {
-                       html! {}
-                },
+
+                       })
+                   } else { None },
                Turn::Interdeal => 
                    if !self.my_state().ready  { 
                        let scores: Vec<Vec<f32>> = self.game_state.scores.iter().map(|score| score.to_vec()).collect();
@@ -330,24 +290,106 @@ impl Component for GamePage {
                        let taker_won = self.game_state.deal.taker_diff > 0.0;
                        let diff_abs = f32::abs(self.game_state.deal.taker_diff);
                        let contract_message = if taker_won {
-                           format!("Contract succeded by {} points", diff_abs)
+                           tr!("Contract succeded by {0} points", diff_abs)
                        } else {
-                           format!("Contract failed by {} points", diff_abs)
+                           tr!("Contract failed by {0} points", diff_abs)
                        };
 
-                       let dog_message = format!("Dog : {}", self.game_state.deal.dog.to_string());
+                       let dog_message = tr!("Dog : {0}", self.game_state.deal.dog.to_string());
 
-                       html! {
-                     <div class="wrapper">
+                       Some(html! {
+                     <div>
                          <div> {{ contract_message }} </div>
                          <div> {{ dog_message }} </div>
                         <Scores players=players scores=scores />
-                        <div class="toolbar">
-                            <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
-                        </div>
                      </div>
-                   }} else {
-                     html! {}
+                   })} else { None },
+              _ => None
+        };
+
+        let player = self.game_state.current_player_name();
+        let turn_info = match self.game_state.turn {
+            Turn::Pregame => tr!("pre-game"),
+            Turn::Intertrick => tr!("inter trick"),
+            Turn::Interdeal => tr!("inter deal"),
+            Turn::Bidding(_) => tr!("{0} bidding", player),
+            Turn::Playing(_) => tr!("{0} playing", player),
+            Turn::Endgame => tr!("end"),
+            Turn::CallingKing => tr!("calling king"),
+            Turn::MakingDog => tr!("making dog"),
+        };
+
+        html! {
+    <div class=game_classes>
+      <header>
+        <p class="turn-info">{turn_info}</p>
+        {if let Some(contract) = &self.game_state.deal.contract {
+             let king_info = if let Some(king) = &self.game_state.deal.king {
+                format!(" ({})", king.to_string())
+             } else { "".into() };
+             html! {<p class="deal-info">{format!("{} {}", contract.to_string(), king_info)}</p>}
+        } else {
+             html! {}
+        }}
+      </header>
+
+      <PlayerList game_state=self.game_state.clone() players=others/>
+
+        { if let Some(error) = &self.error  { 
+            let error_str = match error.as_str() {
+            "bid: auctions are closed" => tr!("auctions are closed"),
+            "bid: invalid turn order" => tr!("invalid turn order"),
+            "bid: bid must be higher than current contract" => tr!("bid must be higher than current contract"),
+            "bid: the auction are still running" => tr!("the auction are still running"),
+            "bid: no contract was offered" => tr!("no contract was offered"),
+            "play: invalid turn order" => tr!("invalid turn order"),
+            "play: you can only play cards you have" => tr!("you can only play cards you have" ),
+            "play: wrong suit played" => tr!("wrong suit played" ),
+            "play: you must use trumps" => tr!("you must use trumps" ),
+            "play: too weak trump played" => tr!("too weak trump played" ),
+            "play: you cannot play the suit of the called king in the first trick" => tr!("you cannot play the suit of the called king in the first trick" ),
+            "play: no trick has been played yet" => tr!("no trick has been played yet" ),
+            _ => error.to_string()
+            };
+            html! {
+          <div class="notify-wrapper">
+            <div class="error notify">
+                <div>
+                { error_str } 
+                </div>
+                <div class="toolbar">
+                    <button class="btn-error" onclick=self.link.callback(|_| Msg::CloseError)>{"Ok"}</button>
+                </div>
+              </div>
+            </div>
+        }} else { html! {} }}
+
+        { if let Some(message) = messageContent  { html! {
+          <div class="notify-wrapper">
+            <div class="notify wrapper">
+                { message }
+
+                <div class="toolbar">
+                    <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
+                </div>
+            </div>
+        </div>
+        }} else { html! {} }}
+
+        <section class=actions_classes>
+            {match self.game_state.turn {
+               Turn::Pregame => html! {
+                <div class="wrapper">
+                    <div class="toolbar">
+                    {if !self.my_state().ready  {
+                        html! {<button class="primary" onclick=self.link.callback(|_| Msg::MarkReady)>{ tr!("Ready!")}</button>}
+                    } else {
+                        html! {}
+                    }}
+                        <button class="cancel" onclick=self.link.callback(|_| Msg::Disconnect)>{ tr!("Disconnect") }</button>
+                    </div>
+                    <h1>{{ tr!("join code:") }} <strong>{format!(" {}", format_join_code(&self.game_info.join_code))}</strong></h1>
+                 </div>
                 },
                Turn::CallingKing if player_action == Some(PlayerAction::CallKing) => {
                    // Choose a queen if player has all kings
@@ -389,7 +431,7 @@ impl Component for GamePage {
                            { if player_action == Some(PlayerAction::MakeDog) {
                                html! {
                                <button onclick=self.link.callback(move |_| Msg::MakeDog)>
-                               {{ "finish" }}
+                               {{ tr!("finish") }}
                                </button>
                              }} else {
                                  html!{}
@@ -416,7 +458,7 @@ impl Component for GamePage {
                                 }
                             } else if player_action == Some(PlayerAction::Play) {
                                 html!{
-                                    <div class="yourturn"> {{ "Your turn to play!" }} </div>
+                                    <div class="yourturn"> {{ tr!("Your turn to play!") }} </div>
                             }} else {
                                 html!{}
                             }}

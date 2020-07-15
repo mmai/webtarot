@@ -31,6 +31,10 @@ impl Component for Scores {
         false
     }
 
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        false
+    }
+
 
     fn view(&self) -> Html {
         let mut total = vec![0.0,0.0,0.0,0.0,0.0];
@@ -44,7 +48,7 @@ impl Component for Scores {
         html! {
             <table class="scores">
                 <tr>
-                <th>{"#"}</th>
+                <th></th>
                 {
                     for self.players.iter().map(|nickname| {
                         html! {

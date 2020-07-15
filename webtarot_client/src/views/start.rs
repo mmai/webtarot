@@ -1,3 +1,5 @@
+use tr::tr;
+
 use yew::agent::Bridged;
 use yew::{
     html, Bridge, Callback, Component, ComponentLink, Html, InputData, KeyboardEvent, Properties,
@@ -34,13 +36,17 @@ impl Component for StartPage {
     fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
         let on_server_message = link.callback(Msg::ServerMessage);
         let api = Api::bridge(on_server_message);
-        StartPage {
-            link,
-            api,
-            nickname: "".into(),
+        StartPage {                   
+            link,                     
+            api,                      
+            nickname: "".into(),      
             on_authenticate: props.on_authenticate,
-            error: None,
+            error: None,              
         }
+    }
+
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        false
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
@@ -68,15 +74,16 @@ impl Component for StartPage {
     }
 
     fn view(&self) -> Html {
+        let nickname_placeholder_text = tr!("nickname");
         html! {
             <div class="wrapper">
-                <h1>{"Let's play Tarot together"}</h1>
+                <h1>{ tr!("Let's play Tarot together") }</h1>
                 <p class="explanation">
-                    {"Give yourself a name to play:"}
+                    { tr!("Give yourself a nickname to play:") }
                 </p>
                 <div class="toolbar">
                     <input value=&self.nickname
-                        placeholder="nickname"
+                        placeholder=nickname_placeholder_text 
                         onkeypress=self.link.callback(|event: KeyboardEvent| {
                             dbg!(event.key());
                             if event.key() == "Enter" {
@@ -88,12 +95,12 @@ impl Component for StartPage {
                         oninput=self.link.callback(|e: InputData| Msg::SetNickname(e.value)) />
                     <button
                         class="primary"
-                        onclick=self.link.callback(|_| Msg::Authenticate)>{"Play"}</button>
+                        onclick=self.link.callback(|_| Msg::Authenticate)>{ tr!("Play") }</button>
                 </div>
                 {
                     if let Some(ref error) = self.error {
                         html! {
-                            <p class="error">{format!("not good: {}", error)}</p>
+                            <p class="error">{tr!("not good: {0}", error)}</p>
                         }
                     } else {
                         html!{}

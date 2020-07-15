@@ -10,13 +10,13 @@ in
 
 rustPlatform.buildRustPackage rec {
   pname = "webtarot";
-  version = "0.2.6";
+  version = "0.3.1";
 
   src = pkgs.fetchFromGitHub {
     owner = "mmai";
     repo = pname;
     rev = "v${version}";
-    sha256 = "15fjj7wbvb9i04dclvhm9ynhlnw91wk4yln0ccra5bnpw0jamacr";
+    sha256 = "1li6xan3720bzmrzxl663c2klx3624vy2z35wcay6q61b02r5sbr";
   };
   # src = ./.;
 
@@ -26,7 +26,7 @@ rustPlatform.buildRustPackage rec {
     cp ./webtarot_client/dist/*.{css,js,wasm} $out/front
     '';
 
-  cargoSha256 = "0x6x0hzgn7x2agw3ah3363pklhmiyacjaxk6fqs9dcan5zz7cs0f";
+  cargoSha256 = "0a4fwmxamqrcfxr7jmi1s649j91rnsch3gzxhqn75cf9cm9by00s";
 
   meta = with pkgs.stdenv.lib; {
     description = "A online game of french tarot";

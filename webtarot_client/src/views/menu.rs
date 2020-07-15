@@ -50,6 +50,10 @@ impl Component for MenuPage {
         }
     }
 
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        false
+    }
+
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::NewGame => {

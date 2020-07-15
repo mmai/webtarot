@@ -2,11 +2,13 @@ use std::sync::{Arc, Weak};
 use tokio::sync::Mutex;
 
 use uuid::Uuid;
+use std::fmt;
 
 use crate::protocol::{
     ProtocolError,
     GameState,
     GameInfo, GameExtendedInfo, Message, PlayerDisconnectedMessage, PlayerRole,
+    PlayerInfo
 };
 use crate::universe::Universe;
 use tarotgame::{bid, cards};
@@ -16,6 +18,15 @@ pub struct Game {
     join_code: String,
     universe: Weak<Universe>,
     game_state: Arc<Mutex<GameState>>,
+}
+
+impl fmt::Debug for Game {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Game")
+         .field("id", &self.id)
+         .field("join_code", &self.join_code)
+         .finish()
+    }
 }
 
 impl Game {
@@ -83,6 +94,18 @@ impl Game {
         self.broadcast(&Message::PlayerConnected(player)).await;
     }
 
+    pub async fn connected_players(&self) -> Vec<Uuid>  {
+        let mut connected_ids: Vec<Uuid> = vec![];
+        let game_state = self.game_state.lock().await;
+        for player in game_state.get_players() {
+            let uuid = *player.0;
+            if self.universe().player_is_authenticated(uuid).await {
+                connected_ids.push(uuid);
+            }
+        }
+        connected_ids
+    }
+
     pub async fn remove_player(&self, player_id: Uuid) {
         self.universe().set_player_game_id(player_id, None).await;
 
@@ -140,6 +163,14 @@ impl Game {
                 )
                 .await;
         }
+    }
+
+    pub async fn get_player(&self, player_id: &Uuid) -> Option<PlayerInfo> {
+        let mut player: Option<PlayerInfo> = None;
+        if let Some(state) = self.game_state.lock().await.get_players().get(player_id) {
+            player = Some(state.player.clone());
+        }
+        player
     }
 
     pub async fn is_empty(&self) -> bool {

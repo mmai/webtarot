@@ -18,14 +18,14 @@ use yew::agent::Bridged;
 use yew::{html, Bridge, Component, ComponentLink, Html, ShouldRender};
 use yew::services::IntervalService;
 use yew::services::interval::IntervalTask;
+use yew::services::storage::{Area, StorageService};
+use yew::format::Json;
 
 use crate::api::Api;
-use crate::protocol::{GameInfo, Message, PlayerInfo, Command};
+use crate::protocol::{GameInfo, Message, PlayerInfo, Command, AuthenticateCommand};
 use crate::views::game::GamePage;
 use crate::views::menu::MenuPage;
 use crate::views::start::StartPage;
-
-use yew::prelude::*;
 
 use lazy_static::lazy_static;
 use rust_embed::RustEmbed;
@@ -33,6 +33,9 @@ use i18n_embed::{
     language_loader, I18nEmbed,
     WebLanguageRequester,
 };
+
+const KEY: &str = "webtarot.self";
+const KEY_GAME: &str = "webtarot.game";
 
 #[derive(RustEmbed, I18nEmbed)]
 #[folder = "i18n/mo"]
@@ -45,14 +48,15 @@ lazy_static! {
 static TRANSLATIONS: Translations = Translations;
 
 pub struct App {
-    _api: Box<dyn Bridge<Api>>,
+    api: Box<dyn Bridge<Api>>,
     link: ComponentLink<Self>,
+    storage: StorageService,
     state: AppState,
     player_info: Option<PlayerInfo>,
     game_info: Option<GameInfo>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum AppState {
     Start,
     Authenticated,
@@ -67,10 +71,9 @@ pub enum Msg {
 }
 
 fn spawn_pings(
-    interval_service: &mut IntervalService,
     link: &ComponentLink<App>,
 ) -> IntervalTask {
-    interval_service.spawn(
+    IntervalService::spawn(
         std::time::Duration::from_secs(50),
         link.callback(|()| Msg::Ping),
     )
@@ -81,24 +84,43 @@ impl Component for App {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let storage = StorageService::new(Area::Local).expect("storage was disabled by the user");
+
         //i18N
-        let language_loader = WebLanguageLoader::new();
         let requested_languages = WebLanguageRequester::requested_languages();
         i18n_embed::select(&*LANGUAGE_LOADER, &TRANSLATIONS, &requested_languages);
 
-
         //Ping to keep alive websocket
-        let mut interval_service = IntervalService::new();
-        let _pinger = spawn_pings(&mut interval_service, &link);
+        let _pinger = spawn_pings(&link);
 
         let on_server_message = link.callback(Msg::ServerMessage);
-        let _api = Api::bridge(on_server_message);
+        let mut api = Api::bridge(on_server_message);
+
+        let player_info: Option<PlayerInfo> = {
+            if let Json(Ok(restored_info)) =  storage.restore(KEY) {
+                log!("player info: {:?}", restored_info);
+                Some(restored_info)
+            } else {
+                None 
+            }
+        };
+
+        let game_info: Option<GameInfo> = {
+            if let Json(Ok(restored_info)) =  storage.restore(KEY_GAME) {
+                log!("game info: {:?}", restored_info);
+                Some(restored_info)
+            } else {
+                None 
+            }
+        };
+
         App {
+            storage,
             link,
-            _api,
+            api,
             state: AppState::Start,
-            player_info: None,
-            game_info: None,
+            player_info,
+            game_info,
         }
     }
 
@@ -106,11 +128,21 @@ impl Component for App {
         match msg {
             Msg::Authenticated(player_info) => {
                 self.state = AppState::Authenticated;
+                self.storage.store(KEY, Json(&player_info));
                 self.player_info = Some(player_info);
             }
             Msg::GameJoined(game_info) => {
                 self.state = AppState::InGame;
+                self.storage.store(KEY_GAME, Json(&game_info));
                 self.game_info = Some(game_info);
+            }
+            Msg::ServerMessage(Message::Connected) => {
+                // Authenticate with stored name
+                // if let Some(info) = self.player_info.clone() {
+                //     self.api.send(Command::Authenticate(AuthenticateCommand {
+                //         nickname: info.nickname,
+                //     }));
+                // }
             }
             Msg::ServerMessage(Message::GameLeft) => {
                 self.state = AppState::Authenticated;
@@ -118,18 +150,23 @@ impl Component for App {
             }
             Msg::Ping => {
                 log!("sending ping");
-                self._api.send(Command::Ping);
+                self.api.send(Command::Ping);
             }
             Msg::ServerMessage(_) => {}
         }
         true
     }
 
+    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+        false
+    }
+
     fn view(&self) -> Html {
         html! {
             {match self.state {
                 AppState::Start => html! {
-                    <StartPage on_authenticate=self.link.callback(Msg::Authenticated) />
+                    <StartPage 
+                        on_authenticate=self.link.callback(Msg::Authenticated) />
                 },
                 AppState::Authenticated => html! {
                     <MenuPage

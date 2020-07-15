@@ -119,22 +119,42 @@ impl Universe {
     pub async fn add_player(
         &self,
         tx: mpsc::UnboundedSender<Result<ws::Message, warp::Error>>,
-    ) -> Uuid {
-        let player_id = Uuid::new_v4();
+        guid: String,
+        uuid: String,
+    ) -> (PlayerInfo, Option<Uuid>) {
+        //Defaults for a new player
+        let mut player_id = Uuid::new_v4();
+        let mut nickname: String = "anonymous".into();
+        let mut game_id: Option<Uuid> = None;
+        let mut is_authenticated = false;
+
+        // Check validity of given uuid
+        if let (Ok(player_uuid),  Ok(game_uid)) = (Uuid::parse_str(&uuid), Uuid::parse_str(&guid)) {
+            //Check if player is in a active game
+            if let Some(player_info) = self.find_player_game(game_uid, player_uuid).await {
+                player_id = player_uuid;
+                game_id = Some(game_uid);
+                is_authenticated = true; 
+                nickname = player_info.nickname; 
+            }
+        }
+
+        //Register player
+        let player_info = PlayerInfo {
+            id: player_id,
+            nickname,
+        };
         let mut universe_state = self.state.write().await;
         universe_state.players.insert(
             player_id,
             UniversePlayerState {
-                player_info: PlayerInfo {
-                    id: player_id,
-                    nickname: "anonymous".into(),
-                },
-                game_id: None,
-                is_authenticated: false,
+                player_info: player_info.clone(),
+                game_id,
+                is_authenticated,
                 tx,
             },
         );
-        player_id
+        (player_info, game_id)
     }
 
     /// Returns the player.
@@ -148,7 +168,7 @@ impl Universe {
 
     /// Authenticates a player.
     ///
-    /// If the user is already authenticated this returns `false`.
+    /// If the user is already authenticated this returns an error
     pub async fn authenticate_player(
         &self,
         player_id: Uuid,
@@ -222,6 +242,16 @@ impl Universe {
             .and_then(|player| player.game_id)
             .and_then(|game_id| universe_state.games.get(&game_id))
             .cloned()
+    }
+
+    /// Find a game with the player
+    pub async fn find_player_game(&self, game_id: Uuid, player_id: Uuid) -> Option<PlayerInfo> {
+        let universe_state = self.state.read().await;
+        let mut player = None;
+        if let Some(game) = universe_state.games.get(&game_id) {
+            player = game.get_player(&player_id).await;
+        }
+        player
     }
 
     /// Makes the player leave the game they are in.

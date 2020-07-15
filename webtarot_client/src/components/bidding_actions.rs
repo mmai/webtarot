@@ -62,7 +62,7 @@ impl Component for BiddingActions {
         html! {
             <section class="bidding">
                 <button onclick=self.link.callback(move |_| Msg::Pass)>
-                { tr!("Pass") }
+                { tr!("Passe") }
                 </button>
                 {
                     for bid::Target::iter()

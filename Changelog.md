@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+- allow player to disconnect and reconnect without losing the game session
+- internationalization ; french translation
+- fix trick with no trumps
+
 ## 0.2.6
 
 - keep websocket alive : server sends ping every 55s (default nginx timeout = 60s)

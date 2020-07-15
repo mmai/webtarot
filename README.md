@@ -2,9 +2,11 @@
 
 A online game of [french tarot](https://en.wikipedia.org/wiki/French_tarot) in rust / webassembly
 
-The project is in its very early stages. It is somewhat playable but has an ugly UI, lacks a lot of features and is probably full of bugs.
+Currently only the 5 players variant is implemented.
 
-Currently only the 5 players variant (the most fun) is implemented.
+The project is in its early stages. It is somewhat playable but has an ugly UI, lacks a lot of features and is probably full of bugs.
+
+(I am learning rust with this project, don't hesitate to make pull requests)
 
 ## Usage
 
@@ -61,7 +63,7 @@ cargo build
 
 ## Thanks
 
-* the code for the base game server and yew (webassembly) stuff is taken from https://github.com/mitsuhiko/webgame
+* the initial code for the base game server and yew (webassembly) stuff was taken from https://github.com/mitsuhiko/webgame
 * the card game models where inspired by https://github.com/gyscos/libcoinche
 * the cards SVG images come from https://github.com/tarotclub/tarotclub
 

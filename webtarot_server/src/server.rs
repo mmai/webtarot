@@ -31,12 +31,34 @@ async fn on_player_connected(universe: Arc<Universe>, guid_uuid: String, ws: ws:
         }
     }));
 
-    log::info!("uid infos: {}", guid_uuid);
+    //Debug
+    let games = universe.show_games().await;
+    // log::info!("games before searching {:?}", games);
+
+    // log::info!("uid infos: {}", guid_uuid);
     let uid_elems: Vec<&str> = guid_uuid.split("_").collect();
-    let guid = uid_elems[0].into();
-    let uuid = uid_elems[1].into();
-    let player_id = universe.add_player(tx, guid, uuid).await;
+    let guid = uid_elems[0];
+    let uuid = if uid_elems.len() > 1 {
+        uid_elems[1]
+    } else {
+        "none"
+    };
+    let (player_info, gameuid) = universe.add_player(tx, guid.into(), uuid.into()).await;
+    let player_id = player_info.id;
     log::info!("player {:?} connected", player_id);
+    if universe.player_is_authenticated(player_id).await {
+        universe
+            .send(player_id, &Message::Authenticated(player_info.clone()))
+            .await;
+    }
+    if let Some(game_id) = gameuid {
+        if let Some(game) = universe.get_game(game_id).await {
+            universe
+                .send(player_id, &Message::GameJoined(game.game_info()))
+                .await;
+            game.broadcast_state().await;
+        }
+    }
 
     //keep alive : send a ping every 50 seconds
     // let when = Duration::from_millis(50000);
@@ -74,9 +96,10 @@ async fn on_player_connected(universe: Arc<Universe>, guid_uuid: String, ws: ws:
 }
 
 async fn on_player_disconnected(universe: Arc<Universe>, player_id: Uuid) {
-    if let Some(game) = universe.get_player_game(player_id).await {
-        game.remove_player(player_id).await;
-    }
+    // Uncomment if you don't want to keep the player in the game (he will not be able to reconnnect) 
+    // if let Some(game) = universe.get_player_game(player_id).await {
+    //     game.remove_player(player_id).await;
+    // }
     universe.remove_player(player_id).await;
     log::info!("user {:#?} disconnected", player_id);
 }

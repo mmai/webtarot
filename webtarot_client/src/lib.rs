@@ -138,11 +138,11 @@ impl Component for App {
             }
             Msg::ServerMessage(Message::Connected) => {
                 // Authenticate with stored name
-                if let Some(info) = self.player_info.clone() {
-                    self.api.send(Command::Authenticate(AuthenticateCommand {
-                        nickname: info.nickname,
-                    }));
-                }
+                // if let Some(info) = self.player_info.clone() {
+                //     self.api.send(Command::Authenticate(AuthenticateCommand {
+                //         nickname: info.nickname,
+                //     }));
+                // }
             }
             Msg::ServerMessage(Message::GameLeft) => {
                 self.state = AppState::Authenticated;

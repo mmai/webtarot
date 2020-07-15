@@ -155,11 +155,9 @@ impl Game {
 
     pub async fn get_player(&self, player_id: &Uuid) -> Option<PlayerInfo> {
         let mut player: Option<PlayerInfo> = None;
-        log::info!("get_player : before lock await");
         if let Some(state) = self.game_state.lock().await.get_players().get(player_id) {
             player = Some(state.player.clone());
         }
-        log::info!("get_player : after lock await");
         player
     }
 

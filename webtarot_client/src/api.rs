@@ -52,8 +52,8 @@ fn get_websocket_location(uuid: Option<&str>) -> String {
             "ws"
         },
         location.host().unwrap(),
+        game_info.map(|ginfo| ginfo.game_id.to_string()).unwrap_or("new".into()),
         player_info.map(|pinfo| pinfo.id.to_string()).unwrap_or("new".into()),
-        game_info.map(|ginfo| ginfo.game_id.to_string()).unwrap_or("new".into())
     )
 }
 

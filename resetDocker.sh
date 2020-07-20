@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 
+USER=mmai
 REPO=webtarot
 
 # Remove old containers & image
@@ -15,7 +16,6 @@ docker rmi $IMAGE
 nix-build webtarot_docker.nix
 docker load < result
 
-## ssh in container
-# REPOTAG=$(docker images --format '{{.Repository}}:{{.Tag}}' | grep $REPO) 
-# echo $REPOTAG
-# docker run -it $REPOTAG /bin/bash
+# push
+docker login
+docker push $USER/$REPO

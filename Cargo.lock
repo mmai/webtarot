@@ -2068,7 +2068,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_server"
-version = "0.3.0"
+version = "0.3.4"
 dependencies = [
  "clap",
  "futures 0.3.5",

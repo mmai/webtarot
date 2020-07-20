@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.4
+
+- added ip address parameter to server command
+
 ## 0.3.0
 
 - allow player to disconnect and reconnect without losing the game session

@@ -1,6 +1,8 @@
 use std::convert::Infallible;
 use std::sync::Arc;
 
+use std::net::SocketAddr;
+
 use futures::{FutureExt, StreamExt};
 use hyper::{service::make_service_fn, Server};
 use tokio::sync::mpsc;
@@ -490,7 +492,7 @@ pub async fn on_player_make_dog(
     }
 }
 
-pub async fn serve(public_dir: String, port: u16) {
+pub async fn serve(public_dir: String, socket: SocketAddr) {
     let universe = Arc::new(Universe::new());
 
     let make_svc = make_service_fn(move |_| {
@@ -515,7 +517,7 @@ pub async fn serve(public_dir: String, port: u16) {
     let server = if let Some(l) = listenfd.take_tcp_listener(0).unwrap() {
         Server::from_tcp(l).unwrap()
     } else {
-        Server::bind(&([127, 0, 0, 1], port).into())
+        Server::bind(&socket)
     };
     server.serve(make_svc).await.unwrap();
 }

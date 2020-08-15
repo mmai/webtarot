@@ -12,8 +12,8 @@ The project is in its early stages. It is somewhat playable but has an ugly UI, 
 You can test the application using its docker image:
 
 ```
-docker pull mmai/webtarot
-docker run mmai/webtarot
+docker pull mmai/webtarot:0.3.4
+docker run mmai/webtarot:0.3.4
 ```
 
 ## Manual installation

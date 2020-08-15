@@ -6,19 +6,26 @@ use uuid::Uuid;
 use warp::ws;
 
 use crate::game::Game;
-use crate::protocol::{Message, PlayerInfo, ProtocolError, ProtocolErrorKind};
+use crate::protocol::{Message, ProtocolError, ProtocolErrorKind};
+// use crate::protocol::{Message, PlayerInfo, ProtocolError, ProtocolErrorKind};
 use crate::protocol::{GameInfo, GameExtendedInfo};
 use crate::utils::generate_join_code;
 
-pub struct UniversePlayerState {
-    player_info: PlayerInfo,
+#[derive(Debug, Clone, PartialEq)]
+pub struct User {
+    pub id: Uuid,
+    pub nickname: String,
+}
+
+pub struct UniverseUserState {
+    user: User,
     is_authenticated: bool,
     game_id: Option<Uuid>,
     tx: mpsc::UnboundedSender<Result<ws::Message, warp::Error>>,
 }
 
 pub struct UniverseState {
-    players: HashMap<Uuid, UniversePlayerState>,
+    users: HashMap<Uuid, UniverseUserState>,
     games: HashMap<Uuid, Arc<Game>>,
     joinable_games: HashMap<String, Uuid>,
 }
@@ -31,7 +38,7 @@ impl Universe {
     pub fn new() -> Universe {
         Universe {
             state: Arc::new(RwLock::new(UniverseState {
-                players: HashMap::new(),
+                users: HashMap::new(),
                 games: HashMap::new(),
                 joinable_games: HashMap::new(),
             })),
@@ -48,11 +55,11 @@ impl Universe {
         futures::future::join_all(fgames).await
     }
 
-    /// for debug purposes: show all the players connected to the server, except player_id
-    pub async fn show_players(self: &Arc<Self>, player_id: Uuid) -> Vec<Uuid> {
+    /// for debug purposes: show all the users connected to the server, except user_id
+    pub async fn show_users(self: &Arc<Self>, user_id: Uuid) -> Vec<Uuid> {
         let state = self.state.read().await;
-        let uuids:Vec<Uuid> = state.players.keys()
-            .filter(|k| *k != &player_id)
+        let uuids:Vec<Uuid> = state.users.keys()
+            .filter(|k| *k != &user_id)
             .map(|k| *k )
             .collect();
         uuids
@@ -77,10 +84,10 @@ impl Universe {
         }
     }
 
-    /// Joins a player into a game by join code.
+    /// Joins a user into a game by join code.
     pub async fn join_game(
         &self,
-        player_id: Uuid,
+        user_id: Uuid,
         join_code: String,
     ) -> Result<Arc<Game>, ProtocolError> {
         // assign to temporary to release lock.
@@ -95,7 +102,7 @@ impl Universe {
         if let Some(game_id) = game_id {
             if let Some(game) = self.get_game(game_id).await {
                 if game.is_joinable().await {
-                    game.add_player(player_id).await;
+                    game.add_user(user_id).await;
                     return Ok(game);
                 } else {
                     return Err(ProtocolError::new(
@@ -112,79 +119,79 @@ impl Universe {
         ))
     }
 
-    /// Registers a player.
+    /// Registers a user.
     ///
-    /// The player is given a new ID which is returned and starts out without
+    /// The user is given a new ID which is returned and starts out without
     /// any associated nickname.
-    pub async fn add_player(
+    pub async fn add_user(
         &self,
         tx: mpsc::UnboundedSender<Result<ws::Message, warp::Error>>,
         guid: String,
         uuid: String,
-    ) -> (PlayerInfo, Option<Uuid>) {
-        //Defaults for a new player
-        let mut player_id = Uuid::new_v4();
+    ) -> (User, Option<Uuid>) {
+        //Defaults for a new user
+        let mut user_id = Uuid::new_v4();
         let mut nickname: String = "anonymous".into();
         let mut game_id: Option<Uuid> = None;
         let mut is_authenticated = false;
 
         // Check validity of given uuid
-        if let (Ok(player_uuid),  Ok(game_uid)) = (Uuid::parse_str(&uuid), Uuid::parse_str(&guid)) {
-            //Check if player is in a active game
-            if let Some(player_info) = self.find_player_game(game_uid, player_uuid).await {
-                player_id = player_uuid;
+        if let (Ok(user_uuid),  Ok(game_uid)) = (Uuid::parse_str(&uuid), Uuid::parse_str(&guid)) {
+            //Check if user is in a active game
+            if let Some(user) = self.find_user_game(game_uid, user_uuid).await {
+                user_id = user_uuid;
                 game_id = Some(game_uid);
                 is_authenticated = true; 
-                nickname = player_info.nickname; 
+                nickname = user.nickname; 
             }
         }
 
-        //Register player
-        let player_info = PlayerInfo {
-            id: player_id,
+        //Register user
+        let user = User {
+            id: user_id,
             nickname,
         };
         let mut universe_state = self.state.write().await;
-        universe_state.players.insert(
-            player_id,
-            UniversePlayerState {
-                player_info: player_info.clone(),
+        universe_state.users.insert(
+            user_id,
+            UniverseUserState {
+                user: user.clone(),
                 game_id,
                 is_authenticated,
                 tx,
             },
         );
-        (player_info, game_id)
+        (user, game_id)
     }
 
-    /// Returns the player.
-    pub async fn get_player_info(&self, player_id: Uuid) -> Option<PlayerInfo> {
+    /// Returns the user.
+    pub async fn get_user(&self, user_id: Uuid) -> Option<User> {
         let universe_state = self.state.read().await;
         universe_state
-            .players
-            .get(&player_id)
-            .map(|x| x.player_info.clone())
+            .users
+            .get(&user_id)
+            .map(|x| x.user.clone())
     }
 
-    /// Authenticates a player.
+    /// Authenticates a user.
     ///
     /// If the user is already authenticated this returns an error
-    pub async fn authenticate_player(
+    pub async fn authenticate_user(
         &self,
-        player_id: Uuid,
+        user_id: Uuid,
         nickname: String,
-    ) -> Result<PlayerInfo, ProtocolError> {
+    ) -> Result<User, ProtocolError> {
         let mut universe_state = self.state.write().await;
-        if let Some(player_state) = universe_state.players.get_mut(&player_id) {
-            if player_state.is_authenticated {
+        if let Some(user_state) = universe_state.users.get_mut(&user_id) {
+            if user_state.is_authenticated {
                 Err(ProtocolError::new(
                     ProtocolErrorKind::AlreadyAuthenticated,
                     "cannot authenticate twice",
                 ))
             } else {
-                player_state.is_authenticated = true;
-                player_state.player_info.nickname = nickname;
-                Ok(player_state.player_info.clone())
+                user_state.is_authenticated = true;
+                user_state.user.nickname = nickname;
+                Ok(user_state.user.clone())
             }
         } else {
             Err(ProtocolError::new(
@@ -194,26 +201,26 @@ impl Universe {
         }
     }
 
-    /// Checks if the player is authenticated.
-    pub async fn player_is_authenticated(&self, player_id: Uuid) -> bool {
+    /// Checks if the user is authenticated.
+    pub async fn user_is_authenticated(&self, user_id: Uuid) -> bool {
         let universe_state = self.state.read().await;
-        if let Some(ref state) = universe_state.players.get(&player_id) {
+        if let Some(ref state) = universe_state.users.get(&user_id) {
             state.is_authenticated
         } else {
             false
         }
     }
 
-    /// Unregisters a player.
-    pub async fn remove_player(&self, player_id: Uuid) {
+    /// Unregisters a user.
+    pub async fn remove_user(&self, user_id: Uuid) {
         let mut universe_state = self.state.write().await;
-        universe_state.players.remove(&player_id);
+        universe_state.users.remove(&user_id);
     }
 
-    /// Sets the current game of a player.
-    pub async fn set_player_game_id(&self, player_id: Uuid, game_id: Option<Uuid>) -> bool {
+    /// Sets the current game of a user.
+    pub async fn set_user_game_id(&self, user_id: Uuid, game_id: Option<Uuid>) -> bool {
         let mut universe_state = self.state.write().await;
-        if let Some(state) = universe_state.players.get_mut(&player_id) {
+        if let Some(state) = universe_state.users.get_mut(&user_id) {
             state.game_id = game_id;
             true
         } else {
@@ -233,38 +240,38 @@ impl Universe {
         universe_state.games.remove(&game_id).is_some()
     }
 
-    /// Returns the game a player is in.
-    pub async fn get_player_game(&self, player_id: Uuid) -> Option<Arc<Game>> {
+    /// Returns the game a user is in.
+    pub async fn get_user_game(&self, user_id: Uuid) -> Option<Arc<Game>> {
         let universe_state = self.state.read().await;
         universe_state
-            .players
-            .get(&player_id)
-            .and_then(|player| player.game_id)
+            .users
+            .get(&user_id)
+            .and_then(|user| user.game_id)
             .and_then(|game_id| universe_state.games.get(&game_id))
             .cloned()
     }
 
-    /// Find a game with the player
-    pub async fn find_player_game(&self, game_id: Uuid, player_id: Uuid) -> Option<PlayerInfo> {
+    /// Find a game with the user
+    pub async fn find_user_game(&self, game_id: Uuid, user_id: Uuid) -> Option<User> {
         let universe_state = self.state.read().await;
-        let mut player = None;
+        let mut user = None;
         if let Some(game) = universe_state.games.get(&game_id) {
-            player = game.get_player(&player_id).await;
+            user = game.get_user(&user_id).await;
         }
-        player
+        user
     }
 
-    /// Makes the player leave the game they are in.
-    pub async fn remove_player_from_game(&self, player_id: Uuid) {
-        if let Some(game) = self.get_player_game(player_id).await {
-            game.remove_player(player_id).await;
+    /// Makes the user leave the game they are in.
+    pub async fn remove_user_from_game(&self, user_id: Uuid) {
+        if let Some(game) = self.get_user_game(user_id).await {
+            game.remove_user(user_id).await;
         }
     }
 
-    /// Send a message to a single player.
-    pub async fn send(&self, player_id: Uuid, message: &Message) {
+    /// Send a message to a single user.
+    pub async fn send(&self, user_id: Uuid, message: &Message) {
         let universe_state = self.state.write().await;
-        if let Some(ref state) = universe_state.players.get(&player_id) {
+        if let Some(ref state) = universe_state.users.get(&user_id) {
             let s = serde_json::to_string(message).unwrap();
             if let Err(_disconnected) = state.tx.send(Ok(ws::Message::text(s))) {
                 // The tx is disconnected, our `user_disconnected` code

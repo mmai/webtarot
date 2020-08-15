@@ -22,8 +22,8 @@ use crate::protocol::{
 };
 use crate::universe::Universe;
 
-// async fn on_player_connected(universe: Arc<Universe>, guid: String, uuid: String, ws: ws::WebSocket) { 
-async fn on_player_connected(universe: Arc<Universe>, guid_uuid: String, ws: ws::WebSocket) { 
+// async fn on_websocket_connect(universe: Arc<Universe>, guid: String, uuid: String, ws: ws::WebSocket) { 
+async fn on_websocket_connect(universe: Arc<Universe>, guid_uuid: String, ws: ws::WebSocket) { 
     let (user_ws_tx, mut user_ws_rx) = ws.split();
     let (tx, rx) = mpsc::unbounded_channel();
 
@@ -45,18 +45,17 @@ async fn on_player_connected(universe: Arc<Universe>, guid_uuid: String, ws: ws:
     } else {
         "none"
     };
-    let (player_info, gameuid) = universe.add_player(tx, guid.into(), uuid.into()).await;
-    let player_id = player_info.id;
-    log::info!("player {:?} connected", player_id);
-    if universe.player_is_authenticated(player_id).await {
+    let (user, gameuid) = universe.add_user(tx, guid.into(), uuid.into()).await;
+    log::info!("user {:?} connected", user.id);
+    if universe.user_is_authenticated(user.id).await {
         universe
-            .send(player_id, &Message::Authenticated(player_info.clone()))
+            .send(user.id, &Message::Authenticated(user.clone()))
             .await;
     }
     if let Some(game_id) = gameuid {
         if let Some(game) = universe.get_game(game_id).await {
             universe
-                .send(player_id, &Message::GameJoined(game.game_info()))
+                .send(user.id, &Message::GameJoined(game.game_info()))
                 .await;
             game.broadcast_state().await;
         }
@@ -83,42 +82,42 @@ async fn on_player_connected(universe: Arc<Universe>, guid_uuid: String, ws: ws:
         match result {
             Ok(msg) => {
                 log::debug!("Got message from websocket: {:?}", &msg);
-                if let Err(err) = on_player_message(universe.clone(), player_id, msg).await {
-                    universe.send(player_id, &Message::Error(err)).await;
+                if let Err(err) = on_user_message(universe.clone(), user.id, msg).await {
+                    universe.send(user.id, &Message::Error(err)).await;
                 }
             }
             Err(e) => {
-                log::error!("websocket error(uid={}): {}", player_id, e);
+                log::error!("websocket error(uid={}): {}", user.id, e);
                 break;
             }
         }
     }
 
-    on_player_disconnected(universe, player_id).await;
+    on_user_disconnected(universe, user.id).await;
 }
 
-async fn on_player_disconnected(universe: Arc<Universe>, player_id: Uuid) {
-    // If all players have disconnected, we remove the game itself
-    if let Some(game) = universe.get_player_game(player_id).await {
+async fn on_user_disconnected(universe: Arc<Universe>, user_id: Uuid) {
+    // If all users have disconnected, we remove the game itself
+    if let Some(game) = universe.get_user_game(user_id).await {
         // At this point we check if there is only this disconnecting user left
         if game.connected_players().await.len() < 2 {
             universe.remove_game(game.id()).await;
             log::info!("last user disconnecting, closing game");
         }
     }
-    universe.remove_player(player_id).await;
-    log::info!("user {:#?} disconnected", player_id);
+    universe.remove_user(user_id).await;
+    log::info!("user {:#?} disconnected", user_id);
 }
 
-async fn on_player_message(
+async fn on_user_message(
     universe: Arc<Universe>,
-    player_id: Uuid,
+    user_id: Uuid,
     msg: ws::Message,
 ) -> Result<(), ProtocolError> {
     if msg.is_ping() {
         // XXX A warp ping. where does it come from ? Whatever, we manage it like our custom pings
         log::error!("received a warp ping: {:?}", msg);
-        return on_ping(universe, player_id).await;
+        return on_ping(universe, user_id).await;
     }
 
     let req_json = match msg.to_str() {
@@ -144,13 +143,13 @@ async fn on_player_message(
 
     log::debug!("command: {:?}", &cmd);
 
-    if !universe.player_is_authenticated(player_id).await {
+    if !universe.user_is_authenticated(user_id).await {
         match cmd {
-            Command::Authenticate(data) => on_player_authenticate(universe, player_id, data).await,
+            Command::Authenticate(data) => on_player_authenticate(universe, user_id, data).await,
 
             //For debug purposes only
-            Command::ShowServerStatus => on_server_status(universe, player_id).await,
-            Command::ShowUuid => on_show_uuid(universe, player_id).await,
+            Command::ShowServerStatus => on_server_status(universe, user_id).await,
+            Command::ShowUuid => on_show_uuid(universe, user_id).await,
             Command::DebugUi(data) => on_debug_ui(universe, data).await,
 
             _ => Err(ProtocolError::new(
@@ -160,25 +159,25 @@ async fn on_player_message(
         }
     } else {
         match cmd {
-            Command::NewGame => on_new_game(universe, player_id).await,
-            Command::JoinGame(cmd) => on_join_game(universe, player_id, cmd).await,
-            Command::LeaveGame => on_leave_game(universe, player_id).await,
-            Command::MarkReady => on_player_mark_ready(universe, player_id).await,
-            Command::Continue => on_player_continue(universe, player_id).await,
-            Command::SendText(cmd) => on_player_send_text(universe, player_id, cmd).await,
-            Command::ShareCodename(cmd) => on_player_share_codename(universe, player_id, cmd).await,
-            Command::SetPlayerRole(cmd) => on_player_set_role(universe, player_id, cmd).await,
-            Command::Bid(cmd) => on_player_bid(universe, player_id, cmd).await,
-            Command::Play(cmd) => on_player_play(universe, player_id, cmd).await,
-            Command::CallKing(cmd) => on_player_call_king(universe, player_id, cmd).await,
-            Command::MakeDog(cmd) => on_player_make_dog(universe, player_id, cmd).await,
-            Command::Pass => on_player_pass(universe, player_id).await,
-            Command::Ping => on_ping(universe, player_id).await,
+            Command::NewGame => on_new_game(universe, user_id).await,
+            Command::JoinGame(cmd) => on_join_game(universe, user_id, cmd).await,
+            Command::LeaveGame => on_leave_game(universe, user_id).await,
+            Command::MarkReady => on_player_mark_ready(universe, user_id).await,
+            Command::Continue => on_player_continue(universe, user_id).await,
+            Command::SendText(cmd) => on_user_send_text(universe, user_id, cmd).await,
+            Command::ShareCodename(cmd) => on_player_share_codename(universe, user_id, cmd).await,
+            Command::SetPlayerRole(cmd) => on_player_set_role(universe, user_id, cmd).await,
+            Command::Bid(cmd) => on_player_bid(universe, user_id, cmd).await,
+            Command::Play(cmd) => on_player_play(universe, user_id, cmd).await,
+            Command::CallKing(cmd) => on_player_call_king(universe, user_id, cmd).await,
+            Command::MakeDog(cmd) => on_player_make_dog(universe, user_id, cmd).await,
+            Command::Pass => on_player_pass(universe, user_id).await,
+            Command::Ping => on_ping(universe, user_id).await,
 
             //For debug purposes only
-            Command::ShowUuid => on_show_uuid(universe, player_id).await,
+            Command::ShowUuid => on_show_uuid(universe, user_id).await,
             Command::DebugUi(data) => on_debug_ui(universe, data).await,
-            Command::ShowServerStatus => on_server_status(universe, player_id).await,
+            Command::ShowServerStatus => on_server_status(universe, user_id).await,
 
             // this should not happen here.
             Command::Authenticate(..) => Err(ProtocolError::new(
@@ -189,12 +188,12 @@ async fn on_player_message(
     }
 }
 
-async fn on_new_game(universe: Arc<Universe>, player_id: Uuid) -> Result<(), ProtocolError> {
-    universe.remove_player_from_game(player_id).await;
+async fn on_new_game(universe: Arc<Universe>, user_id: Uuid) -> Result<(), ProtocolError> {
+    universe.remove_user_from_game(user_id).await;
     let game = universe.new_game().await;
-    game.add_player(player_id).await;
+    game.add_player(user_id).await;
     universe
-        .send(player_id, &Message::GameJoined(game.game_info()))
+        .send(user_id, &Message::GameJoined(game.game_info()))
         .await;
     game.broadcast_state().await;
     Ok(())
@@ -202,56 +201,56 @@ async fn on_new_game(universe: Arc<Universe>, player_id: Uuid) -> Result<(), Pro
 
 async fn on_join_game(
     universe: Arc<Universe>,
-    player_id: Uuid,
+    user_id: Uuid,
     cmd: JoinGameCommand,
 ) -> Result<(), ProtocolError> {
-    let game = universe.join_game(player_id, cmd.join_code).await?;
+    let game = universe.join_game(user_id, cmd.join_code).await?;
     universe
-        .send(player_id, &Message::GameJoined(game.game_info()))
+        .send(user_id, &Message::GameJoined(game.game_info()))
         .await;
     game.broadcast_state().await;
     Ok(())
 }
 
-async fn on_leave_game(universe: Arc<Universe>, player_id: Uuid) -> Result<(), ProtocolError> {
+async fn on_leave_game(universe: Arc<Universe>, user_id: Uuid) -> Result<(), ProtocolError> {
     log::info!(
         "player {:?} leaving game",
-        player_id
+        user_id
     );
-    universe.remove_player_from_game(player_id).await;
-    universe.send(player_id, &Message::GameLeft).await;
+    universe.remove_user_from_game(user_id).await;
+    universe.send(user_id, &Message::GameLeft).await;
     Ok(())
 }
 
 async fn on_ping(
     universe: Arc<Universe>,
-    player_id: Uuid,
+    user_id: Uuid,
 ) -> Result<(), ProtocolError> {
     universe
-        .send(player_id, &Message::Pong)
+        .send(user_id, &Message::Pong)
         .await;
     Ok(())
 }
 
 async fn on_show_uuid(
     universe: Arc<Universe>,
-    player_id: Uuid,
+    user_id: Uuid,
 ) -> Result<(), ProtocolError> {
-    let pid = universe.show_players(player_id).await[0];
+    let pid = universe.show_users(user_id).await[0];
     universe
-        .send(player_id, &Message::Chat(ChatMessage { player_id:pid, text:String::new() }))
+        .send(user_id, &Message::Chat(ChatMessage { user_id:pid, text:String::new() }))
         .await;
     Ok(())
 }
 
 async fn on_server_status(
     universe: Arc<Universe>,
-    player_id: Uuid,
+    user_id: Uuid,
 ) -> Result<(), ProtocolError> {
-    let players = universe.show_players(player_id).await;
+    let players = universe.show_users(user_id).await;
     let games = universe.show_games().await;
     universe
-        .send(player_id, &Message::ServerStatus(ServerStatus { players, games }))
+        .send(user_id, &Message::ServerStatus(ServerStatus { players, games }))
         .await;
     Ok(())
 }
@@ -268,7 +267,7 @@ async fn on_debug_ui(
 
 async fn on_player_authenticate(
     universe: Arc<Universe>,
-    player_id: Uuid,
+    user_id: Uuid,
     cmd: AuthenticateCommand,
 ) -> Result<(), ProtocolError> {
     let nickname = cmd.nickname.trim().to_owned();
@@ -279,15 +278,15 @@ async fn on_player_authenticate(
         ));
     }
 
-    let player_info = universe.authenticate_player(player_id, nickname).await?;
+    let player_info = universe.authenticate_user(user_id, nickname).await?;
     log::info!(
         "player {:?} authenticated as {:?}",
-        player_id,
+        user_id,
         &player_info.nickname
     );
 
     universe
-        .send(player_id, &Message::Authenticated(player_info.clone()))
+        .send(user_id, &Message::Authenticated(player_info.clone()))
         .await;
 
     Ok(())
@@ -295,10 +294,10 @@ async fn on_player_authenticate(
 
 pub async fn on_player_continue(
     universe: Arc<Universe>,
-    player_id: Uuid,
+    user_id: Uuid,
 ) -> Result<(), ProtocolError> {
-    if let Some(game) = universe.get_player_game(player_id).await {
-        game.mark_player_ready(player_id).await;
+    if let Some(game) = universe.get_user_game(user_id).await {
+        game.mark_player_ready(user_id).await;
         game.broadcast_state().await;
     }
     Ok(())
@@ -306,25 +305,25 @@ pub async fn on_player_continue(
 
 pub async fn on_player_mark_ready(
     universe: Arc<Universe>,
-    player_id: Uuid,
+    user_id: Uuid,
 ) -> Result<(), ProtocolError> {
-    if let Some(game) = universe.get_player_game(player_id).await {
+    if let Some(game) = universe.get_user_game(user_id).await {
         if game.is_joinable().await {
-            game.mark_player_ready(player_id).await;
+            game.mark_player_ready(user_id).await;
             game.broadcast_state().await;
         }
     }
     Ok(())
 }
 
-pub async fn on_player_send_text(
+pub async fn on_user_send_text(
     universe: Arc<Universe>,
-    player_id: Uuid,
+    user_id: Uuid,
     cmd: SendTextCommand,
 ) -> Result<(), ProtocolError> {
-    if let Some(game) = universe.get_player_game(player_id).await {
+    if let Some(game) = universe.get_user_game(user_id).await {
         game.broadcast(&Message::Chat(ChatMessage {
-            player_id,
+            user_id,
             text: cmd.text,
         }))
         .await;
@@ -339,12 +338,12 @@ pub async fn on_player_send_text(
 
 pub async fn on_player_share_codename(
     universe: Arc<Universe>,
-    player_id: Uuid,
+    user_id: Uuid,
     cmd: ShareCodenameCommand,
 ) -> Result<(), ProtocolError> {
-    if let Some(game) = universe.get_player_game(player_id).await {
+    if let Some(game) = universe.get_user_game(user_id).await {
         game.broadcast(&Message::Chat(ChatMessage {
-            player_id,
+            user_id,
             text: format!("codename: {} {}", cmd.codename, cmd.number),
         }))
         .await;
@@ -359,18 +358,18 @@ pub async fn on_player_share_codename(
 
 pub async fn on_player_set_role(
     universe: Arc<Universe>,
-    player_id: Uuid,
+    user_id: Uuid,
     cmd: SetPlayerRoleCommand,
 ) -> Result<(), ProtocolError> {
-    if let Some(game) = universe.get_player_game(player_id).await {
+    if let Some(game) = universe.get_user_game(user_id).await {
         if !game.is_joinable().await {
             return Err(ProtocolError::new(
                 ProtocolErrorKind::BadState,
                 "cannot set role because game is not not joinable",
             ));
         }
-        game.set_player_role(player_id, cmd.role).await;
-        game.set_player_not_ready(player_id).await;
+        game.set_player_role(user_id, cmd.role).await;
+        game.set_player_not_ready(user_id).await;
         game.broadcast_state().await;
         Ok(())
     } else {
@@ -386,7 +385,7 @@ pub async fn on_player_bid(
     player_id: Uuid,
     cmd: BidCommand,
 ) -> Result<(), ProtocolError> {
-    if let Some(game) = universe.get_player_game(player_id).await {
+    if let Some(game) = universe.get_user_game(player_id).await {
         game.broadcast(&Message::Chat(ChatMessage {
             player_id,
             text: format!("bid: {:?}", cmd.target),
@@ -408,7 +407,7 @@ pub async fn on_player_play(
     player_id: Uuid,
     cmd: PlayCommand,
 ) -> Result<(), ProtocolError> {
-    if let Some(game) = universe.get_player_game(player_id).await {
+    if let Some(game) = universe.get_user_game(player_id).await {
         if let Err(e) = game.set_play(player_id, cmd.card).await {
             game.send(player_id, &Message::Error(e)).await;
         } else {
@@ -435,7 +434,7 @@ pub async fn on_player_pass(
     universe: Arc<Universe>,
     player_id: Uuid,
 ) -> Result<(), ProtocolError> {
-    if let Some(game) = universe.get_player_game(player_id).await {
+    if let Some(game) = universe.get_user_game(player_id).await {
         game.set_pass(player_id).await?;
         game.broadcast(&Message::Chat(ChatMessage {
             player_id,
@@ -458,7 +457,7 @@ pub async fn on_player_call_king(
     player_id: Uuid,
     cmd: CallKingCommand,
 ) -> Result<(), ProtocolError> {
-    if let Some(game) = universe.get_player_game(player_id).await {
+    if let Some(game) = universe.get_user_game(player_id).await {
         game.broadcast(&Message::Chat(ChatMessage {
             player_id,
             text: format!("call king: {}", cmd.card.to_string()),
@@ -480,7 +479,7 @@ pub async fn on_player_make_dog(
     player_id: Uuid,
     cmd: MakeDogCommand,
 ) -> Result<(), ProtocolError> {
-    if let Some(game) = universe.get_player_game(player_id).await {
+    if let Some(game) = universe.get_user_game(player_id).await {
         game.make_dog(player_id, cmd.cards).await;
         game.broadcast_state().await;
         Ok(())
@@ -505,7 +504,7 @@ pub async fn serve(public_dir: String, socket: SocketAddr) {
             .and(warp::any().map(move || universe.clone()))
             .map(|ws: warp::ws::Ws, guid_uuid, universe: Arc<Universe>| {
                 // when the connection is upgraded to a websocket
-                ws.on_upgrade(move |ws| on_player_connected(universe, guid_uuid, ws))
+                ws.on_upgrade(move |ws| on_websocket_connect(universe, guid_uuid, ws))
             })
         // .or(warp::fs::dir("public/")); // Static files
         .or(warp::fs::dir(pdir)); // Static files

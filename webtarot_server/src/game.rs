@@ -72,18 +72,18 @@ impl Game {
         self.universe.upgrade().unwrap()
     }
 
-    pub async fn add_player(&self, player_id: Uuid) {
+    pub async fn add_player(&self, user_id: Uuid) {
         let universe = self.universe();
         if !universe
-            .set_player_game_id(player_id, Some(self.id()))
+            .set_user_game_id(user_id, Some(self.id()))
             .await
         {
             return;
         }
 
-        // TODO: `set_player_game_id` also looks up.
-        let player_info = match universe.get_player_info(player_id).await {
-            Some(player_info) => player_info,
+        // TODO: `set_user_game_id` also looks up.
+        let user = match universe.get_user(user_id).await {
+            Some(user) => user,
             None => return,
         };
 
@@ -99,22 +99,22 @@ impl Game {
         let game_state = self.game_state.lock().await;
         for player in game_state.get_players() {
             let uuid = *player.0;
-            if self.universe().player_is_authenticated(uuid).await {
+            if self.universe().user_is_authenticated(uuid).await {
                 connected_ids.push(uuid);
             }
         }
         connected_ids
     }
 
-    pub async fn remove_player(&self, player_id: Uuid) {
-        self.universe().set_player_game_id(player_id, None).await;
+    pub async fn remove_user(&self, user_id: Uuid) {
+        self.universe().set_user_game_id(user_id, None).await;
 
         let mut game_state = self.game_state.lock().await;
 
-        if game_state.remove_player(player_id) {
+        if game_state.remove_player(user_id) {
             drop(game_state);
             self.broadcast(&Message::PlayerDisconnected(PlayerDisconnectedMessage {
-                player_id,
+                user_id,
             }))
             .await;
         }

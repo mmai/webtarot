@@ -15,7 +15,6 @@ use std::time::Duration;
 use crate::protocol::{
     AuthenticateCommand, ChatMessage, ServerStatus, Command, JoinGameCommand, Message, ProtocolError,
     ProtocolErrorKind, SendTextCommand, SetPlayerRoleCommand,
-    ShareCodenameCommand,
     PlayCommand, BidCommand, CallKingCommand, MakeDogCommand,
     PlayEvent,
     DebugUiCommand,
@@ -163,9 +162,10 @@ async fn on_user_message(
             Command::JoinGame(cmd) => on_join_game(universe, user_id, cmd).await,
             Command::LeaveGame => on_leave_game(universe, user_id).await,
             Command::MarkReady => on_player_mark_ready(universe, user_id).await,
+
             Command::Continue => on_player_continue(universe, user_id).await,
             Command::SendText(cmd) => on_user_send_text(universe, user_id, cmd).await,
-            Command::ShareCodename(cmd) => on_player_share_codename(universe, user_id, cmd).await,
+
             Command::SetPlayerRole(cmd) => on_player_set_role(universe, user_id, cmd).await,
             Command::Bid(cmd) => on_player_bid(universe, user_id, cmd).await,
             Command::Play(cmd) => on_player_play(universe, user_id, cmd).await,
@@ -325,26 +325,6 @@ pub async fn on_user_send_text(
         game.broadcast(&Message::Chat(ChatMessage {
             user_id,
             text: cmd.text,
-        }))
-        .await;
-        Ok(())
-    } else {
-        Err(ProtocolError::new(
-            ProtocolErrorKind::BadState,
-            "not in a game",
-        ))
-    }
-}
-
-pub async fn on_player_share_codename(
-    universe: Arc<Universe>,
-    user_id: Uuid,
-    cmd: ShareCodenameCommand,
-) -> Result<(), ProtocolError> {
-    if let Some(game) = universe.get_user_game(user_id).await {
-        game.broadcast(&Message::Chat(ChatMessage {
-            user_id,
-            text: format!("codename: {} {}", cmd.codename, cmd.number),
         }))
         .await;
         Ok(())

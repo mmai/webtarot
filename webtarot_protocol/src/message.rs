@@ -11,18 +11,19 @@ pub enum Command {
     Ping,
     Authenticate(AuthenticateCommand),
     SendText(SendTextCommand),
-    ShareCodename(ShareCodenameCommand),
     NewGame,
     JoinGame(JoinGameCommand),
     LeaveGame,
     MarkReady,
     Continue,
+
     Bid(BidCommand),
     Play(PlayCommand),
     Pass,
     CallKing(CallKingCommand),
     MakeDog(MakeDogCommand),
     SetPlayerRole(SetPlayerRoleCommand),
+
     DebugUi(DebugUiCommand), // Used to send a custom state to a client, allows to quickly view the UI at a given state of the game without having to play all the hands leading to this state.
     ShowUuid, // get uuid of connected client : for use with debugUi
     ShowServerStatus, // get server infos : active games, players connected...
@@ -102,12 +103,6 @@ pub struct DebugUiCommand {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SendTextCommand {
     pub text: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ShareCodenameCommand {
-    pub codename: String,
-    pub number: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

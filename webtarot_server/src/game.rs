@@ -5,13 +5,11 @@ use uuid::Uuid;
 use std::fmt;
 
 use crate::protocol::{
-    ProtocolError,
     GameState,
     GameInfo, GameExtendedInfo, Message, PlayerDisconnectedMessage, PlayerRole,
     PlayerInfo
 };
 use crate::universe::Universe;
-use tarotgame::{bid, cards};
 
 pub struct Game {
     id: Uuid,
@@ -42,6 +40,11 @@ impl Game {
     pub fn id(&self) -> Uuid {
         self.id
     }
+
+    pub fn state_handle(&self) -> &Arc<Mutex<GameState>> {
+        &self.game_state
+    }
+
 
     pub fn join_code(&self) -> &str {
         &self.join_code
@@ -175,35 +178,6 @@ impl Game {
 
     pub async fn is_empty(&self) -> bool {
         self.game_state.lock().await.get_players().is_empty()
-    }
-
-
-    pub async fn set_bid(&self, pid: Uuid, target: bid::Target) -> Result<(), ProtocolError> {
-        let mut game_state = self.game_state.lock().await;
-        game_state.set_bid(pid, target)?;
-        Ok(())
-    }
-
-    pub async fn set_pass(&self, pid: Uuid) -> Result<(), ProtocolError> {
-        let mut game_state = self.game_state.lock().await;
-        game_state.set_pass(pid)?;
-        Ok(())
-    }
-
-    pub async fn set_play(&self, pid: Uuid, card: cards::Card) -> Result<(), ProtocolError> {
-        let mut game_state = self.game_state.lock().await;
-        game_state.set_play(pid, card)?;
-        Ok(())
-    }
-
-    pub async fn call_king(&self, pid: Uuid, card: cards::Card){
-        let mut game_state = self.game_state.lock().await;
-        game_state.call_king(pid, card);
-    }
-
-    pub async fn make_dog(&self, pid: Uuid, cards: cards::Hand){
-        let mut game_state = self.game_state.lock().await;
-        game_state.make_dog(pid, cards);
     }
 
 }

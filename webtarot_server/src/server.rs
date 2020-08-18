@@ -15,7 +15,6 @@ use std::time::Duration;
 use crate::protocol::{
     AuthenticateCommand, ChatMessage, ServerStatus, Command, JoinGameCommand, Message, ProtocolError,
     ProtocolErrorKind, SendTextCommand, SetPlayerRoleCommand,
-    GamePlayCommand,
     DebugUiCommand,
 };
 use crate::universe::Universe;

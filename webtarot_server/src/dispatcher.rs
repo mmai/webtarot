@@ -44,7 +44,11 @@ pub async fn on_player_bid(
             text: format!("bid: {:?}", cmd.target),
         }))
         .await;
-        game.set_bid(player_id, cmd.target).await?;
+
+        let game_state = game.state_handle();
+        let mut game_state = game_state.lock().await;
+        game_state.set_bid(player_id, cmd.target)?;
+
         game.broadcast_state().await;
         Ok(())
 }
@@ -54,7 +58,9 @@ pub async fn on_player_play(
     player_id: Uuid,
     cmd: PlayCommand,
 ) -> Result<(), ProtocolError> {
-        if let Err(e) = game.set_play(player_id, cmd.card).await {
+        let game_state = game.state_handle();
+        let mut game_state = game_state.lock().await;
+        if let Err(e) = game_state.set_play(player_id, cmd.card) {
             game.send(player_id, &Message::Error(e)).await;
         } else {
             game.broadcast(&Message::PlayEvent(PlayEvent::Play ( player_id, cmd.card )))
@@ -69,7 +75,9 @@ pub async fn on_player_pass(
     game: Arc<Game>,
     player_id: Uuid,
 ) -> Result<(), ProtocolError> {
-        game.set_pass(player_id).await?;
+        let game_state = game.state_handle();
+        let mut game_state = game_state.lock().await;
+        game_state.set_pass(player_id)?;
         game.broadcast(&Message::Chat(ChatMessage {
             player_id,
             text: format!("pass"),
@@ -90,7 +98,10 @@ pub async fn on_player_call_king(
             text: format!("call king: {}", cmd.card.to_string()),
         }))
         .await;
-        game.call_king(player_id, cmd.card).await;
+        let game_state = game.state_handle();
+        let mut game_state = game_state.lock().await;
+        game_state.set_pass(player_id)?;
+        game_state.call_king(player_id, cmd.card);
         game.broadcast_state().await;
         Ok(())
 }
@@ -100,7 +111,9 @@ pub async fn on_player_make_dog(
     player_id: Uuid,
     cmd: MakeDogCommand,
 ) -> Result<(), ProtocolError> {
-        game.make_dog(player_id, cmd.cards).await;
+        let game_state = game.state_handle();
+        let mut game_state = game_state.lock().await;
+        game_state.make_dog(player_id, cmd.cards);
         game.broadcast_state().await;
         Ok(())
 }

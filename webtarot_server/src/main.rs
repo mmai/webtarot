@@ -1,6 +1,7 @@
 use clap::{Arg, App};
 
 mod game;
+mod dispatcher;
 mod server;
 mod universe;
 mod utils;

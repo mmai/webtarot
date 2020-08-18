@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::convert::From;
 
 use tokio::sync::{mpsc, RwLock};
 use uuid::Uuid;
 use warp::ws;
 
 use crate::game::Game;
-use crate::protocol::{Message, ProtocolError, ProtocolErrorKind};
-// use crate::protocol::{Message, PlayerInfo, ProtocolError, ProtocolErrorKind};
+use crate::protocol::{Message, PlayerInfo, ProtocolError, ProtocolErrorKind};
 use crate::protocol::{GameInfo, GameExtendedInfo};
 use crate::utils::generate_join_code;
 
@@ -15,6 +15,33 @@ use crate::utils::generate_join_code;
 pub struct User {
     pub id: Uuid,
     pub nickname: String,
+}
+
+// impl User {
+//     pub fn as_player_info(self) -> PlayerInfo {
+//         PlayerInfo {
+//             id: self.id,
+//             nickname: self.nickname
+//         }
+//     }
+// }
+
+impl From<PlayerInfo> for User {
+    fn from(player: PlayerInfo) -> Self {
+        User { 
+            id: player.id,
+            nickname: player.nickname
+        }
+    }
+}
+
+impl From<User> for PlayerInfo {
+    fn from(user: User) -> Self {
+        PlayerInfo {
+            id: user.id,
+            nickname: user.nickname
+        }
+    }
 }
 
 pub struct UniverseUserState {
@@ -102,7 +129,7 @@ impl Universe {
         if let Some(game_id) = game_id {
             if let Some(game) = self.get_game(game_id).await {
                 if game.is_joinable().await {
-                    game.add_user(user_id).await;
+                    game.add_player(user_id).await;
                     return Ok(game);
                 } else {
                     return Err(ProtocolError::new(
@@ -254,11 +281,11 @@ impl Universe {
     /// Find a game with the user
     pub async fn find_user_game(&self, game_id: Uuid, user_id: Uuid) -> Option<User> {
         let universe_state = self.state.read().await;
-        let mut user = None;
+        let mut player = None;
         if let Some(game) = universe_state.games.get(&game_id) {
-            user = game.get_user(&user_id).await;
+            player = game.get_player(&user_id).await;
         }
-        user
+        player.map(|pl| pl.into())
     }
 
     /// Makes the user leave the game they are in.

@@ -17,16 +17,22 @@ pub enum Command {
     MarkReady,
     Continue,
 
-    Bid(BidCommand),
-    Play(PlayCommand),
-    Pass,
-    CallKing(CallKingCommand),
-    MakeDog(MakeDogCommand),
+    GamePlay(GamePlayCommand),
     SetPlayerRole(SetPlayerRoleCommand),
 
     DebugUi(DebugUiCommand), // Used to send a custom state to a client, allows to quickly view the UI at a given state of the game without having to play all the hands leading to this state.
     ShowUuid, // get uuid of connected client : for use with debugUi
     ShowServerStatus, // get server infos : active games, players connected...
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "cmd", rename_all = "snake_case")]
+pub enum GamePlayCommand {
+    Bid(BidCommand),
+    Play(PlayCommand),
+    Pass,
+    CallKing(CallKingCommand),
+    MakeDog(MakeDogCommand),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Hash)]

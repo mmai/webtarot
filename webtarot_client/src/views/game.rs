@@ -22,6 +22,7 @@ use crate::protocol::{
     Command, GameInfo, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
     PlayerInfo,
     SendTextCommand,
+    GamePlayCommand,
     BidCommand, PlayCommand, CallKingCommand, MakeDogCommand,
     Turn,
     PlayEvent,
@@ -198,15 +199,15 @@ impl Component for GamePage {
             Msg::Bid(target) => {
                 self.is_waiting = true;
                 log!("received bid {:?}", target);
-                self.api.send(Command::Bid(BidCommand { target }));
+                self.api.send(Command::GamePlay(GamePlayCommand::Bid(BidCommand { target })));
             }
             Msg::Pass => {
                 self.is_waiting = true;
-                self.api.send(Command::Pass);
+                self.api.send(Command::GamePlay(GamePlayCommand::Pass));
             }
             Msg::CallKing(card) => {
                 self.is_waiting = true;
-                self.api.send(Command::CallKing(CallKingCommand { card }));
+                self.api.send(Command::GamePlay(GamePlayCommand::CallKing(CallKingCommand { card })));
             }
             Msg::AddToHand(card) => {
                 self.hand.add(card);
@@ -218,11 +219,11 @@ impl Component for GamePage {
             },
             Msg::MakeDog => {
                 self.is_waiting = true;
-                self.api.send(Command::MakeDog(MakeDogCommand { cards: self.dog }));
+                self.api.send(Command::GamePlay(GamePlayCommand::MakeDog(MakeDogCommand { cards: self.dog })));
             },
             Msg::Play(card) => {
                 self.is_waiting = true;
-                self.api.send(Command::Play(PlayCommand { card }));
+                self.api.send(Command::GamePlay(GamePlayCommand::Play(PlayCommand { card })));
             }
         }
         true

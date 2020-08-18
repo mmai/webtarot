@@ -88,7 +88,7 @@ impl Game {
         };
 
         let mut game_state = self.game_state.lock().await;
-        let pos = game_state.add_player(player_info);
+        let pos = game_state.add_player(user.into());
         let player = game_state.player_by_pos(pos).unwrap().clone();
         drop(game_state);
         self.broadcast(&Message::PlayerConnected(player)).await;
@@ -114,7 +114,7 @@ impl Game {
         if game_state.remove_player(user_id) {
             drop(game_state);
             self.broadcast(&Message::PlayerDisconnected(PlayerDisconnectedMessage {
-                user_id,
+                player_id: user_id,
             }))
             .await;
         }

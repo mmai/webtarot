@@ -2033,6 +2033,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "webgame_server"
+version = "0.4.0"
+dependencies = [
+ "clap",
+ "futures 0.3.5",
+ "hyper",
+ "lazy_static",
+ "listenfd",
+ "log 0.4.8",
+ "pretty_env_logger",
+ "rand 0.7.3",
+ "serde_json",
+ "tarotgame",
+ "tokio",
+ "tokio-timer",
+ "uuid 0.8.1",
+ "warp",
+ "webtarot_protocol",
+]
+
+[[package]]
 name = "webtarot_client"
 version = "0.3.0"
 dependencies = [
@@ -2068,7 +2089,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_server"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "clap",
  "futures 0.3.5",
@@ -2084,6 +2105,7 @@ dependencies = [
  "tokio-timer",
  "uuid 0.8.1",
  "warp",
+ "webgame_server",
  "webtarot_protocol",
 ]
 

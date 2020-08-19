@@ -1,6 +1,8 @@
 use std::convert::Infallible;
 use std::sync::Arc;
 
+use std::pin::Pin;
+
 use std::net::SocketAddr;
 
 use futures::{FutureExt, StreamExt};
@@ -14,14 +16,19 @@ use std::time::Duration;
 
 use crate::protocol::{
     AuthenticateCommand, ChatMessage, ServerStatus, Command, JoinGameCommand, Message, ProtocolError,
+    GamePlayCommand,
     ProtocolErrorKind, SendTextCommand, SetPlayerRoleCommand,
     DebugUiCommand,
 };
 use crate::universe::Universe;
-use crate::dispatcher::on_gameplay;
 
-// async fn on_websocket_connect(universe: Arc<Universe>, guid: String, uuid: String, ws: ws::WebSocket) { 
-async fn on_websocket_connect(universe: Arc<Universe>, guid_uuid: String, ws: ws::WebSocket) { 
+// see https://users.rust-lang.org/t/how-to-store-async-function-pointer/38343/2
+pub type GamePlayHandler = fn( Arc<Universe>, Uuid, GamePlayCommand ) 
+    -> Pin<Box<dyn std::future::Future<Output = Result<(), ProtocolError>>
+        + Send // required by non-single-threaded executors
+    >>;
+
+async fn on_websocket_connect(universe: Arc<Universe>, guid_uuid: String, ws: ws::WebSocket, on_gameplay: GamePlayHandler ) { 
     let (user_ws_tx, mut user_ws_rx) = ws.split();
     let (tx, rx) = mpsc::unbounded_channel();
 
@@ -80,7 +87,7 @@ async fn on_websocket_connect(universe: Arc<Universe>, guid_uuid: String, ws: ws
         match result {
             Ok(msg) => {
                 log::debug!("Got message from websocket: {:?}", &msg);
-                if let Err(err) = on_user_message(universe.clone(), user.id, msg).await {
+                if let Err(err) = on_user_message(universe.clone(), user.id, msg, on_gameplay).await {
                     universe.send(user.id, &Message::Error(err)).await;
                 }
             }
@@ -111,6 +118,7 @@ async fn on_user_message(
     universe: Arc<Universe>,
     user_id: Uuid,
     msg: ws::Message,
+    on_gameplay: GamePlayHandler 
 ) -> Result<(), ProtocolError> {
     if msg.is_ping() {
         // XXX A warp ping. where does it come from ? Whatever, we manage it like our custom pings
@@ -355,9 +363,12 @@ pub async fn on_player_set_role(
     }
 }
 
-pub async fn serve(public_dir: String, socket: SocketAddr) {
+pub async fn serve(
+    public_dir: String,
+    socket: SocketAddr,
+    on_gameplay: GamePlayHandler 
+) {
     let universe = Arc::new(Universe::new());
-
     let make_svc = make_service_fn(move |_| {
         let universe = universe.clone();
         let pdir = public_dir.clone();
@@ -366,9 +377,10 @@ pub async fn serve(public_dir: String, socket: SocketAddr) {
             .and(warp::ws())
             .and(warp::path::param()) // enable params on websocket : ws/monparam
             .and(warp::any().map(move || universe.clone()))
-            .map(|ws: warp::ws::Ws, guid_uuid, universe: Arc<Universe>| {
+            .and(warp::any().map(move || on_gameplay))
+            .map(|ws: warp::ws::Ws, guid_uuid, universe: Arc<Universe>, on_gameplay: GamePlayHandler| {
                 // when the connection is upgraded to a websocket
-                ws.on_upgrade(move |ws| on_websocket_connect(universe, guid_uuid, ws))
+                ws.on_upgrade(move |ws| on_websocket_connect(universe, guid_uuid, ws, on_gameplay))
             })
         // .or(warp::fs::dir("public/")); // Static files
         .or(warp::fs::dir(pdir)); // Static files

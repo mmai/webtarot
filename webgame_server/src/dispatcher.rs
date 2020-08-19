@@ -1,8 +1,8 @@
 use uuid::Uuid;
 use std::sync::Arc;
 
-use crate::webgame_server::universe::Universe;
-use crate::webgame_server::game::Game;
+use crate::universe::Universe;
+use crate::game::Game;
 
 use crate::protocol::{ 
     GamePlayCommand, 
@@ -12,36 +12,27 @@ use crate::protocol::{
     ProtocolError, ProtocolErrorKind 
 };
 
-//see https://users.rust-lang.org/t/how-to-store-async-function-pointer/38343/4
-type DynFut<T> = ::std::pin::Pin<Box<dyn Send + ::std::future::Future<Output = T>>>;
-
-// pub async fn on_gameplay(
-pub fn on_gameplay(
+pub async fn on_gameplay(
     universe: Arc<Universe>,
     user_id: Uuid,
     cmd: GamePlayCommand,
-) -> DynFut<Result<(), ProtocolError>> {
-    Box::pin(async move {
-        if let Some(game) = universe.get_user_game(user_id).await {
+) -> Result<(), ProtocolError> {
+    if let Some(game) = universe.get_user_game(user_id).await {
 
-            match cmd {
-                GamePlayCommand::Bid(cmd) => on_player_bid(game, user_id, cmd).await,
-                GamePlayCommand::Play(cmd) => on_player_play(game, user_id, cmd).await,
-                GamePlayCommand::CallKing(cmd) => on_player_call_king(game, user_id, cmd).await,
-                GamePlayCommand::MakeDog(cmd) => on_player_make_dog(game, user_id, cmd).await,
-                GamePlayCommand::Pass => on_player_pass(game, user_id).await,
-            }                        
-        } else {
-            Err(ProtocolError::new(
-                    ProtocolErrorKind::BadState,
-                    "not in a game",
-            ))
-        }
-    })
+        match cmd {
+            GamePlayCommand::Bid(cmd) => on_player_bid(game, user_id, cmd).await,
+            GamePlayCommand::Play(cmd) => on_player_play(game, user_id, cmd).await,
+            GamePlayCommand::CallKing(cmd) => on_player_call_king(game, user_id, cmd).await,
+            GamePlayCommand::MakeDog(cmd) => on_player_make_dog(game, user_id, cmd).await,
+            GamePlayCommand::Pass => on_player_pass(game, user_id).await,
+        }                        
+    } else {
+        Err(ProtocolError::new(
+            ProtocolErrorKind::BadState,
+            "not in a game",
+        ))
+    }
 }                                
-
-
-// }
                                  
 pub async fn on_player_bid(
     game: Arc<Game>,

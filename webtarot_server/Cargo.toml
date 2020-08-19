@@ -13,7 +13,6 @@ serde_json = "1.0.48"
 
 webgame_server = { path = "../webgame_server" }
 webtarot_protocol = { path = "../webtarot_protocol" }
-tarotgame = { path = "../tarotgame" }
 
 uuid = { version = "0.8.1", features = ["v4"] }
 log = "0.4.8"

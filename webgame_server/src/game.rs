@@ -5,20 +5,20 @@ use uuid::Uuid;
 use std::fmt;
 
 use crate::protocol::{
-    GameState,
-    GameInfo, GameExtendedInfo, Message, PlayerDisconnectedMessage, PlayerRole,
-    PlayerInfo
+    GameInfo, GameExtendedInfo, // game
+    Message, PlayerDisconnectedMessage, // message
+    PlayerInfo, // player
 };
 use crate::universe::Universe;
 
-pub struct Game {
+pub struct Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     id: Uuid,
     join_code: String,
-    universe: Weak<Universe>,
-    game_state: Arc<Mutex<GameState>>,
+    universe: Weak<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
+    game_state: Arc<Mutex<GameStateType>>,
 }
 
-impl fmt::Debug for Game {
+impl<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> fmt::Debug for Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Game")
          .field("id", &self.id)
@@ -27,13 +27,13 @@ impl fmt::Debug for Game {
     }
 }
 
-impl Game {
-    pub fn new(join_code: String, universe: Arc<Universe>) -> Game {
+impl<GameStateType: Default, GamePlayerStateT, GameStateSnapshotT, PlayEventT> Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+    pub fn new(join_code: String, universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>) -> Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
         Game {
             id: Uuid::new_v4(),
             join_code,
             universe: Arc::downgrade(&universe),
-            game_state: Arc::new(Mutex::new(GameState::default())),
+            game_state: Arc::new(Mutex::new(GameStateType::default())),
         }
     }
 
@@ -41,7 +41,7 @@ impl Game {
         self.id
     }
 
-    pub fn state_handle(&self) -> &Arc<Mutex<GameState>> {
+    pub fn state_handle(&self) -> &Arc<Mutex<GameStateType>> {
         &self.game_state
     }
 
@@ -71,7 +71,7 @@ impl Game {
         self.game_state.lock().await.is_joinable()
     }
 
-    pub fn universe(&self) -> Arc<Universe> {
+    pub fn universe(&self) -> Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>> {
         self.universe.upgrade().unwrap()
     }
 
@@ -127,11 +127,6 @@ impl Game {
         }
     }
 
-    pub async fn set_player_role(&self, player_id: Uuid, role: PlayerRole) {
-        let mut game_state = self.game_state.lock().await;
-        game_state.set_player_role(player_id, role);
-    }
-
     pub async fn set_player_not_ready(&self, player_id: Uuid) {
         let mut game_state = self.game_state.lock().await;
         game_state.set_player_not_ready(player_id);
@@ -142,7 +137,7 @@ impl Game {
         game_state.set_player_ready(player_id);
     }
 
-    pub async fn broadcast(&self, message: &Message) {
+    pub async fn broadcast(&self, message: &Message<GamePlayerStateT, GameStateSnapshotT, PlayEventT>) {
         let universe = self.universe();
         let game_state = self.game_state.lock().await;
         for player_id in game_state.get_players().keys().copied() {
@@ -150,7 +145,7 @@ impl Game {
         }
     }
 
-    pub async fn send(&self, player_id: Uuid, message: &Message) {
+    pub async fn send(&self, player_id: Uuid, message: &Message<GamePlayerStateT, GameStateSnapshotT, PlayEventT>) {
         self.universe().send(player_id, message).await;
     }
 

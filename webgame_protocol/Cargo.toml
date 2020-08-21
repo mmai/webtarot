@@ -1,11 +1,9 @@
 [package]
-name = "webtarot_protocol"
-version = "0.3.0"
+name = "webgame_protocol"
+version = "0.4.0"
 authors = ["Henri Bourcereau <henri@bourcereau.fr>"]
 edition = "2018"
 
 [dependencies]
 serde = { version = "1.0.105", features = ["derive", "rc"] }
 uuid = { version = "0.8.1", features = ["serde"] }
-tarotgame = { path = "../tarotgame" }
-webgame_protocol = { path = "../webgame_protocol" }

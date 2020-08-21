@@ -2033,6 +2033,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "webgame_protocol"
+version = "0.4.0"
+dependencies = [
+ "serde",
+ "uuid 0.8.1",
+]
+
+[[package]]
 name = "webgame_server"
 version = "0.4.0"
 dependencies = [
@@ -2044,13 +2052,13 @@ dependencies = [
  "log 0.4.8",
  "pretty_env_logger",
  "rand 0.7.3",
+ "serde",
  "serde_json",
- "tarotgame",
  "tokio",
  "tokio-timer",
  "uuid 0.8.1",
  "warp",
- "webtarot_protocol",
+ "webgame_protocol",
 ]
 
 [[package]]
@@ -2085,6 +2093,7 @@ dependencies = [
  "serde",
  "tarotgame",
  "uuid 0.8.1",
+ "webgame_protocol",
 ]
 
 [[package]]
@@ -2104,6 +2113,7 @@ dependencies = [
  "tokio-timer",
  "uuid 0.8.1",
  "warp",
+ "webgame_protocol",
  "webgame_server",
  "webtarot_protocol",
 ]

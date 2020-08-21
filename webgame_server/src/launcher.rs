@@ -2,11 +2,10 @@ use clap::{Arg, App};
 
 use crate::server;
 
-use std::net::SocketAddr;
-
-pub(crate) use webtarot_protocol as protocol;
-
-pub async fn launch(on_gameplay: server::GamePlayHandler) {
+pub async fn launch<GamePlayCommand, SetPlayerRoleCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>(
+    on_gameplay: server::GamePlayHandler<GamePlayCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>,
+    on_setplayerrole: server::SetPlayerRoleHandler<SetPlayerRoleCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>
+    ) {
 // pub async fn launch(dispatcher: impl server::GameDispatcher) {
     pretty_env_logger::init();
 
@@ -51,6 +50,7 @@ pub async fn launch(on_gameplay: server::GamePlayHandler) {
             String::from(public_dir),
             socket,
             on_gameplay,
+            on_setplayerrole,
             ).await;
     } else {
         println!("Could not parse ip / port {}", str_socket);

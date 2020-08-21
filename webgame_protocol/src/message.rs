@@ -1,15 +1,12 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use webgame_protocol::{GameInfo, GameExtendedInfo};
-
-use crate::game_messages::GamePlayCommand;
-use crate::game::{GameStateSnapshot, PlayEvent};
-use crate::player::{PlayerInfo, GamePlayerState, PlayerRole};
+use crate::game::{GameInfo, GameExtendedInfo};
+use crate::player::{PlayerInfo};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
-pub enum Command {
+pub enum Command<GamePlayCommand, SetPlayerRoleCommand, GameStateSnapshot> {
     Ping,
     Authenticate(AuthenticateCommand),
     SendText(SendTextCommand),
@@ -22,7 +19,7 @@ pub enum Command {
     GamePlay(GamePlayCommand),
     SetPlayerRole(SetPlayerRoleCommand),
 
-    DebugUi(DebugUiCommand), // Used to send a custom state to a client, allows to quickly view the UI at a given state of the game without having to play all the hands leading to this state.
+    DebugUi(DebugUiCommand<GameStateSnapshot>), // Used to send a custom state to a client, allows to quickly view the UI at a given state of the game without having to play all the hands leading to this state.
     ShowUuid, // get uuid of connected client : for use with debugUi
     ShowServerStatus, // get server infos : active games, players connected...
 }
@@ -75,7 +72,7 @@ pub struct AuthenticateCommand {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DebugUiCommand {
+pub struct DebugUiCommand<GameStateSnapshot> {
     pub player_id: Uuid,
     pub snapshot: GameStateSnapshot,
 }
@@ -91,26 +88,21 @@ pub struct JoinGameCommand {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SetPlayerRoleCommand {
-    pub role: PlayerRole,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub enum Message {
+pub enum Message<GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     Connected,
     Pong,
     ServerStatus(ServerStatus),
     Chat(ChatMessage),
-    PlayerConnected(GamePlayerState),
+    PlayerConnected(GamePlayerStateT),
     PlayerDisconnected(PlayerDisconnectedMessage),
     PregameStarted,
     GameJoined(GameInfo),
     GameLeft,
     Authenticated(PlayerInfo),
     Error(ProtocolError),
-    PlayEvent(PlayEvent),
-    GameStateSnapshot(GameStateSnapshot),
+    PlayEvent(PlayEventT),
+    GameStateSnapshot(GameStateSnapshotT),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

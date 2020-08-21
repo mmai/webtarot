@@ -4,4 +4,4 @@ pub mod game;
 mod server;
 mod utils;
 
-pub(crate) use webtarot_protocol as protocol;
+pub(crate) use webgame_protocol as protocol;

@@ -3,13 +3,15 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use tarotgame::{NB_PLAYERS, bid, cards, pos, deal, trick};
+use webgame_protocol::GameState;
+
 use crate::turn::Turn;
 use crate::deal::{Deal, DealSnapshot};
 use crate::player::{PlayerInfo, PlayerRole, GamePlayerState};
-use tarotgame::{NB_PLAYERS, bid, cards, pos, deal, trick};
 use crate::{ ProtocolError, ProtocolErrorKind };
 
-pub struct GameState {
+pub struct TarotGameState {
     players: BTreeMap<Uuid, GamePlayerState>,
     turn: Turn,
     deal: Deal,
@@ -17,9 +19,9 @@ pub struct GameState {
     scores: Vec<[f32; NB_PLAYERS]>,
 }
 
-impl GameState {
-    pub fn default() -> Self {
-        GameState {
+impl Default for TarotGameState {
+    fn default() -> TarotGameState {
+        TarotGameState {
             players: BTreeMap::new(),
             turn: Turn::Pregame,
             deal: Deal::new(pos::PlayerPos::P0),
@@ -27,20 +29,22 @@ impl GameState {
             scores: vec![],
         }
     }
+}
 
-    pub fn get_turn(&self) -> Turn {
-        self.turn
-    }
+impl GameState for TarotGameState {
+    type PlayerPos = pos::PlayerPos;
+    type PlayerRole = PlayerRole;
+    type GamePlayerState = GamePlayerState;
 
-    pub fn is_joinable(&self) -> bool {
+    fn is_joinable(&self) -> bool {
         self.turn == Turn::Pregame
     }
     
-    pub fn get_players(&self) -> &BTreeMap<Uuid, GamePlayerState> {
+    fn get_players(&self) -> &BTreeMap<Uuid, GamePlayerState> {
         &self.players
     }
 
-    pub fn add_player(&mut self, player_info: PlayerInfo) -> pos::PlayerPos {
+    fn add_player(&mut self, player_info: PlayerInfo) -> pos::PlayerPos {
         if self.players.contains_key(&player_info.id) {
             return self.players.get(&player_info.id).unwrap().pos;
         }
@@ -72,14 +76,21 @@ impl GameState {
         newpos
     }
 
-    pub fn remove_player(&mut self, player_id: Uuid) -> bool {
+    fn remove_player(&mut self, player_id: Uuid) -> bool {
         self.players.remove(&player_id).is_some()
     }
 
-    pub fn set_player_role(&mut self, player_id: Uuid, role: PlayerRole) {
+    fn set_player_role(&mut self, player_id: Uuid, role: PlayerRole) {
         if let Some(player_state) = self.players.get_mut(&player_id) {
             player_state.role = role;
         }
+    }
+
+}
+
+impl TarotGameState {
+    pub fn get_turn(&self) -> Turn {
+        self.turn
     }
 
     pub fn set_player_not_ready(&mut self, player_id: Uuid) {
@@ -417,19 +428,6 @@ impl Default for GameStateSnapshot {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct GameInfo {
-    pub game_id: Uuid,
-    pub join_code: String,
-}
-
-//Used for server diagnostics
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct GameExtendedInfo {
-    pub game: GameInfo,
-    pub players: Vec<Uuid>
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -438,7 +436,7 @@ mod tests {
 
     #[test]
     fn test_all_pass() {
-        let mut game = GameState::default();
+        let mut game = TarotGameState::default();
         let pos0 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player0")});
         let pos1 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player1")});
         let pos2 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player2")});
@@ -475,7 +473,7 @@ mod tests {
 
     #[test]
     fn test_game() {
-        let mut game = GameState::default();
+        let mut game = TarotGameState::default();
         let pos0 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player0")});
         let pos1 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player1")});
         let pos2 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player2")});

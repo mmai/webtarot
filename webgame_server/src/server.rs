@@ -5,6 +5,7 @@ use std::pin::Pin;
 
 use std::net::SocketAddr;
 
+use serde::{Serialize, Deserialize};
 use futures::{FutureExt, StreamExt};
 use hyper::{service::make_service_fn, Server};
 use tokio::sync::mpsc;
@@ -16,19 +17,28 @@ use std::time::Duration;
 
 use crate::protocol::{
     AuthenticateCommand, ChatMessage, ServerStatus, Command, JoinGameCommand, Message, ProtocolError,
-    GamePlayCommand,
-    ProtocolErrorKind, SendTextCommand, SetPlayerRoleCommand,
+    ProtocolErrorKind, SendTextCommand,
     DebugUiCommand,
 };
 use crate::universe::Universe;
 
 // see https://users.rust-lang.org/t/how-to-store-async-function-pointer/38343/2
-pub type GamePlayHandler = fn( Arc<Universe>, Uuid, GamePlayCommand ) 
+pub type GamePlayHandler<GamePlayCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> = fn( Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>, Uuid, GamePlayCommand ) 
+    -> Pin<Box<dyn std::future::Future<Output = Result<(), ProtocolError>>
+        + Send // required by non-single-threaded executors
+    >>;
+pub type SetPlayerRoleHandler<SetPlayerRoleCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> = fn( Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>, Uuid, SetPlayerRoleCommand ) 
     -> Pin<Box<dyn std::future::Future<Output = Result<(), ProtocolError>>
         + Send // required by non-single-threaded executors
     >>;
 
-async fn on_websocket_connect(universe: Arc<Universe>, guid_uuid: String, ws: ws::WebSocket, on_gameplay: GamePlayHandler ) { 
+async fn on_websocket_connect<GamePlayCommand, SetPlayerRoleCommand, GameStateType: Default, GamePlayerStateT: Serialize, GameStateSnapshotT: Serialize, PlayEventT:Serialize>(
+    universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
+    guid_uuid: String,
+    ws: ws::WebSocket,
+    on_gameplay: GamePlayHandler<GamePlayCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>,
+    on_setplayerrole: SetPlayerRoleHandler<SetPlayerRoleCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>,
+    ) { 
     let (user_ws_tx, mut user_ws_rx) = ws.split();
     let (tx, rx) = mpsc::unbounded_channel();
 
@@ -87,7 +97,7 @@ async fn on_websocket_connect(universe: Arc<Universe>, guid_uuid: String, ws: ws
         match result {
             Ok(msg) => {
                 log::debug!("Got message from websocket: {:?}", &msg);
-                if let Err(err) = on_user_message(universe.clone(), user.id, msg, on_gameplay).await {
+                if let Err(err) = on_user_message(universe.clone(), user.id, msg, on_gameplay, on_setplayerrole).await {
                     universe.send(user.id, &Message::Error(err)).await;
                 }
             }
@@ -101,7 +111,7 @@ async fn on_websocket_connect(universe: Arc<Universe>, guid_uuid: String, ws: ws
     on_user_disconnected(universe, user.id).await;
 }
 
-async fn on_user_disconnected(universe: Arc<Universe>, user_id: Uuid) {
+async fn on_user_disconnected<GameStateType:Default, GamePlayerStateT:Serialize, GameStateSnapshotT:Serialize, PlayEventT:Serialize>(universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>, user_id: Uuid) {
     // If all users have disconnected, we remove the game itself
     if let Some(game) = universe.get_user_game(user_id).await {
         // At this point we check if there is only this disconnecting user left
@@ -114,11 +124,19 @@ async fn on_user_disconnected(universe: Arc<Universe>, user_id: Uuid) {
     log::info!("user {:#?} disconnected", user_id);
 }
 
-async fn on_user_message(
-    universe: Arc<Universe>,
+async fn on_user_message<'de,
+    GamePlayCommand: Deserialize<'de> + std::fmt::Debug,
+    SetPlayerRoleCommand: Deserialize<'de> + std::fmt::Debug, 
+    GameStateType:Default,
+    GamePlayerStateT:Serialize,
+    GameStateSnapshotT:Serialize + Deserialize<'de> + std::fmt::Debug,
+    PlayEventT:Serialize>
+       (
+    universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
     user_id: Uuid,
     msg: ws::Message,
-    on_gameplay: GamePlayHandler 
+    on_gameplay: GamePlayHandler<GamePlayCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>,
+    on_setplayerrole: SetPlayerRoleHandler<SetPlayerRoleCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>,
 ) -> Result<(), ProtocolError> {
     if msg.is_ping() {
         // XXX A warp ping. where does it come from ? Whatever, we manage it like our custom pings
@@ -136,7 +154,7 @@ async fn on_user_message(
         }
     };
 
-    let cmd: Command = match serde_json::from_str(&req_json) {
+    let cmd: Command<GamePlayCommand, SetPlayerRoleCommand, GameStateSnapshotT> = match serde_json::from_str(&req_json) {
         Ok(req) => req,
         Err(err) => {
             log::debug!("error parsing json {}", err);
@@ -175,7 +193,7 @@ async fn on_user_message(
             Command::Continue => on_player_continue(universe, user_id).await,
             Command::SendText(cmd) => on_user_send_text(universe, user_id, cmd).await,
 
-            Command::SetPlayerRole(cmd) => on_player_set_role(universe, user_id, cmd).await,
+            Command::SetPlayerRole(cmd) => on_setplayerrole(universe, user_id, cmd).await,
             Command::GamePlay(cmd) => on_gameplay(universe, user_id, cmd).await,
             //For debug purposes only
             Command::ShowUuid => on_show_uuid(universe, user_id).await,
@@ -191,7 +209,7 @@ async fn on_user_message(
     }
 }
 
-async fn on_new_game(universe: Arc<Universe>, user_id: Uuid) -> Result<(), ProtocolError> {
+async fn on_new_game<GameStateType:Default, GamePlayerStateT:Serialize, GameStateSnapshotT:Serialize, PlayEventT:Serialize>(universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>, user_id: Uuid) -> Result<(), ProtocolError> {
     universe.remove_user_from_game(user_id).await;
     let game = universe.new_game().await;
     game.add_player(user_id).await;
@@ -202,8 +220,8 @@ async fn on_new_game(universe: Arc<Universe>, user_id: Uuid) -> Result<(), Proto
     Ok(())
 }
 
-async fn on_join_game(
-    universe: Arc<Universe>,
+async fn on_join_game<GameStateType:Default, GamePlayerStateT:Serialize, GameStateSnapshotT:Serialize, PlayEventT:Serialize>(
+    universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
     user_id: Uuid,
     cmd: JoinGameCommand,
 ) -> Result<(), ProtocolError> {
@@ -215,7 +233,7 @@ async fn on_join_game(
     Ok(())
 }
 
-async fn on_leave_game(universe: Arc<Universe>, user_id: Uuid) -> Result<(), ProtocolError> {
+async fn on_leave_game<GameStateType:Default, GamePlayerStateT:Serialize, GameStateSnapshotT:Serialize, PlayEventT:Serialize>(universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>, user_id: Uuid) -> Result<(), ProtocolError> {
     log::info!(
         "player {:?} leaving game",
         user_id
@@ -225,8 +243,8 @@ async fn on_leave_game(universe: Arc<Universe>, user_id: Uuid) -> Result<(), Pro
     Ok(())
 }
 
-async fn on_ping(
-    universe: Arc<Universe>,
+async fn on_ping<GameStateType:Default, GamePlayerStateT:Serialize, GameStateSnapshotT:Serialize, PlayEventT:Serialize>(
+    universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
     user_id: Uuid,
 ) -> Result<(), ProtocolError> {
     universe
@@ -235,8 +253,8 @@ async fn on_ping(
     Ok(())
 }
 
-async fn on_show_uuid(
-    universe: Arc<Universe>,
+async fn on_show_uuid<GameStateType:Default, GamePlayerStateT:Serialize, GameStateSnapshotT:Serialize, PlayEventT:Serialize>(
+    universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
     user_id: Uuid,
 ) -> Result<(), ProtocolError> {
     let pid = universe.show_users(user_id).await[0];
@@ -246,8 +264,8 @@ async fn on_show_uuid(
     Ok(())
 }
 
-async fn on_server_status(
-    universe: Arc<Universe>,
+async fn on_server_status<GameStateType:Default, GamePlayerStateT:Serialize, GameStateSnapshotT:Serialize, PlayEventT:Serialize>(
+    universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
     user_id: Uuid,
 ) -> Result<(), ProtocolError> {
     let players = universe.show_users(user_id).await;
@@ -258,9 +276,9 @@ async fn on_server_status(
     Ok(())
 }
 
-async fn on_debug_ui(
-    universe: Arc<Universe>,
-    cmd: DebugUiCommand,
+async fn on_debug_ui<GameStateType:Default, GamePlayerStateT:Serialize, GameStateSnapshotT:Serialize, PlayEventT:Serialize>(
+    universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
+    cmd: DebugUiCommand<GameStateSnapshotT>,
 ) -> Result<(), ProtocolError> {
     universe
         .send(cmd.player_id, &Message::GameStateSnapshot(cmd.snapshot))
@@ -268,8 +286,8 @@ async fn on_debug_ui(
     Ok(())
 }
 
-async fn on_player_authenticate(
-    universe: Arc<Universe>,
+async fn on_player_authenticate<GameStateType:Default, GamePlayerStateT:Serialize, GameStateSnapshotT:Serialize, PlayEventT:Serialize>(
+    universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
     user_id: Uuid,
     cmd: AuthenticateCommand,
 ) -> Result<(), ProtocolError> {
@@ -295,8 +313,8 @@ async fn on_player_authenticate(
     Ok(())
 }
 
-pub async fn on_player_continue(
-    universe: Arc<Universe>,
+pub async fn on_player_continue<GameStateType:Default, GamePlayerStateT:Serialize, GameStateSnapshotT:Serialize, PlayEventT:Serialize>(
+    universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
     user_id: Uuid,
 ) -> Result<(), ProtocolError> {
     if let Some(game) = universe.get_user_game(user_id).await {
@@ -306,8 +324,8 @@ pub async fn on_player_continue(
     Ok(())
 }
 
-pub async fn on_player_mark_ready(
-    universe: Arc<Universe>,
+pub async fn on_player_mark_ready<GameStateType:Default, GamePlayerStateT:Serialize, GameStateSnapshotT:Serialize, PlayEventT:Serialize>(
+    universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
     user_id: Uuid,
 ) -> Result<(), ProtocolError> {
     if let Some(game) = universe.get_user_game(user_id).await {
@@ -319,8 +337,8 @@ pub async fn on_player_mark_ready(
     Ok(())
 }
 
-pub async fn on_user_send_text(
-    universe: Arc<Universe>,
+pub async fn on_user_send_text<GameStateType:Default, GamePlayerStateT:Serialize, GameStateSnapshotT:Serialize, PlayEventT:Serialize>(
+    universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
     user_id: Uuid,
     cmd: SendTextCommand,
 ) -> Result<(), ProtocolError> {
@@ -339,34 +357,11 @@ pub async fn on_user_send_text(
     }
 }
 
-pub async fn on_player_set_role(
-    universe: Arc<Universe>,
-    user_id: Uuid,
-    cmd: SetPlayerRoleCommand,
-) -> Result<(), ProtocolError> {
-    if let Some(game) = universe.get_user_game(user_id).await {
-        if !game.is_joinable().await {
-            return Err(ProtocolError::new(
-                ProtocolErrorKind::BadState,
-                "cannot set role because game is not not joinable",
-            ));
-        }
-        game.set_player_role(user_id, cmd.role).await;
-        game.set_player_not_ready(user_id).await;
-        game.broadcast_state().await;
-        Ok(())
-    } else {
-        Err(ProtocolError::new(
-            ProtocolErrorKind::BadState,
-            "not in a game",
-        ))
-    }
-}
-
-pub async fn serve(
+pub async fn serve<GamePlayCommand, SetPlayerRoleCommand, GameStateType:Default, GamePlayerStateT:Serialize, GameStateSnapshotT:Serialize, PlayEventT:Serialize> (
     public_dir: String,
     socket: SocketAddr,
-    on_gameplay: GamePlayHandler 
+    on_gameplay: GamePlayHandler<GamePlayCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>,
+    on_setplayerrole: SetPlayerRoleHandler<SetPlayerRoleCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>
 ) {
     let universe = Arc::new(Universe::new());
     let make_svc = make_service_fn(move |_| {
@@ -378,9 +373,15 @@ pub async fn serve(
             .and(warp::path::param()) // enable params on websocket : ws/monparam
             .and(warp::any().map(move || universe.clone()))
             .and(warp::any().map(move || on_gameplay))
-            .map(|ws: warp::ws::Ws, guid_uuid, universe: Arc<Universe>, on_gameplay: GamePlayHandler| {
+            .and(warp::any().map(move || on_setplayerrole))
+            .map(|ws: warp::ws::Ws,
+                guid_uuid,
+                universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
+                on_gameplay: GamePlayHandler<GamePlayCommand, GameStateType>,
+                on_setplayerrole: SetPlayerRoleHandler<SetPlayerRoleCommand, GameStateType>
+                | {
                 // when the connection is upgraded to a websocket
-                ws.on_upgrade(move |ws| on_websocket_connect(universe, guid_uuid, ws, on_gameplay))
+                ws.on_upgrade(move |ws| on_websocket_connect(universe, guid_uuid, ws, on_gameplay, on_setplayerrole))
             })
         // .or(warp::fs::dir("public/")); // Static files
         .or(warp::fs::dir(pdir)); // Static files

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::game::{GameInfo, GameExtendedInfo};
+use crate::game::{GameInfo, GameExtendedInfo, GameState};
 use crate::player::{PlayerInfo};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -89,7 +89,7 @@ pub struct JoinGameCommand {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub enum Message<GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+pub enum Message<GamePlayerStateT: Send, GameStateSnapshotT: Send, PlayEventT: Send> {
     Connected,
     Pong,
     ServerStatus(ServerStatus),

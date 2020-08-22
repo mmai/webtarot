@@ -4,12 +4,7 @@ use uuid::Uuid;
 use crate::turn::Turn;
 
 use tarotgame::pos;
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-pub struct PlayerInfo {
-    pub id: Uuid,
-    pub nickname: String,
-}
+use webgame_protocol::{PlayerInfo, PlayerState};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
@@ -36,6 +31,12 @@ pub struct GamePlayerState {
     pub pos: pos::PlayerPos,
     pub role: PlayerRole,
     pub ready: bool,
+}
+
+impl PlayerState for GamePlayerState {
+    fn player(self) -> PlayerInfo {
+        self.player
+    }
 }
 
 impl GamePlayerState {

@@ -4,11 +4,11 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use tarotgame::{NB_PLAYERS, bid, cards, pos, deal, trick};
-use webgame_protocol::GameState;
+use webgame_protocol::{GameState, PlayerInfo};
 
 use crate::turn::Turn;
 use crate::deal::{Deal, DealSnapshot};
-use crate::player::{PlayerInfo, PlayerRole, GamePlayerState};
+use crate::player::{PlayerRole, GamePlayerState};
 use crate::{ ProtocolError, ProtocolErrorKind };
 
 pub struct TarotGameState {
@@ -86,6 +86,10 @@ impl GameState for TarotGameState {
         }
     }
 
+    fn player_by_pos(&self, position: pos::PlayerPos) -> Option<&GamePlayerState> {
+        self.players.iter().find(|(_uuid, player)| player.pos == position).map(|p| p.1)
+    }
+
 }
 
 impl TarotGameState {
@@ -101,10 +105,6 @@ impl TarotGameState {
 
     fn position_taken(&self, position: pos::PlayerPos) -> bool {
         self.player_by_pos(position) != None
-    }
-
-    pub fn player_by_pos(&self, position: pos::PlayerPos) -> Option<&GamePlayerState> {
-        self.players.iter().find(|(_uuid, player)| player.pos == position).map(|p| p.1)
     }
 
     // Creates a view of the game for a player

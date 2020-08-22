@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::player::PlayerInfo;
+use crate::player::{PlayerInfo, PlayerState};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GameInfo {
@@ -19,7 +19,7 @@ pub struct GameExtendedInfo {
 
 pub trait GameState {
     type PlayerPos;
-    type GamePlayerState;
+    type GamePlayerState: PlayerState;
     type PlayerRole;
 
     fn is_joinable(&self) -> bool;
@@ -27,4 +27,5 @@ pub trait GameState {
     fn add_player(&mut self, player_info: PlayerInfo) -> Self::PlayerPos; 
     fn remove_player(&mut self, player_id: Uuid) -> bool;
     fn set_player_role(&mut self, player_id: Uuid, role: Self::PlayerRole);
+    fn player_by_pos(&self, position: Self::PlayerPos) -> Option<&Self::GamePlayerState>;
 }

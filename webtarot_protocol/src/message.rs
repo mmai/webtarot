@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use webgame_protocol::{GameInfo, GameExtendedInfo};
+use webgame_protocol::{GameInfo, GameExtendedInfo, PlayerInfo};
 
 use crate::game_messages::GamePlayCommand;
 use crate::game::{GameStateSnapshot, PlayEvent};
-use crate::player::{PlayerInfo, GamePlayerState, PlayerRole};
+use crate::player::{GamePlayerState, PlayerRole};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", rename_all = "snake_case")]

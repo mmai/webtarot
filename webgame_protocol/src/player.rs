@@ -6,3 +6,7 @@ pub struct PlayerInfo {
     pub id: Uuid,
     pub nickname: String,
 }
+
+pub trait PlayerState {
+    fn player(self) -> PlayerInfo;
+}

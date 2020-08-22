@@ -8,7 +8,7 @@ use uuid::Uuid;
 use warp::ws;
 
 use crate::game::Game;
-use crate::protocol::{Message, PlayerInfo, ProtocolError, ProtocolErrorKind, GameExtendedInfo};
+use crate::protocol::{Message, PlayerInfo, ProtocolError, ProtocolErrorKind, GameExtendedInfo, GameState};
 use crate::utils::generate_join_code;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -51,17 +51,17 @@ pub struct UniverseUserState {
     tx: mpsc::UnboundedSender<Result<ws::Message, warp::Error>>,
 }
 
-pub struct UniverseState<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+pub struct UniverseState<GameStateType: GameState, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     users: HashMap<Uuid, UniverseUserState>,
     games: HashMap<Uuid, Arc<Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>>,
     joinable_games: HashMap<String, Uuid>,
 }
 
-pub struct Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+pub struct Universe<GameStateType: GameState, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     state: Arc<RwLock<UniverseState<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>>,
 }
 
-impl<GameStateType: Default, GamePlayerStateT: Serialize, GameStateSnapshotT:Serialize, PlayEventT:Serialize> Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+impl<GameStateType: Default+GameState, GamePlayerStateT: Serialize+Send, GameStateSnapshotT:Serialize+Send, PlayEventT:Serialize+Send> Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     pub fn new() -> Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
         Universe {
             state: Arc::new(RwLock::new(UniverseState {

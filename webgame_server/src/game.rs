@@ -1,24 +1,29 @@
 use std::sync::{Arc, Weak};
 use tokio::sync::Mutex;
+use serde::{Deserialize, Serialize};
 
 use uuid::Uuid;
 use std::fmt;
 
+use webgame_protocol::PlayerState;
 use crate::protocol::{
-    GameInfo, GameExtendedInfo, // game
+    GameInfo, GameExtendedInfo, GameState,// game
     Message, PlayerDisconnectedMessage, // message
     PlayerInfo, // player
 };
 use crate::universe::Universe;
 
-pub struct Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+pub struct Game<GameStateType: GameState, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     id: Uuid,
     join_code: String,
     universe: Weak<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
     game_state: Arc<Mutex<GameStateType>>,
 }
 
-impl<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> fmt::Debug for Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+impl
+    <GameStateType: GameState, GamePlayerStateT, GameStateSnapshotT, PlayEventT> 
+fmt::Debug for Game
+    <GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Game")
          .field("id", &self.id)
@@ -27,7 +32,9 @@ impl<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> fmt::Debug
     }
 }
 
-impl<GameStateType: Default, GamePlayerStateT, GameStateSnapshotT, PlayEventT> Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+impl<GameStateType: Default+GameState,
+    GamePlayerStateT: Send+Serialize, GameStateSnapshotT: Send+Serialize, PlayEventT: Send+Serialize> 
+Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     pub fn new(join_code: String, universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>) -> Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
         Game {
             id: Uuid::new_v4(),
@@ -166,7 +173,7 @@ impl<GameStateType: Default, GamePlayerStateT, GameStateSnapshotT, PlayEventT> G
     pub async fn get_player(&self, player_id: &Uuid) -> Option<PlayerInfo> {
         let mut player: Option<PlayerInfo> = None;
         if let Some(state) = self.game_state.lock().await.get_players().get(player_id) {
-            player = Some(state.player.clone());
+            player = Some(state.player().clone());
         }
         player
     }

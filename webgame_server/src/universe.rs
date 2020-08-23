@@ -8,7 +8,7 @@ use uuid::Uuid;
 use warp::ws;
 
 use crate::game::Game;
-use crate::protocol::{Message, PlayerInfo, ProtocolError, ProtocolErrorKind, GameExtendedInfo, GameState};
+use crate::protocol::{Message, PlayerInfo, ProtocolError, ProtocolErrorKind, GameExtendedInfo, GameState, GameStateSnapshot};
 use crate::utils::generate_join_code;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -51,18 +51,18 @@ pub struct UniverseUserState {
     tx: mpsc::UnboundedSender<Result<ws::Message, warp::Error>>,
 }
 
-pub struct UniverseState<GameStateType: GameState, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+pub struct UniverseState<'gs, GameStateType: GameState, GamePlayerStateT, GameStateSnapshotT: GameStateSnapshot<'gs>, PlayEventT> {
     users: HashMap<Uuid, UniverseUserState>,
-    games: HashMap<Uuid, Arc<Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>>,
+    games: HashMap<Uuid, Arc<Game<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>>,
     joinable_games: HashMap<String, Uuid>,
 }
 
-pub struct Universe<GameStateType: GameState, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
-    state: Arc<RwLock<UniverseState<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>>,
+pub struct Universe<'gs, GameStateType: GameState, GamePlayerStateT, GameStateSnapshotT: GameStateSnapshot<'gs>, PlayEventT> {
+    state: Arc<RwLock<UniverseState<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>>,
 }
 
-impl<GameStateType: Default+GameState, GamePlayerStateT: Serialize+Send, GameStateSnapshotT:Serialize+Send, PlayEventT:Serialize+Send> Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
-    pub fn new() -> Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+impl<'gs, 'g, GameStateType: Default+GameState, GamePlayerStateT: Serialize+Send, GameStateSnapshotT:GameStateSnapshot<'gs>, PlayEventT:Serialize+Send> Universe<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+    pub fn new() -> Universe<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
         Universe {
             state: Arc::new(RwLock::new(UniverseState {
                 users: HashMap::new(),
@@ -93,7 +93,7 @@ impl<GameStateType: Default+GameState, GamePlayerStateT: Serialize+Send, GameSta
     }
 
     /// Starts a new game.
-    pub async fn new_game(self: &Arc<Self>) -> Arc<Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>> {
+    pub async fn new_game(self: &Arc<Self>) -> Arc<Game<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>> {
         let mut universe_state = self.state.write().await;
 
         loop {
@@ -116,7 +116,7 @@ impl<GameStateType: Default+GameState, GamePlayerStateT: Serialize+Send, GameSta
         &self,
         user_id: Uuid,
         join_code: String,
-    ) -> Result<Arc<Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>, ProtocolError> {
+    ) -> Result<Arc<Game<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>, ProtocolError> {
         // assign to temporary to release lock.
         let game_id = self
             .state
@@ -256,7 +256,7 @@ impl<GameStateType: Default+GameState, GamePlayerStateT: Serialize+Send, GameSta
     }
 
     /// Returns a game by ID
-    pub async fn get_game(&self, game_id: Uuid) -> Option<Arc<Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>> {
+    pub async fn get_game(&self, game_id: Uuid) -> Option<Arc<Game<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>> {
         let universe_state = self.state.read().await;
         universe_state.games.get(&game_id).cloned()
     }
@@ -268,7 +268,7 @@ impl<GameStateType: Default+GameState, GamePlayerStateT: Serialize+Send, GameSta
     }
 
     /// Returns the game a user is in.
-    pub async fn get_user_game(&self, user_id: Uuid) -> Option<Arc<Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>> {
+    pub async fn get_user_game(&self, user_id: Uuid) -> Option<Arc<Game<'g, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>> {
         let universe_state = self.state.read().await;
         universe_state
             .users

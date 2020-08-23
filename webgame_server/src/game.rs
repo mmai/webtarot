@@ -7,23 +7,23 @@ use std::fmt;
 
 use webgame_protocol::PlayerState;
 use crate::protocol::{
-    GameInfo, GameExtendedInfo, GameState,// game
+    GameInfo, GameExtendedInfo, GameState, GameStateSnapshot,// game
     Message, PlayerDisconnectedMessage, // message
     PlayerInfo, // player
 };
 use crate::universe::Universe;
 
-pub struct Game<GameStateType: GameState, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+pub struct Game<'gs, GameStateType: GameState, GamePlayerStateT, GameStateSnapshotT: GameStateSnapshot<'gs>, PlayEventT> {
     id: Uuid,
     join_code: String,
-    universe: Weak<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
+    universe: Weak<Universe<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
     game_state: Arc<Mutex<GameStateType>>,
 }
 
 impl
-    <GameStateType: GameState, GamePlayerStateT, GameStateSnapshotT, PlayEventT> 
+    <'gs, GameStateType: GameState, GamePlayerStateT, GameStateSnapshotT: GameStateSnapshot<'gs>, PlayEventT> 
 fmt::Debug for Game
-    <GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+    <'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Game")
          .field("id", &self.id)
@@ -32,10 +32,10 @@ fmt::Debug for Game
     }
 }
 
-impl<GameStateType: Default+GameState,
-    GamePlayerStateT: Send+Serialize, GameStateSnapshotT: Send+Serialize, PlayEventT: Send+Serialize> 
-Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
-    pub fn new(join_code: String, universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>) -> Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+impl<'gs, GameStateType: Default+GameState,
+    GamePlayerStateT: Send+Serialize, GameStateSnapshotT: GameStateSnapshot<'gs>, PlayEventT: Send+Serialize> 
+Game<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+    pub fn new(join_code: String, universe: Arc<Universe<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>) -> Game<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
         Game {
             id: Uuid::new_v4(),
             join_code,
@@ -78,7 +78,7 @@ Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
         self.game_state.lock().await.is_joinable()
     }
 
-    pub fn universe(&self) -> Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>> {
+    pub fn universe(&self) -> Arc<Universe<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>> {
         self.universe.upgrade().unwrap()
     }
 

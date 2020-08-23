@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::fmt::Debug;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -28,4 +29,7 @@ pub trait GameState {
     fn remove_player(&mut self, player_id: Uuid) -> bool;
     fn set_player_role(&mut self, player_id: Uuid, role: Self::PlayerRole);
     fn player_by_pos(&self, position: Self::PlayerPos) -> Option<&Self::GamePlayerState>;
+}
+
+pub trait GameStateSnapshot<'gs>: Debug+Serialize+Deserialize<'gs>+Send {
 }

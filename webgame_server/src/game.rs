@@ -33,7 +33,7 @@ fmt::Debug for Game
 }
 
 impl<'gs, GameStateType: Default+GameState,
-    GamePlayerStateT: Send+Serialize, GameStateSnapshotT: GameStateSnapshot<'gs>, PlayEventT: Send+Serialize> 
+    GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot<'gs>, PlayEventT: Send+Serialize> 
 Game<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     pub fn new(join_code: String, universe: Arc<Universe<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>) -> Game<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
         Game {

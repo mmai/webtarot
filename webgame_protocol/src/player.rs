@@ -7,6 +7,6 @@ pub struct PlayerInfo {
     pub nickname: String,
 }
 
-pub trait PlayerState {
+pub trait PlayerState: Send+Serialize {
     fn player(self) -> PlayerInfo;
 }

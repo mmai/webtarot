@@ -8,7 +8,7 @@ use uuid::Uuid;
 use warp::ws;
 
 use crate::game::Game;
-use crate::protocol::{Message, PlayerInfo, ProtocolError, ProtocolErrorKind, GameExtendedInfo, GameState, GameStateSnapshot};
+use crate::protocol::{Message, PlayerInfo, PlayerState, ProtocolError, ProtocolErrorKind, GameExtendedInfo, GameState, GameStateSnapshot};
 use crate::utils::generate_join_code;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -61,7 +61,7 @@ pub struct Universe<'gs, GameStateType: GameState, GamePlayerStateT, GameStateSn
     state: Arc<RwLock<UniverseState<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>>,
 }
 
-impl<'gs, 'g, GameStateType: Default+GameState, GamePlayerStateT: Serialize+Send, GameStateSnapshotT:GameStateSnapshot<'gs>, PlayEventT:Serialize+Send> Universe<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+impl<'gs, 'g, GameStateType: Default+GameState, GamePlayerStateT: PlayerState, GameStateSnapshotT:GameStateSnapshot<'gs>, PlayEventT:Serialize+Send> Universe<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     pub fn new() -> Universe<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
         Universe {
             state: Arc::new(RwLock::new(UniverseState {
@@ -268,7 +268,7 @@ impl<'gs, 'g, GameStateType: Default+GameState, GamePlayerStateT: Serialize+Send
     }
 
     /// Returns the game a user is in.
-    pub async fn get_user_game(&self, user_id: Uuid) -> Option<Arc<Game<'g, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>> {
+    pub async fn get_user_game(&self, user_id: Uuid) -> Option<Arc<Game<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>> {
         let universe_state = self.state.read().await;
         universe_state
             .users

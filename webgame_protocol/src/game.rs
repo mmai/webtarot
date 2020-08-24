@@ -18,7 +18,7 @@ pub struct GameExtendedInfo {
     pub players: Vec<Uuid>
 }
 
-pub trait GameState {
+pub trait GameState: Sync+Default+Send {
     type PlayerPos;
     type GamePlayerState: PlayerState;
     type PlayerRole;

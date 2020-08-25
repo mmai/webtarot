@@ -31,10 +31,11 @@ impl Default for TarotGameState {
     }
 }
 
-impl GameState for TarotGameState {
+impl<'gs> GameState<'gs> for TarotGameState {
     type PlayerPos = pos::PlayerPos;
     type PlayerRole = PlayerRole;
     type GamePlayerState = GamePlayerState;
+    type Snapshot = GameStateSnapshot;
 
     fn is_joinable(&self) -> bool {
         self.turn == Turn::Pregame
@@ -90,25 +91,8 @@ impl GameState for TarotGameState {
         self.players.iter().find(|(_uuid, player)| player.pos == position).map(|p| p.1)
     }
 
-}
-
-impl TarotGameState {
-    pub fn get_turn(&self) -> Turn {
-        self.turn
-    }
-
-    pub fn set_player_not_ready(&mut self, player_id: Uuid) {
-        if let Some(player_state) = self.players.get_mut(&player_id) {
-            player_state.ready = false;
-        }
-    }
-
-    fn position_taken(&self, position: pos::PlayerPos) -> bool {
-        self.player_by_pos(position) != None
-    }
-
     // Creates a view of the game for a player
-    pub fn make_snapshot(&self, player_id: Uuid) -> GameStateSnapshot {
+    fn make_snapshot(&self, player_id: Uuid) -> GameStateSnapshot {
         let contract = self.deal.deal_contract().cloned();
         let mut players = vec![];
         for (&_other_player_id, player_state) in self.players.iter() {
@@ -167,6 +151,23 @@ impl TarotGameState {
             turn: self.turn,
             deal
         }
+    }
+
+}
+
+impl TarotGameState {
+    pub fn get_turn(&self) -> Turn {
+        self.turn
+    }
+
+    pub fn set_player_not_ready(&mut self, player_id: Uuid) {
+        if let Some(player_state) = self.players.get_mut(&player_id) {
+            player_state.ready = false;
+        }
+    }
+
+    fn position_taken(&self, position: pos::PlayerPos) -> bool {
+        self.player_by_pos(position) != None
     }
 
     pub fn players_ready(&self) -> bool {
@@ -350,12 +351,16 @@ pub enum PlayEvent {
     Play( Uuid, cards::Card)
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct GameStateSnapshot {
     pub players: Vec<GamePlayerState>,
     pub turn: Turn,
     pub deal: DealSnapshot,
     pub scores: Vec<[f32; NB_PLAYERS]>,
+}
+
+impl<'gs> webgame_protocol::GameStateSnapshot<'gs> for GameStateSnapshot {
+
 }
 
 impl GameStateSnapshot {

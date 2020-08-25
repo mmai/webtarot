@@ -18,10 +18,11 @@ pub struct GameExtendedInfo {
     pub players: Vec<Uuid>
 }
 
-pub trait GameState: Sync+Default+Send {
+pub trait GameState<'gs>: Sync+Default+Send {
     type PlayerPos;
     type GamePlayerState: PlayerState;
     type PlayerRole;
+    type Snapshot: GameStateSnapshot<'gs>;
 
     fn is_joinable(&self) -> bool;
     fn get_players(&self) -> &BTreeMap<Uuid, Self::GamePlayerState>;
@@ -29,7 +30,7 @@ pub trait GameState: Sync+Default+Send {
     fn remove_player(&mut self, player_id: Uuid) -> bool;
     fn set_player_role(&mut self, player_id: Uuid, role: Self::PlayerRole);
     fn player_by_pos(&self, position: Self::PlayerPos) -> Option<&Self::GamePlayerState>;
+    fn make_snapshot(&self, player_id: Uuid) -> Self::Snapshot;
 }
 
-pub trait GameStateSnapshot<'gs>: Debug+Serialize+Deserialize<'gs>+Send {
-}
+pub trait GameStateSnapshot<'gs>: Debug+Serialize+Deserialize<'gs>+Send { }

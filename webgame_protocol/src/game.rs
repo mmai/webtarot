@@ -18,19 +18,25 @@ pub struct GameExtendedInfo {
     pub players: Vec<Uuid>
 }
 
-pub trait GameState<'gs>: Sync+Default+Send {
+// pub trait GameState<'gs>: Sync+Default+Send {
+    // type GamePlayerState: PlayerState;
+pub trait GameState<'gs, 
+    // GamePlayerState: PlayerState,
+    GamePlayerState: PlayerState<'gs>,
+    Snapshot: GameStateSnapshot<'gs>,
+    >: Sync+Default+Send {
     type PlayerPos;
-    type GamePlayerState: PlayerState;
     type PlayerRole;
-    type Snapshot: GameStateSnapshot<'gs>;
 
     fn is_joinable(&self) -> bool;
-    fn get_players(&self) -> &BTreeMap<Uuid, Self::GamePlayerState>;
+    fn get_players(&self) -> &BTreeMap<Uuid, GamePlayerState>;
     fn add_player(&mut self, player_info: PlayerInfo) -> Self::PlayerPos; 
     fn remove_player(&mut self, player_id: Uuid) -> bool;
     fn set_player_role(&mut self, player_id: Uuid, role: Self::PlayerRole);
-    fn player_by_pos(&self, position: Self::PlayerPos) -> Option<&Self::GamePlayerState>;
-    fn make_snapshot(&self, player_id: Uuid) -> Self::Snapshot;
+    fn player_by_pos(&self, position: Self::PlayerPos) -> Option<&GamePlayerState>;
+    fn make_snapshot(&self, player_id: Uuid) -> Snapshot;
+    fn set_player_ready(&mut self, player_id: Uuid);
+    fn set_player_not_ready(&mut self, player_id: Uuid);
 }
 
 pub trait GameStateSnapshot<'gs>: Debug+Serialize+Deserialize<'gs>+Send { }

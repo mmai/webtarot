@@ -31,11 +31,9 @@ impl Default for TarotGameState {
     }
 }
 
-impl<'gs> GameState<'gs> for TarotGameState {
+impl<'gs> GameState<'gs, GamePlayerState, GameStateSnapshot> for TarotGameState {
     type PlayerPos = pos::PlayerPos;
     type PlayerRole = PlayerRole;
-    type GamePlayerState = GamePlayerState;
-    type Snapshot = GameStateSnapshot;
 
     fn is_joinable(&self) -> bool {
         self.turn == Turn::Pregame
@@ -153,17 +151,45 @@ impl<'gs> GameState<'gs> for TarotGameState {
         }
     }
 
+    fn set_player_ready(&mut self, player_id: Uuid){
+        let turn = self.turn.clone();
+        if let Some(player_state) = self.players.get_mut(&player_id) {
+            player_state.ready = true;
+            if turn == Turn::Intertrick {
+                self.update_turn();
+            } else {
+                player_state.role = PlayerRole::PreDeal;
+
+                // Check if we start the next deal
+                let mut count = 0;
+                for player in self.players.values() {
+                    if player.role == PlayerRole::PreDeal {
+                        count = count + 1;
+                    }
+                }
+                if count == NB_PLAYERS {
+                    if self.turn == Turn::Interdeal { // ongoing game
+                        self.update_turn();
+                    } else { // new game
+                        self.turn = Turn::Bidding((bid::AuctionState::Bidding, pos::PlayerPos::P0));
+                    }
+                }
+
+            }
+        }
+    }
+
+    fn set_player_not_ready(&mut self, player_id: Uuid) {
+        if let Some(player_state) = self.players.get_mut(&player_id) {
+            player_state.ready = false;
+        }
+    }
+
 }
 
 impl TarotGameState {
     pub fn get_turn(&self) -> Turn {
         self.turn
-    }
-
-    pub fn set_player_not_ready(&mut self, player_id: Uuid) {
-        if let Some(player_state) = self.players.get_mut(&player_id) {
-            player_state.ready = false;
-        }
     }
 
     fn position_taken(&self, position: pos::PlayerPos) -> bool {
@@ -194,34 +220,6 @@ impl TarotGameState {
     fn was_last_trick(&self) -> bool {
         let p0 = self.player_by_pos(pos::PlayerPos::P0).unwrap();
         self.turn == Turn::Intertrick && p0.role == PlayerRole::Unknown
-    }
-
-    pub fn set_player_ready(&mut self, player_id: Uuid){
-        let turn = self.turn.clone();
-        if let Some(player_state) = self.players.get_mut(&player_id) {
-            player_state.ready = true;
-            if turn == Turn::Intertrick {
-                self.update_turn();
-            } else {
-                player_state.role = PlayerRole::PreDeal;
-
-                // Check if we start the next deal
-                let mut count = 0;
-                for player in self.players.values() {
-                    if player.role == PlayerRole::PreDeal {
-                        count = count + 1;
-                    }
-                }
-                if count == NB_PLAYERS {
-                    if self.turn == Turn::Interdeal { // ongoing game
-                        self.update_turn();
-                    } else { // new game
-                        self.turn = Turn::Bidding((bid::AuctionState::Bidding, pos::PlayerPos::P0));
-                    }
-                }
-
-            }
-        }
     }
 
     pub fn set_bid(&mut self, pid: Uuid, target: bid::Target) -> Result<(), ProtocolError>{

@@ -13,7 +13,7 @@ use crate::protocol::{
 };
 use crate::universe::Universe;
 
-pub struct Game<'gs, GameStateType: GameState<'gs>, GamePlayerStateT, GameStateSnapshotT: GameStateSnapshot<'gs>, PlayEventT> {
+pub struct Game<'gs, GameStateType: GameState<'gs, GamePlayerStateT, GameStateSnapshotT>, GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot<'gs>, PlayEventT> {
     id: Uuid,
     join_code: String,
     universe: Weak<Universe<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
@@ -21,7 +21,7 @@ pub struct Game<'gs, GameStateType: GameState<'gs>, GamePlayerStateT, GameStateS
 }
 
 impl
-    <'gs, GameStateType: GameState<'gs>, GamePlayerStateT, GameStateSnapshotT: GameStateSnapshot<'gs>, PlayEventT> 
+    <'gs, GameStateType: GameState<'gs, GamePlayerStateT, GameStateSnapshotT>, GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot<'gs>, PlayEventT> 
 fmt::Debug for Game
     <'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -32,9 +32,12 @@ fmt::Debug for Game
     }
 }
 
-impl<'gs, GameStateType: Default+GameState<'gs>,
-    GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot<'gs>, PlayEventT: Send+Serialize> 
-Game<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+impl<'gs, GameStateType: Default+GameState<'gs, GamePlayerStateT, GameStateSnapshotT>,
+    GamePlayerStateT: PlayerState,
+    GameStateSnapshotT: GameStateSnapshot<'gs>,
+    PlayEventT: Send+Serialize> 
+    Game<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+
     pub fn new(join_code: String, universe: Arc<Universe<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>) -> Game<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
         Game {
             id: Uuid::new_v4(),

@@ -92,8 +92,8 @@ pub struct JoinGameCommand {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
 // pub enum Message<GamePlayerStateT: PlayerState, GameStateSnapshotT: Send, PlayEventT: Send> {
-pub enum Message<'a
-    GamePlayerStateT: PlayerState<'a>,
+pub enum Message<
+    GamePlayerStateT,
     GameStateSnapshotT: Send,
     PlayEventT: Send> {
     Connected,

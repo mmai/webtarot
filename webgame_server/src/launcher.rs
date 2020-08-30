@@ -5,9 +5,9 @@ use std::fmt::Debug;
 use webgame_protocol::{GameState, GameStateSnapshot, PlayerState};
 use crate::server;
 
-pub async fn launch<'de, GamePlayCommand:Debug+Send+Deserialize<'de>, SetPlayerRoleCommand: Debug+Send+Deserialize<'de>, GameStateType: GameState<'de, GamePlayerStateT, GameStateSnapshotT>, GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot<'de>, PlayEventT: Serialize+Send>(
+pub async fn launch<'de, GamePlayCommand:Debug+Send+Deserialize<'de>, SetPlayerRoleCommand: Debug+Send+Deserialize<'de>, GameStateType: GameState<GamePlayerStateT, GameStateSnapshotT>, GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot, PlayEventT: Serialize+Send+Sync>(
     on_gameplay: server::GamePlayHandler<'de, GamePlayCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>,
-    on_setplayerrole: server::SetPlayerRoleHandler<'de, SetPlayerRoleCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>
+    on_setplayerrole: server::SetPlayerRoleHandler<SetPlayerRoleCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>
     ) {
 // pub async fn launch(dispatcher: impl server::GameDispatcher) {
     pretty_env_logger::init();

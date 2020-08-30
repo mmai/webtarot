@@ -31,7 +31,7 @@ impl Default for TarotGameState {
     }
 }
 
-impl<'gs> GameState<'gs, GamePlayerState, GameStateSnapshot> for TarotGameState {
+impl GameState< GamePlayerState, GameStateSnapshot> for TarotGameState {
     type PlayerPos = pos::PlayerPos;
     type PlayerRole = PlayerRole;
 
@@ -357,7 +357,7 @@ pub struct GameStateSnapshot {
     pub scores: Vec<[f32; NB_PLAYERS]>,
 }
 
-impl<'gs> webgame_protocol::GameStateSnapshot<'gs> for GameStateSnapshot {
+impl webgame_protocol::GameStateSnapshot for GameStateSnapshot {
 
 }
 

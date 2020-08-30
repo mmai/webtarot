@@ -18,14 +18,8 @@ pub struct GameExtendedInfo {
     pub players: Vec<Uuid>
 }
 
-// pub trait GameState<'gs>: Sync+Default+Send {
-    // type GamePlayerState: PlayerState;
-pub trait GameState<'gs, 
-    // GamePlayerState: PlayerState,
-    GamePlayerState: PlayerState<'gs>,
-    Snapshot: GameStateSnapshot<'gs>,
-    >: Sync+Default+Send {
-    type PlayerPos;
+pub trait GameState<GamePlayerState: PlayerState, Snapshot: GameStateSnapshot>: Sync+Default+Send {
+    type PlayerPos: Send;
     type PlayerRole;
 
     fn is_joinable(&self) -> bool;
@@ -39,4 +33,4 @@ pub trait GameState<'gs,
     fn set_player_not_ready(&mut self, player_id: Uuid);
 }
 
-pub trait GameStateSnapshot<'gs>: Debug+Serialize+Deserialize<'gs>+Send { }
+pub trait GameStateSnapshot: Debug+Serialize+for<'de> Deserialize<'de>+Send+Sync { }

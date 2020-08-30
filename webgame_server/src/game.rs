@@ -13,7 +13,7 @@ use crate::protocol::{
 };
 use crate::universe::Universe;
 
-pub struct Game<'gs, GameStateType: GameState<'gs, GamePlayerStateT, GameStateSnapshotT>, GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot<'gs>, PlayEventT> {
+pub struct Game<'gs, GameStateType: GameState<GamePlayerStateT, GameStateSnapshotT>, GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot, PlayEventT> {
     id: Uuid,
     join_code: String,
     universe: Weak<Universe<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
@@ -21,7 +21,7 @@ pub struct Game<'gs, GameStateType: GameState<'gs, GamePlayerStateT, GameStateSn
 }
 
 impl
-    <'gs, GameStateType: GameState<'gs, GamePlayerStateT, GameStateSnapshotT>, GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot<'gs>, PlayEventT> 
+    <'gs, GameStateType: GameState<GamePlayerStateT, GameStateSnapshotT>, GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot, PlayEventT> 
 fmt::Debug for Game
     <'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -32,9 +32,9 @@ fmt::Debug for Game
     }
 }
 
-impl<'gs, GameStateType: Default+GameState<'gs, GamePlayerStateT, GameStateSnapshotT>,
+impl<'gs, GameStateType: Default+GameState<GamePlayerStateT, GameStateSnapshotT>,
     GamePlayerStateT: PlayerState,
-    GameStateSnapshotT: GameStateSnapshot<'gs>,
+    GameStateSnapshotT: GameStateSnapshot,
     PlayEventT: Send+Serialize> 
     Game<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
 

@@ -8,10 +8,6 @@ pub struct PlayerInfo {
     pub nickname: String,
 }
 
-pub trait PlayerState<'de>: Send+Serialize+Deserialize<'de>+Debug+Clone+PartialEq {
-    fn player(self) -> PlayerInfo;
-}
-
-pub trait PlayerStatea<'de>: Send+Serialize+Deserialize<'de>+Debug+Clone+PartialEq {
+pub trait PlayerState: Send+Serialize+for<'de> Deserialize<'de>+Debug+Clone+PartialEq+Sync {
     fn player(self) -> PlayerInfo;
 }

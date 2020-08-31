@@ -13,17 +13,17 @@ use crate::protocol::{
 };
 use crate::universe::Universe;
 
-pub struct Game<'gs, GameStateType: GameState<GamePlayerStateT, GameStateSnapshotT>, GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot, PlayEventT> {
+pub struct Game<GameStateType: GameState<GamePlayerStateT, GameStateSnapshotT>, GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot, PlayEventT> {
     id: Uuid,
     join_code: String,
-    universe: Weak<Universe<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
+    universe: Weak<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
     game_state: Arc<Mutex<GameStateType>>,
 }
 
 impl
     <'gs, GameStateType: GameState<GamePlayerStateT, GameStateSnapshotT>, GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot, PlayEventT> 
 fmt::Debug for Game
-    <'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+    <GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Game")
          .field("id", &self.id)
@@ -36,9 +36,9 @@ impl<'gs, GameStateType: Default+GameState<GamePlayerStateT, GameStateSnapshotT>
     GamePlayerStateT: PlayerState,
     GameStateSnapshotT: GameStateSnapshot,
     PlayEventT: Send+Serialize> 
-    Game<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+    Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
 
-    pub fn new(join_code: String, universe: Arc<Universe<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>) -> Game<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+    pub fn new(join_code: String, universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>) -> Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
         Game {
             id: Uuid::new_v4(),
             join_code,
@@ -81,7 +81,7 @@ impl<'gs, GameStateType: Default+GameState<GamePlayerStateT, GameStateSnapshotT>
         self.game_state.lock().await.is_joinable()
     }
 
-    pub fn universe(&self) -> Arc<Universe<'gs, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>> {
+    pub fn universe(&self) -> Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>> {
         self.universe.upgrade().unwrap()
     }
 
@@ -175,8 +175,9 @@ impl<'gs, GameStateType: Default+GameState<GamePlayerStateT, GameStateSnapshotT>
 
     pub async fn get_player(&self, player_id: &Uuid) -> Option<PlayerInfo> {
         let mut player: Option<PlayerInfo> = None;
+
         if let Some(state) = self.game_state.lock().await.get_players().get(player_id) {
-            player = Some(state.player().clone());
+            player = Some(state.clone().player());
         }
         player
     }

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::fmt::Debug;
-use serde::{Deserialize, Serialize};
+use serde::{Serialize, Deserialize, de::DeserializeOwned};
 use uuid::Uuid;
 
 use crate::player::{PlayerInfo, PlayerState};
@@ -33,4 +33,4 @@ pub trait GameState<GamePlayerState: PlayerState, Snapshot: GameStateSnapshot>: 
     fn set_player_not_ready(&mut self, player_id: Uuid);
 }
 
-pub trait GameStateSnapshot: Debug+Serialize+for<'de> Deserialize<'de>+Send+Sync { }
+pub trait GameStateSnapshot: Debug+Serialize+DeserializeOwned+Send+Sync { }

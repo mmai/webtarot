@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::message::{ProtocolError, ProtocolErrorKind};
+use crate::message::ProtocolError;
+use webgame_protocol::ProtocolErrorKind;
 use tarotgame::{cards, bid, deal};
 
 impl From<deal::PlayError> for ProtocolError {

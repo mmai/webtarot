@@ -1,12 +1,12 @@
 use clap::{Arg, App};
-use serde::{Deserialize, Serialize};
+use serde::{Serialize, Deserialize, de::DeserializeOwned};
 use std::fmt::Debug;
 
 use webgame_protocol::{GameState, GameStateSnapshot, PlayerState};
 use crate::server;
 
-pub async fn launch<'de, GamePlayCommand:Debug+Send+Deserialize<'de>, SetPlayerRoleCommand: Debug+Send+Deserialize<'de>, GameStateType: GameState<GamePlayerStateT, GameStateSnapshotT>, GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot, PlayEventT: Serialize+Send+Sync>(
-    on_gameplay: server::GamePlayHandler<'de, GamePlayCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>,
+pub async fn launch<GamePlayCommand:Debug+Send+DeserializeOwned+'static, SetPlayerRoleCommand: Debug+Send+DeserializeOwned+'static, GameStateType: GameState<GamePlayerStateT, GameStateSnapshotT>+'static, GamePlayerStateT: PlayerState+'static, GameStateSnapshotT: GameStateSnapshot+'static, PlayEventT: Serialize+Send+Sync+'static>(
+    on_gameplay: server::GamePlayHandler<GamePlayCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>,
     on_setplayerrole: server::SetPlayerRoleHandler<SetPlayerRoleCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>
     ) {
 // pub async fn launch(dispatcher: impl server::GameDispatcher) {

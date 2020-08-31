@@ -11,5 +11,5 @@ use tarot_protocol::GamePlayCommand;
 
 #[tokio::main]
 pub async fn main() {
-    webgame_server::launcher::launch<GamePlayCommand>(dispatcher::on_gameplay).await;
+    webgame_server::launcher::launch(dispatcher::on_gameplay, dispatcher::on_player_set_role).await;
 }

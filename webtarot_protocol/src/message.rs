@@ -1,11 +1,21 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use webgame_protocol::{GameInfo, GameExtendedInfo, PlayerInfo};
+use webgame_protocol::{GameInfo, GameExtendedInfo, PlayerInfo, ProtocolErrorKind};
+use webgame_protocol::ProtocolError as GenericProtocolError;
 
 use crate::game_messages::GamePlayCommand;
 use crate::game::{GameStateSnapshot, PlayEvent};
 use crate::player::{GamePlayerState, PlayerRole};
+
+impl From<ProtocolError> for GenericProtocolError {
+    fn from(error: ProtocolError) -> Self {
+        GenericProtocolError::new(
+            error.kind,
+            error.message      
+       )
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
@@ -25,25 +35,6 @@ pub enum Command {
     DebugUi(DebugUiCommand), // Used to send a custom state to a client, allows to quickly view the UI at a given state of the game without having to play all the hands leading to this state.
     ShowUuid, // get uuid of connected client : for use with debugUi
     ShowServerStatus, // get server infos : active games, players connected...
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Hash)]
-#[serde(rename_all = "snake_case")]
-pub enum ProtocolErrorKind {
-    /// Client tried to authenticate twice
-    AlreadyAuthenticated,
-    /// Tried to do something while unauthenticated
-    NotAuthenticated,
-    /// Client sent in some garbage
-    InvalidCommand,
-    /// Cannot be done at this time
-    BadState,
-    /// Something wasn't found
-    NotFound,
-    /// Invalid input.
-    BadInput,
-    /// This should never happen.
-    InternalError,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

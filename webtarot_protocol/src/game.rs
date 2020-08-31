@@ -4,12 +4,12 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use tarotgame::{NB_PLAYERS, bid, cards, pos, deal, trick};
-use webgame_protocol::{GameState, PlayerInfo};
+use webgame_protocol::{GameState, PlayerInfo, ProtocolErrorKind};
+use crate::{ ProtocolError };
 
 use crate::turn::Turn;
 use crate::deal::{Deal, DealSnapshot};
 use crate::player::{PlayerRole, GamePlayerState};
-use crate::{ ProtocolError, ProtocolErrorKind };
 
 pub struct TarotGameState {
     players: BTreeMap<Uuid, GamePlayerState>,

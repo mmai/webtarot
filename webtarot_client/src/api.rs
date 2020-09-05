@@ -5,7 +5,8 @@ use yew::format::Json;
 use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
 use yew::services::storage::{Area, StorageService};
 
-use crate::protocol::{Command, Message, PlayerInfo, GameInfo};
+use crate::protocol::{Command, Message};
+use crate::gprotocol::{PlayerInfo, GameInfo};
 
 #[derive(Debug)]
 pub enum ApiState {

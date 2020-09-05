@@ -13,6 +13,9 @@ mod utils;
 mod views;
 mod sound_player;
 
+pub(crate) use webtarot_protocol as protocol;
+pub(crate) use webgame_protocol as gprotocol;
+
 use wasm_bindgen::prelude::*;
 use yew::agent::Bridged;
 use yew::{html, Bridge, Component, ComponentLink, Html, ShouldRender};
@@ -22,7 +25,8 @@ use yew::services::storage::{Area, StorageService};
 use yew::format::Json;
 
 use crate::api::Api;
-use crate::protocol::{GameInfo, Message, PlayerInfo, Command, AuthenticateCommand};
+use crate::protocol::{Message, Command, AuthenticateCommand};
+use crate::gprotocol::{GameInfo, PlayerInfo};
 use crate::views::game::GamePage;
 use crate::views::menu::MenuPage;
 use crate::views::start::StartPage;
@@ -183,8 +187,6 @@ impl Component for App {
         }
     }
 }
-
-pub(crate) use webtarot_protocol as protocol;
 
 // A macro to provide `println!(..)`-style syntax for `console.log` logging.
 

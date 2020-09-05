@@ -18,9 +18,9 @@ use crate::components::player_list::PlayerList;
 use crate::components::bidding_actions::BiddingActions;
 use crate::components::call_king_action::CallKingAction;
 use crate::components::scores::Scores;
+use crate::gprotocol::{GameInfo, PlayerInfo};
 use crate::protocol::{
-    Command, GameInfo, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
-    PlayerInfo,
+    Command, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
     SendTextCommand,
     GamePlayCommand,
     BidCommand, PlayCommand, CallKingCommand, MakeDogCommand,

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::convert::From;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tokio::sync::{mpsc, RwLock};
 use uuid::Uuid;
 use warp::ws;
@@ -80,7 +80,7 @@ impl<GameStateType: Default+GameState<GamePlayerStateT, GameStateSnapshotT>, Gam
     pub async fn show_games(self: &Arc<Self>) -> Vec<GameExtendedInfo> {
         let state = self.state.read().await;
         let fgames = state.games.iter()
-            .map(|(uuid, g)| {
+            .map(|(_uuid, g)| {
                 g.game_extended_info()
             } );
         futures::future::join_all(fgames).await

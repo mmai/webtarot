@@ -1,6 +1,6 @@
 use std::sync::{Arc, Weak};
 use tokio::sync::Mutex;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use uuid::Uuid;
 use std::fmt;

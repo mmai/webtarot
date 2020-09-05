@@ -25,7 +25,7 @@ use yew::services::storage::{Area, StorageService};
 use yew::format::Json;
 
 use crate::api::Api;
-use crate::protocol::{Message, Command, AuthenticateCommand};
+use crate::protocol::{Message, Command};
 use crate::gprotocol::{GameInfo, PlayerInfo};
 use crate::views::game::GamePage;
 use crate::views::menu::MenuPage;
@@ -92,13 +92,13 @@ impl Component for App {
 
         //i18N
         let requested_languages = WebLanguageRequester::requested_languages();
-        i18n_embed::select(&*LANGUAGE_LOADER, &TRANSLATIONS, &requested_languages);
+        let _res = i18n_embed::select(&*LANGUAGE_LOADER, &TRANSLATIONS, &requested_languages);
 
         //Ping to keep alive websocket
         let _pinger = spawn_pings(&link);
 
         let on_server_message = link.callback(Msg::ServerMessage);
-        let mut api = Api::bridge(on_server_message);
+        let api = Api::bridge(on_server_message);
 
         let player_info: Option<PlayerInfo> = {
             if let Json(Ok(restored_info)) =  storage.restore(KEY) {
@@ -161,7 +161,7 @@ impl Component for App {
         true
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
         false
     }
 

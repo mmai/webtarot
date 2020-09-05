@@ -3,7 +3,6 @@ use std::time::Duration;
 use std::f32;
 use im_rc::Vector;
 use uuid::Uuid;
-use web_sys::HtmlAudioElement;
 use yew::agent::Bridged;
 use yew::services::{IntervalService, Task};
 use yew::{
@@ -38,6 +37,7 @@ pub struct Props {
 }
 
 pub struct GamePage {
+    #[allow(dead_code)]
     keepalive_job: Box<dyn Task>,
     link: ComponentLink<GamePage>,
     api: Box<dyn Bridge<Api>>,
@@ -133,7 +133,7 @@ impl Component for GamePage {
         }
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
         false
     }
 
@@ -270,7 +270,7 @@ impl Component for GamePage {
             actions_classes.push("current-player");
         }
 
-        let messageContent: Option<Html> = match self.game_state.turn {
+        let message_content: Option<Html> = match self.game_state.turn {
                Turn::Intertrick => 
                    if !self.my_state().ready  { 
                        let winner_pos = self.game_state.deal.last_trick.winner;
@@ -365,7 +365,7 @@ impl Component for GamePage {
             </div>
         }} else { html! {} }}
 
-        { if let Some(message) = messageContent  { html! {
+        { if let Some(message) = message_content  { html! {
           <div class="notify-wrapper">
             <div class="notify wrapper">
                 { message }

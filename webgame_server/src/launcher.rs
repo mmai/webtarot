@@ -1,5 +1,5 @@
 use clap::{Arg, App};
-use serde::{Serialize, Deserialize, de::DeserializeOwned};
+use serde::{Serialize, de::DeserializeOwned};
 use std::fmt::Debug;
 
 use webgame_protocol::{GameState, GameStateSnapshot, PlayerState};

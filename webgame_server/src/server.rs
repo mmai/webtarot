@@ -6,7 +6,7 @@ use std::pin::Pin;
 use std::net::SocketAddr;
 use std::fmt::Debug;
 
-use serde::{Serialize, Deserialize, de::DeserializeOwned};
+use serde::{Serialize, de::DeserializeOwned};
 use futures::{FutureExt, StreamExt};
 use hyper::{service::make_service_fn, Server};
 use tokio::sync::mpsc;
@@ -14,7 +14,7 @@ use uuid::Uuid;
 use warp::{ws, Filter};
 
 //For keep alive ping pong
-use std::time::Duration;
+// use std::time::Duration;
 
 use crate::protocol::{
     AuthenticateCommand, ChatMessage, ServerStatus, Command, JoinGameCommand, Message, ProtocolError,
@@ -26,11 +26,11 @@ use crate::protocol::{
 use crate::universe::Universe;
 
 // see https://users.rust-lang.org/t/how-to-store-async-function-pointer/38343/2
-pub type GamePlayHandler<GamePlayCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT: GameStateSnapshot, PlayEventT> = fn( Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>, Uuid, GamePlayCommand ) 
+pub type GamePlayHandler<GamePlayCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> = fn( Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>, Uuid, GamePlayCommand ) 
     -> Pin<Box<dyn std::future::Future<Output = Result<(), ProtocolError>>
         + Send // required by non-single-threaded executors
     >>;
-pub type SetPlayerRoleHandler<SetPlayerRoleCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT: GameStateSnapshot, PlayEventT> = fn( Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>, Uuid, SetPlayerRoleCommand ) 
+pub type SetPlayerRoleHandler<SetPlayerRoleCommand, GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> = fn( Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>, Uuid, SetPlayerRoleCommand ) 
     -> Pin<Box<dyn std::future::Future<Output = Result<(), ProtocolError>>
         + Send // required by non-single-threaded executors
     >>;
@@ -56,7 +56,7 @@ async fn on_websocket_connect<
     }));
 
     //Debug
-    let games = universe.show_games().await;
+    // let games = universe.show_games().await;
     // log::info!("games before searching {:?}", games);
 
     // log::info!("uid infos: {}", guid_uuid);

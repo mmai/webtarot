@@ -1,8 +1,4 @@
-use std::rc::Rc;
-
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender};
-
-use crate::protocol::{GameStateSnapshot, PlayerRole, GamePlayerState, Turn};
 
 #[derive(Clone, Properties)]
 pub struct Props {
@@ -27,11 +23,11 @@ impl Component for Scores {
         }
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, _msg: Self::Message) -> ShouldRender {
         false
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
         false
     }
 

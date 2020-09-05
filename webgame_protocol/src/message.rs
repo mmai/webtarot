@@ -1,25 +1,12 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use webgame_protocol::{GameInfo, GameExtendedInfo, PlayerInfo, ProtocolErrorKind};
-use webgame_protocol::ProtocolError as GenericProtocolError;
-
-use crate::game_messages::GamePlayCommand;
-use crate::game::{GameStateSnapshot, PlayEvent};
-use crate::player::{GamePlayerState, PlayerRole};
-
-impl From<ProtocolError> for GenericProtocolError {
-    fn from(error: ProtocolError) -> Self {
-        GenericProtocolError::new(
-            error.kind,
-            error.message      
-       )
-    }
-}
+use crate::game::{GameInfo, GameExtendedInfo};
+use crate::player::PlayerInfo;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
-pub enum Command {
+pub enum Command<GamePlayCommand, SetPlayerRoleCommand, GameStateSnapshot> {
     Ping,
     Authenticate(AuthenticateCommand),
     SendText(SendTextCommand),
@@ -32,9 +19,28 @@ pub enum Command {
     GamePlay(GamePlayCommand),
     SetPlayerRole(SetPlayerRoleCommand),
 
-    DebugUi(DebugUiCommand), // Used to send a custom state to a client, allows to quickly view the UI at a given state of the game without having to play all the hands leading to this state.
+    DebugUi(DebugUiCommand<GameStateSnapshot>), // Used to send a custom state to a client, allows to quickly view the UI at a given state of the game without having to play all the hands leading to this state.
     ShowUuid, // get uuid of connected client : for use with debugUi
     ShowServerStatus, // get server infos : active games, players connected...
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum ProtocolErrorKind {
+    /// Client tried to authenticate twice
+    AlreadyAuthenticated,
+    /// Tried to do something while unauthenticated
+    NotAuthenticated,
+    /// Client sent in some garbage
+    InvalidCommand,
+    /// Cannot be done at this time
+    BadState,
+    /// Something wasn't found
+    NotFound,
+    /// Invalid input.
+    BadInput,
+    /// This should never happen.
+    InternalError,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -66,7 +72,7 @@ pub struct AuthenticateCommand {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DebugUiCommand {
+pub struct DebugUiCommand<GameStateSnapshot> {
     pub player_id: Uuid,
     pub snapshot: GameStateSnapshot,
 }
@@ -81,27 +87,27 @@ pub struct JoinGameCommand {
     pub join_code: String,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SetPlayerRoleCommand {
-    pub role: PlayerRole,
-}
+// TODO : read https://serde.rs/lifetimes.html
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub enum Message {
+pub enum Message<
+    GamePlayerStateT,
+    GameStateSnapshotT: Send,
+    PlayEventT: Send> {
     Connected,
     Pong,
     ServerStatus(ServerStatus),
     Chat(ChatMessage),
-    PlayerConnected(GamePlayerState),
+    PlayerConnected(GamePlayerStateT),
     PlayerDisconnected(PlayerDisconnectedMessage),
     PregameStarted,
     GameJoined(GameInfo),
     GameLeft,
     Authenticated(PlayerInfo),
     Error(ProtocolError),
-    PlayEvent(PlayEvent),
-    GameStateSnapshot(GameStateSnapshot),
+    PlayEvent(PlayEventT),
+    GameStateSnapshot(GameStateSnapshotT),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

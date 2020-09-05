@@ -7,7 +7,8 @@ use yew::{
 };
 
 use crate::api::Api;
-use crate::protocol::{AuthenticateCommand, Command, Message, PlayerInfo};
+use crate::protocol::{AuthenticateCommand, Command, Message};
+use crate::gprotocol::{PlayerInfo};
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct Props {
@@ -45,7 +46,7 @@ impl Component for StartPage {
         }
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
         false
     }
 

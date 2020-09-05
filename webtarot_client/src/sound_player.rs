@@ -20,7 +20,7 @@ impl SoundPlayer {
     // pub fn play(self, slug: &str) -> Result<js_sys::Promise, wasm_bindgen::JsValue> {
     pub fn play(&self, slug: &str) {
         if let Some(sound) = self.sounds.get(slug) {
-            sound.play();
+            let _res = sound.play();
         }
     }
 }

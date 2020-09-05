@@ -1,26 +1,29 @@
 use std::sync::{Arc, Weak};
 use tokio::sync::Mutex;
+use serde::Serialize;
 
 use uuid::Uuid;
 use std::fmt;
 
+use webgame_protocol::PlayerState;
 use crate::protocol::{
-    ProtocolError,
-    GameState,
-    GameInfo, GameExtendedInfo, Message, PlayerDisconnectedMessage, PlayerRole,
-    PlayerInfo
+    GameInfo, GameExtendedInfo, GameState, GameStateSnapshot,// game
+    Message, PlayerDisconnectedMessage, // message
+    PlayerInfo, // player
 };
 use crate::universe::Universe;
-use tarotgame::{bid, cards};
 
-pub struct Game {
+pub struct Game<GameStateType: GameState<GamePlayerStateT, GameStateSnapshotT>, GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot, PlayEventT> {
     id: Uuid,
     join_code: String,
-    universe: Weak<Universe>,
-    game_state: Arc<Mutex<GameState>>,
+    universe: Weak<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>,
+    game_state: Arc<Mutex<GameStateType>>,
 }
 
-impl fmt::Debug for Game {
+impl
+    <'gs, GameStateType: GameState<GamePlayerStateT, GameStateSnapshotT>, GamePlayerStateT: PlayerState, GameStateSnapshotT: GameStateSnapshot, PlayEventT> 
+fmt::Debug for Game
+    <GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Game")
          .field("id", &self.id)
@@ -29,19 +32,29 @@ impl fmt::Debug for Game {
     }
 }
 
-impl Game {
-    pub fn new(join_code: String, universe: Arc<Universe>) -> Game {
+impl<'gs, GameStateType: Default+GameState<GamePlayerStateT, GameStateSnapshotT>,
+    GamePlayerStateT: PlayerState,
+    GameStateSnapshotT: GameStateSnapshot,
+    PlayEventT: Send+Serialize> 
+    Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
+
+    pub fn new(join_code: String, universe: Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>>) -> Game<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT> {
         Game {
             id: Uuid::new_v4(),
             join_code,
             universe: Arc::downgrade(&universe),
-            game_state: Arc::new(Mutex::new(GameState::default())),
+            game_state: Arc::new(Mutex::new(GameStateType::default())),
         }
     }
 
     pub fn id(&self) -> Uuid {
         self.id
     }
+
+    pub fn state_handle(&self) -> &Arc<Mutex<GameStateType>> {
+        &self.game_state
+    }
+
 
     pub fn join_code(&self) -> &str {
         &self.join_code
@@ -68,27 +81,27 @@ impl Game {
         self.game_state.lock().await.is_joinable()
     }
 
-    pub fn universe(&self) -> Arc<Universe> {
+    pub fn universe(&self) -> Arc<Universe<GameStateType, GamePlayerStateT, GameStateSnapshotT, PlayEventT>> {
         self.universe.upgrade().unwrap()
     }
 
-    pub async fn add_player(&self, player_id: Uuid) {
+    pub async fn add_player(&self, user_id: Uuid) {
         let universe = self.universe();
         if !universe
-            .set_player_game_id(player_id, Some(self.id()))
+            .set_user_game_id(user_id, Some(self.id()))
             .await
         {
             return;
         }
 
-        // TODO: `set_player_game_id` also looks up.
-        let player_info = match universe.get_player_info(player_id).await {
-            Some(player_info) => player_info,
+        // TODO: `set_user_game_id` also looks up.
+        let user = match universe.get_user(user_id).await {
+            Some(user) => user,
             None => return,
         };
 
         let mut game_state = self.game_state.lock().await;
-        let pos = game_state.add_player(player_info);
+        let pos = game_state.add_player(user.into());
         let player = game_state.player_by_pos(pos).unwrap().clone();
         drop(game_state);
         self.broadcast(&Message::PlayerConnected(player)).await;
@@ -99,22 +112,22 @@ impl Game {
         let game_state = self.game_state.lock().await;
         for player in game_state.get_players() {
             let uuid = *player.0;
-            if self.universe().player_is_authenticated(uuid).await {
+            if self.universe().user_is_authenticated(uuid).await {
                 connected_ids.push(uuid);
             }
         }
         connected_ids
     }
 
-    pub async fn remove_player(&self, player_id: Uuid) {
-        self.universe().set_player_game_id(player_id, None).await;
+    pub async fn remove_user(&self, user_id: Uuid) {
+        self.universe().set_user_game_id(user_id, None).await;
 
         let mut game_state = self.game_state.lock().await;
 
-        if game_state.remove_player(player_id) {
+        if game_state.remove_player(user_id) {
             drop(game_state);
             self.broadcast(&Message::PlayerDisconnected(PlayerDisconnectedMessage {
-                player_id,
+                player_id: user_id,
             }))
             .await;
         }
@@ -122,11 +135,6 @@ impl Game {
         if self.is_empty().await {
             self.universe().remove_game(self.id()).await;
         }
-    }
-
-    pub async fn set_player_role(&self, player_id: Uuid, role: PlayerRole) {
-        let mut game_state = self.game_state.lock().await;
-        game_state.set_player_role(player_id, role);
     }
 
     pub async fn set_player_not_ready(&self, player_id: Uuid) {
@@ -139,7 +147,7 @@ impl Game {
         game_state.set_player_ready(player_id);
     }
 
-    pub async fn broadcast(&self, message: &Message) {
+    pub async fn broadcast(&self, message: &Message<GamePlayerStateT, GameStateSnapshotT, PlayEventT>) {
         let universe = self.universe();
         let game_state = self.game_state.lock().await;
         for player_id in game_state.get_players().keys().copied() {
@@ -147,7 +155,7 @@ impl Game {
         }
     }
 
-    pub async fn send(&self, player_id: Uuid, message: &Message) {
+    pub async fn send(&self, player_id: Uuid, message: &Message<GamePlayerStateT, GameStateSnapshotT, PlayEventT>) {
         self.universe().send(player_id, message).await;
     }
 
@@ -167,43 +175,15 @@ impl Game {
 
     pub async fn get_player(&self, player_id: &Uuid) -> Option<PlayerInfo> {
         let mut player: Option<PlayerInfo> = None;
+
         if let Some(state) = self.game_state.lock().await.get_players().get(player_id) {
-            player = Some(state.player.clone());
+            player = Some(state.clone().player());
         }
         player
     }
 
     pub async fn is_empty(&self) -> bool {
         self.game_state.lock().await.get_players().is_empty()
-    }
-
-
-    pub async fn set_bid(&self, pid: Uuid, target: bid::Target) -> Result<(), ProtocolError> {
-        let mut game_state = self.game_state.lock().await;
-        game_state.set_bid(pid, target)?;
-        Ok(())
-    }
-
-    pub async fn set_pass(&self, pid: Uuid) -> Result<(), ProtocolError> {
-        let mut game_state = self.game_state.lock().await;
-        game_state.set_pass(pid)?;
-        Ok(())
-    }
-
-    pub async fn set_play(&self, pid: Uuid, card: cards::Card) -> Result<(), ProtocolError> {
-        let mut game_state = self.game_state.lock().await;
-        game_state.set_play(pid, card)?;
-        Ok(())
-    }
-
-    pub async fn call_king(&self, pid: Uuid, card: cards::Card){
-        let mut game_state = self.game_state.lock().await;
-        game_state.call_king(pid, card);
-    }
-
-    pub async fn make_dog(&self, pid: Uuid, cards: cards::Hand){
-        let mut game_state = self.game_state.lock().await;
-        game_state.make_dog(pid, cards);
     }
 
 }

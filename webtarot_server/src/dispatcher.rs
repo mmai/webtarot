@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::webgame_server::universe::Universe;
 use crate::webgame_server::game::Game;
+use crate::protocol::GameState;
 
 use crate::protocol::{ 
     Message, ChatMessage,
@@ -51,27 +52,29 @@ pub fn on_player_set_role(
     user_id: Uuid,
     cmd: SetPlayerRoleCommand,
 ) -> DynFut<Result<(), ProtocolError>> {
-    if let Some(game) = universe.get_user_game(user_id).await {
-        if !game.is_joinable().await {
-            return Err(ProtocolError::new(
-                ProtocolErrorKind::BadState,
-                "cannot set role because game is not not joinable",
-            ));
+    Box::pin(async move {
+        if let Some(game) = universe.get_user_game(user_id).await {
+            if !game.is_joinable().await {
+                return Err(ProtocolError::new(
+                        ProtocolErrorKind::BadState,
+                        "cannot set role because game is not not joinable",
+                ));
+            }
+
+            let game_state = game.state_handle();
+            let mut game_state = game_state.lock().await;
+            game_state.set_player_role(user_id, cmd.role);
+
+            game.set_player_not_ready(user_id).await;
+            game.broadcast_state().await;
+            Ok(())
+        } else {
+            Err(ProtocolError::new(
+                    ProtocolErrorKind::BadState,
+                    "not in a game",
+            ))
         }
-
-        let game_state = game.state_handle();
-        let mut game_state = game_state.lock().await;
-        game_state.set_player_role(user_id, cmd.role);
-
-        game.set_player_not_ready(user_id).await;
-        game.broadcast_state().await;
-        Ok(())
-    } else {
-        Err(ProtocolError::new(
-            ProtocolErrorKind::BadState,
-            "not in a game",
-        ).into())
-    }
+    })
 }
 
 pub async fn on_player_bid(

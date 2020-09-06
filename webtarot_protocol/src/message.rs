@@ -1,9 +1,21 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::game::{GameInfo, GameExtendedInfo, GameStateSnapshot, PlayEvent};
-use crate::player::{PlayerInfo, GamePlayerState, PlayerRole};
-use tarotgame::{cards, bid, deal};
+use webgame_protocol::{GameInfo, GameExtendedInfo, PlayerInfo, ProtocolErrorKind};
+use webgame_protocol::ProtocolError as GenericProtocolError;
+
+use crate::game_messages::GamePlayCommand;
+use crate::game::{GameStateSnapshot, PlayEvent};
+use crate::player::{GamePlayerState, PlayerRole};
+
+impl From<ProtocolError> for GenericProtocolError {
+    fn from(error: ProtocolError) -> Self {
+        GenericProtocolError::new(
+            error.kind,
+            error.message      
+       )
+    }
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
@@ -11,40 +23,18 @@ pub enum Command {
     Ping,
     Authenticate(AuthenticateCommand),
     SendText(SendTextCommand),
-    ShareCodename(ShareCodenameCommand),
     NewGame,
     JoinGame(JoinGameCommand),
     LeaveGame,
     MarkReady,
     Continue,
-    Bid(BidCommand),
-    Play(PlayCommand),
-    Pass,
-    CallKing(CallKingCommand),
-    MakeDog(MakeDogCommand),
+
+    GamePlay(GamePlayCommand),
     SetPlayerRole(SetPlayerRoleCommand),
+
     DebugUi(DebugUiCommand), // Used to send a custom state to a client, allows to quickly view the UI at a given state of the game without having to play all the hands leading to this state.
     ShowUuid, // get uuid of connected client : for use with debugUi
     ShowServerStatus, // get server infos : active games, players connected...
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Hash)]
-#[serde(rename_all = "snake_case")]
-pub enum ProtocolErrorKind {
-    /// Client tried to authenticate twice
-    AlreadyAuthenticated,
-    /// Tried to do something while unauthenticated
-    NotAuthenticated,
-    /// Client sent in some garbage
-    InvalidCommand,
-    /// Cannot be done at this time
-    BadState,
-    /// Something wasn't found
-    NotFound,
-    /// Invalid input.
-    BadInput,
-    /// This should never happen.
-    InternalError,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -70,24 +60,6 @@ impl ProtocolError {
     }
 }
 
-impl From<deal::PlayError> for ProtocolError {
-    fn from(error: deal::PlayError) -> Self {
-        ProtocolError {
-            kind: ProtocolErrorKind::BadState,
-            message: format!("play: {}", error),
-        }
-    }
-}
-
-impl From<bid::BidError> for ProtocolError {
-    fn from(error: bid::BidError) -> Self {
-        ProtocolError {
-            kind: ProtocolErrorKind::BadState,
-            message: format!("bid: {}", error),
-        }
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthenticateCommand {
     pub nickname: String,
@@ -105,12 +77,6 @@ pub struct SendTextCommand {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ShareCodenameCommand {
-    pub codename: String,
-    pub number: usize,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct JoinGameCommand {
     pub join_code: String,
 }
@@ -118,26 +84,6 @@ pub struct JoinGameCommand {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SetPlayerRoleCommand {
     pub role: PlayerRole,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct BidCommand {
-    pub target: bid::Target,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PlayCommand {
-    pub card: cards::Card,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct CallKingCommand {
-    pub card: cards::Card,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct MakeDogCommand {
-    pub cards: cards::Hand,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

@@ -7,7 +7,8 @@ use yew::{
 use tr::tr;
 
 use crate::api::Api;
-use crate::protocol::{Command, GameInfo, JoinGameCommand, Message, PlayerInfo};
+use crate::protocol::{Command, JoinGameCommand, Message};
+use crate::gprotocol::{GameInfo, PlayerInfo};
 use crate::utils::format_join_code;
 
 #[derive(Clone, Properties)]
@@ -50,7 +51,7 @@ impl Component for MenuPage {
         }
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
         false
     }
 

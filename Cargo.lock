@@ -2033,8 +2033,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "webgame_protocol"
+version = "0.4.0"
+source = "git+https://github.com/mmai/webgame#3d7fcde470c79b76e71568b6708fcf34b759d3bf"
+dependencies = [
+ "serde",
+ "uuid 0.8.1",
+]
+
+[[package]]
+name = "webgame_server"
+version = "0.4.0"
+source = "git+https://github.com/mmai/webgame#3d7fcde470c79b76e71568b6708fcf34b759d3bf"
+dependencies = [
+ "clap",
+ "futures 0.3.5",
+ "hyper",
+ "lazy_static",
+ "listenfd",
+ "log 0.4.8",
+ "pretty_env_logger",
+ "rand 0.7.3",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-timer",
+ "uuid 0.8.1",
+ "warp",
+ "webgame_protocol",
+]
+
+[[package]]
 name = "webtarot_client"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
@@ -2053,6 +2084,7 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
  "web_logger",
+ "webgame_protocol",
  "webtarot_protocol",
  "yew",
 ]
@@ -2064,11 +2096,12 @@ dependencies = [
  "serde",
  "tarotgame",
  "uuid 0.8.1",
+ "webgame_protocol",
 ]
 
 [[package]]
 name = "webtarot_server"
-version = "0.3.4"
+version = "0.4.0"
 dependencies = [
  "clap",
  "futures 0.3.5",
@@ -2079,11 +2112,12 @@ dependencies = [
  "pretty_env_logger",
  "rand 0.7.3",
  "serde_json",
- "tarotgame",
  "tokio",
  "tokio-timer",
  "uuid 0.8.1",
  "warp",
+ "webgame_protocol",
+ "webgame_server",
  "webtarot_protocol",
 ]
 

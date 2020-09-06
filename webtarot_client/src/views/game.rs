@@ -3,7 +3,6 @@ use std::time::Duration;
 use std::f32;
 use im_rc::Vector;
 use uuid::Uuid;
-use web_sys::HtmlAudioElement;
 use yew::agent::Bridged;
 use yew::services::{IntervalService, Task};
 use yew::{
@@ -18,10 +17,11 @@ use crate::components::player_list::PlayerList;
 use crate::components::bidding_actions::BiddingActions;
 use crate::components::call_king_action::CallKingAction;
 use crate::components::scores::Scores;
+use crate::gprotocol::{GameInfo, PlayerInfo};
 use crate::protocol::{
-    Command, GameInfo, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
-    PlayerInfo,
+    Command, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
     SendTextCommand,
+    GamePlayCommand,
     BidCommand, PlayCommand, CallKingCommand, MakeDogCommand,
     Turn,
     PlayEvent,
@@ -37,6 +37,7 @@ pub struct Props {
 }
 
 pub struct GamePage {
+    #[allow(dead_code)]
     keepalive_job: Box<dyn Task>,
     link: ComponentLink<GamePage>,
     api: Box<dyn Bridge<Api>>,
@@ -132,7 +133,7 @@ impl Component for GamePage {
         }
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
+    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
         false
     }
 
@@ -198,15 +199,15 @@ impl Component for GamePage {
             Msg::Bid(target) => {
                 self.is_waiting = true;
                 log!("received bid {:?}", target);
-                self.api.send(Command::Bid(BidCommand { target }));
+                self.api.send(Command::GamePlay(GamePlayCommand::Bid(BidCommand { target })));
             }
             Msg::Pass => {
                 self.is_waiting = true;
-                self.api.send(Command::Pass);
+                self.api.send(Command::GamePlay(GamePlayCommand::Pass));
             }
             Msg::CallKing(card) => {
                 self.is_waiting = true;
-                self.api.send(Command::CallKing(CallKingCommand { card }));
+                self.api.send(Command::GamePlay(GamePlayCommand::CallKing(CallKingCommand { card })));
             }
             Msg::AddToHand(card) => {
                 self.hand.add(card);
@@ -218,11 +219,11 @@ impl Component for GamePage {
             },
             Msg::MakeDog => {
                 self.is_waiting = true;
-                self.api.send(Command::MakeDog(MakeDogCommand { cards: self.dog }));
+                self.api.send(Command::GamePlay(GamePlayCommand::MakeDog(MakeDogCommand { cards: self.dog })));
             },
             Msg::Play(card) => {
                 self.is_waiting = true;
-                self.api.send(Command::Play(PlayCommand { card }));
+                self.api.send(Command::GamePlay(GamePlayCommand::Play(PlayCommand { card })));
             }
         }
         true
@@ -269,7 +270,7 @@ impl Component for GamePage {
             actions_classes.push("current-player");
         }
 
-        let messageContent: Option<Html> = match self.game_state.turn {
+        let message_content: Option<Html> = match self.game_state.turn {
                Turn::Intertrick => 
                    if !self.my_state().ready  { 
                        let winner_pos = self.game_state.deal.last_trick.winner;
@@ -364,7 +365,7 @@ impl Component for GamePage {
             </div>
         }} else { html! {} }}
 
-        { if let Some(message) = messageContent  { html! {
+        { if let Some(message) = message_content  { html! {
           <div class="notify-wrapper">
             <div class="notify wrapper">
                 { message }

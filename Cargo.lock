@@ -2035,6 +2035,7 @@ dependencies = [
 [[package]]
 name = "webgame_protocol"
 version = "0.4.0"
+source = "git+https://github.com/mmai/webgame#3d7fcde470c79b76e71568b6708fcf34b759d3bf"
 dependencies = [
  "serde",
  "uuid 0.8.1",
@@ -2043,6 +2044,7 @@ dependencies = [
 [[package]]
 name = "webgame_server"
 version = "0.4.0"
+source = "git+https://github.com/mmai/webgame#3d7fcde470c79b76e71568b6708fcf34b759d3bf"
 dependencies = [
  "clap",
  "futures 0.3.5",

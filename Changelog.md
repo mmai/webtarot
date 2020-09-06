@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0
+
+- webgame_server & webgame_protocol extracted to an external repository
+
 ## 0.3.4
 
 - added ip address parameter to server command

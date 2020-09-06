@@ -13,7 +13,7 @@ let
 in
   dockerTools.buildImage {
     name = "mmai/webtarot";
-    tag = "0.4.0";
+    tag = "0.4.1";
     contents = [ busybox ];
     config = {
       Entrypoint = [ entrypoint ];

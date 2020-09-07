@@ -8,5 +8,5 @@ edition = "2018"
 serde = { version = "1.0.105", features = ["derive", "rc"] }
 uuid = { version = "0.8.1", features = ["serde"] }
 tarotgame = { path = "../tarotgame" }
-# webgame_protocol = { path = "../../webgame/webgame_protocol" }
-webgame_protocol = { git = "https://github.com/mmai/webgame"}
+webgame_protocol = { path = "../../webgame/webgame_protocol" }
+# webgame_protocol = { git = "https://github.com/mmai/webgame"}

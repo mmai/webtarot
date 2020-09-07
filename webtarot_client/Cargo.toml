@@ -12,8 +12,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 yew = "0.17.2"
-# webgame_protocol = { path = "../../webgame/webgame_protocol" }
-webgame_protocol = { git = "https://github.com/mmai/webgame"}
+webgame_protocol = { path = "../../webgame/webgame_protocol" }
+# webgame_protocol = { git = "https://github.com/mmai/webgame"}
 webtarot_protocol = { path = "../webtarot_protocol" }
 tarotgame = { path = "../tarotgame" }
 wasm-bindgen = "0.2.59"

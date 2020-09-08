@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-use webgame_protocol::ProtocolErrorKind;
+use webgame_protocol::{ProtocolErrorKind, Message as GenericMessage, Command as GenericCommand};
 use webgame_protocol::ProtocolError as GenericProtocolError;
 
-use crate::player::PlayerRole;
+use crate::player::{PlayerRole, GamePlayerState};
+use crate::game::{GameStateSnapshot, PlayEvent};
+use crate::game_messages::GamePlayCommand;
 
 impl From<ProtocolError> for GenericProtocolError {
     fn from(error: ProtocolError) -> Self {
@@ -41,3 +43,6 @@ impl ProtocolError {
 pub struct SetPlayerRoleCommand {
     pub role: PlayerRole,
 }
+
+pub type Message = GenericMessage<GamePlayerState, GameStateSnapshot, PlayEvent>;
+pub type Command = GenericCommand<GamePlayCommand, SetPlayerRoleCommand, GameStateSnapshot>;

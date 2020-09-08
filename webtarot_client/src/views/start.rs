@@ -7,8 +7,8 @@ use yew::{
 };
 
 use crate::api::Api;
-use crate::protocol::{AuthenticateCommand, Command, Message};
-use crate::gprotocol::{PlayerInfo};
+use crate::protocol::{Command, Message};
+use crate::gprotocol::{AuthenticateCommand, PlayerInfo};
 
 #[derive(Clone, PartialEq, Properties)]
 pub struct Props {

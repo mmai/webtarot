@@ -23,7 +23,7 @@ impl From<bid::BidError> for ProtocolError {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "cmd", rename_all = "snake_case")]
+#[serde(tag = "gcmd", rename_all = "snake_case")]
 pub enum GamePlayCommand {
     Bid(BidCommand),
     Play(PlayCommand),

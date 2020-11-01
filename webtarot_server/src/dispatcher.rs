@@ -89,10 +89,16 @@ pub async fn on_player_bid(
         .await;
 
         let game_state = game.state_handle();
-        let mut game_state = game_state.lock().await;
-        game_state.set_bid(player_id, cmd.target)?;
+        let mut game_state = game_state.lock().await; //XXX we are stuck here
 
+        game.broadcast(&Message::Chat(ChatMessage {
+            player_id, text: format!("after lock"),
+        }))
+        .await;
+
+        game_state.set_bid(player_id, cmd.target)?;
         game.broadcast_state().await;
+
         Ok(())
 }
 

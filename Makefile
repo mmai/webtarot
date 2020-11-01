@@ -26,3 +26,10 @@ assemble:
 	cp -R webtarot_client/dist/ dist/public
 	cp target/release/webtarot_server dist/
 .PHONY: assemble
+
+runclients:
+	firefox -p tarot1&
+	firefox -p tarot2&
+	firefox -p tarot3&
+	firefox -p tarot4&
+	firefox -p tarot5&

@@ -151,7 +151,7 @@ impl GameState< GamePlayerState, GameStateSnapshot> for TarotGameState {
         }
     }
 
-    fn set_player_ready(&mut self, player_id: Uuid){
+    fn set_player_ready(&mut self, player_id: Uuid) -> bool {
         let turn = self.turn.clone();
         if let Some(player_state) = self.players.get_mut(&player_id) {
             player_state.ready = true;
@@ -172,17 +172,23 @@ impl GameState< GamePlayerState, GameStateSnapshot> for TarotGameState {
                         self.update_turn();
                     } else { // new game
                         self.turn = Turn::Bidding((bid::AuctionState::Bidding, pos::PlayerPos::P0));
+                        return true
                     }
                 }
-
             }
         }
+        false
     }
 
     fn set_player_not_ready(&mut self, player_id: Uuid) {
         if let Some(player_state) = self.players.get_mut(&player_id) {
             player_state.ready = false;
         }
+    }
+
+    fn update_init_state(&mut self) -> bool {
+        // self.next();
+        false
     }
 
 }

@@ -378,35 +378,33 @@ pub fn can_play(
         return Ok(());
     }
 
-    if p == trick.first {
-        // First to play : everything is accepted except a card in the suit of the called king at the
+    let card_suit = card.suit();
+    if let Some(starting_suit) = trick.suit() {
+        if card_suit != starting_suit {
+            if hand.has_any(starting_suit) {
+                return Err(PlayError::IncorrectSuit);
+            }
+
+            if card_suit != cards::Suit::Trump && hand.has_any(cards::Suit::Trump) {
+                return Err(PlayError::InvalidPiss);
+            }
+        }
+
+        // One must raise when playing trump
+        if card_suit == cards::Suit::Trump {
+            let highest = highest_trump(trick, p);
+            if points::strength(card) < highest && has_higher_trump(hand, highest) {
+                return Err(PlayError::NonRaisedTrump);
+            }
+        }
+    } else { //First to play (or second if the first played the Excuse)
+        // Everything is accepted except a card in the suit of the called king at the
         // first trick of the deal if it is not the king itself
         if called_king.is_some()                          // A king has been called (5 players variant)
             && is_first_trick                             // and this is the first trick of the deal
             && card.suit() == called_king.unwrap().suit() // and the card played is in the suit of the called king
             && card.rank() != cards::Rank::RankK {        // and this is not the king itself
                 return Err(PlayError::CallKingSuit);
-        }
-        return Ok(());
-    }
-
-    let card_suit = card.suit();
-    let starting_suit = trick.suit().unwrap();
-    if card_suit != starting_suit {
-        if hand.has_any(starting_suit) {
-            return Err(PlayError::IncorrectSuit);
-        }
-
-        if card_suit != cards::Suit::Trump && hand.has_any(cards::Suit::Trump) {
-            return Err(PlayError::InvalidPiss);
-        }
-    }
-
-    // One must raise when playing trump
-    if card_suit == cards::Suit::Trump {
-        let highest = highest_trump(trick, p);
-        if points::strength(card) < highest && has_higher_trump(hand, highest) {
-            return Err(PlayError::NonRaisedTrump);
         }
     }
 

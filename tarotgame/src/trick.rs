@@ -96,8 +96,10 @@ impl Trick {
         }
 
         let winner_card = self.cards[self.winner as usize].unwrap();
-        if points::strength(card) > points::strength(winner_card)
-            && (card.suit() == winner_card.suit() || card.suit() == cards::Suit::Trump )
+        if points::strength(winner_card) == 0 || // when the Excuse is played by the first player
+           (  points::strength(card) > points::strength(winner_card)
+           && (card.suit() == winner_card.suit() || card.suit() == cards::Suit::Trump )
+           )
         {
             self.winner = player
         }
@@ -109,7 +111,17 @@ impl Trick {
     ///
     /// Returns `None` if the trick hasn't started yet.
     pub fn suit(&self) -> Option<cards::Suit> {
-        self.cards[self.first as usize].map(|c| c.suit())
+        // self.cards[self.first as usize].map(|c| c.suit())
+        if let Some(first_card) = self.cards[self.first as usize]{
+            if first_card.rank() == cards::Rank::Rank22 {
+                // first card is the Excuse : we look at the second card played
+                return self.cards[self.first.next() as usize].map(|c| c.suit())
+            } else {
+                return Some(first_card.suit())
+            }
+        } else {
+            return None;
+        }
     }
 }
 

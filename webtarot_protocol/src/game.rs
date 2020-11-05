@@ -355,6 +355,11 @@ pub enum PlayEvent {
     Play( Uuid, cards::Card)
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub struct VariantSettings {
+    pub nb_players: u8,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct GameStateSnapshot {
     pub players: Vec<GamePlayerState>,

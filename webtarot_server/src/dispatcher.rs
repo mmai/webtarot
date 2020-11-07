@@ -18,14 +18,14 @@ use crate::tarot_protocol::{
     TarotGameState,
     GamePlayerState,
     GameStateSnapshot,
-    VariantSettings
+    Variant,
 };
 
 //see https://users.rust-lang.org/t/how-to-store-async-function-pointer/38343/4
 type DynFut<T> = ::std::pin::Pin<Box<dyn Send + ::std::future::Future<Output = T>>>;
 
 pub fn on_gameplay(
-    universe: Arc<Universe<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, VariantSettings>>,
+    universe: Arc<Universe<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, Variant>>,
     user_id: Uuid,
     cmd: GamePlayCommand,
 ) -> DynFut<Result<(), ProtocolError>> {
@@ -49,7 +49,7 @@ pub fn on_gameplay(
 }                                
 
 pub fn on_player_set_role(
-    universe: Arc<Universe<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, VariantSettings>>,
+    universe: Arc<Universe<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, Variant>>,
     user_id: Uuid,
     cmd: SetPlayerRoleCommand,
 ) -> DynFut<Result<(), ProtocolError>> {
@@ -81,7 +81,7 @@ pub fn on_player_set_role(
 }
 
 pub async fn on_player_bid(
-    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, VariantSettings>>,
+    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, Variant>>,
     player_id: Uuid,
     cmd: BidCommand,
 ) -> Result<(), ProtocolError> {
@@ -102,7 +102,7 @@ pub async fn on_player_bid(
 }
 
 pub async fn on_player_play(
-    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, VariantSettings>>,
+    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, Variant>>,
     player_id: Uuid,
     cmd: PlayCommand,
 ) -> Result<(), ProtocolError> {
@@ -122,7 +122,7 @@ pub async fn on_player_play(
 
 
 pub async fn on_player_pass(
-    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, VariantSettings>>,
+    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, Variant>>,
     player_id: Uuid,
 ) -> Result<(), ProtocolError> {
         let game_state = game.state_handle();
@@ -141,7 +141,7 @@ pub async fn on_player_pass(
 
 
 pub async fn on_player_call_king(
-    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, VariantSettings>>,
+    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, Variant>>,
     player_id: Uuid,
     cmd: CallKingCommand,
 ) -> Result<(), ProtocolError> {
@@ -160,7 +160,7 @@ pub async fn on_player_call_king(
 }
 
 pub async fn on_player_make_dog(
-    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, VariantSettings>>,
+    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, Variant>>,
     player_id: Uuid,
     cmd: MakeDogCommand,
 ) -> Result<(), ProtocolError> {

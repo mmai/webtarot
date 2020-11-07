@@ -110,10 +110,10 @@ pub enum BidStatus {
 /// Represents the entire auction process.
 pub struct Auction {
     contract: Option<Contract>,
-    players_status: [BidStatus; super::NB_PLAYERS], 
+    players_status: Vec<BidStatus>, 
     first: pos::PlayerPos,
     state: AuctionState,
-    players: [cards::Hand; super::NB_PLAYERS],
+    players: Vec<cards::Hand>,
     dog: cards::Hand,
 }
 
@@ -147,10 +147,11 @@ impl fmt::Display for BidError {
 impl Auction {
     /// Starts a new auction, starting with the player `first`.
     pub fn new(first: pos::PlayerPos) -> Self {
-        let (hands, dog) = super::deal_hands();
+        let count = first.count;
+        let (hands, dog) = super::deal_hands(count);
         Auction {
             contract: None,
-            players_status: [BidStatus::Todo; super::NB_PLAYERS],
+            players_status: [BidStatus::Todo; count].to_vec(),
             state: AuctionState::Bidding,
             first,
             players: hands,
@@ -293,7 +294,7 @@ impl Auction {
                     self.players,
                     self.dog,
                     contract,
-                    pos::PlayerPos::P0, //XXX placeholder
+                    pos::PlayerPos::from_n(0,5), //XXX placeholder
                 ))
             } else {
                 Err(BidError::NoContract)
@@ -309,39 +310,39 @@ mod tests {
 
     #[test]
     fn test_auction() {
-        let mut auction = Auction::new(pos::PlayerPos::P0);
+        let mut auction = Auction::new(pos::PlayerPos::from_n(0, 5));
 
         assert!(auction.state == AuctionState::Bidding);
 
-        assert_eq!(auction.pass(pos::PlayerPos::P0), Ok(AuctionState::Bidding));
-        assert_eq!(auction.pass(pos::PlayerPos::P1), Ok(AuctionState::Bidding));
+        assert_eq!(auction.pass(pos::PlayerPos::from_n(0, 5)), Ok(AuctionState::Bidding));
+        assert_eq!(auction.pass(pos::PlayerPos::from_n(1, 5)), Ok(AuctionState::Bidding));
 
-        assert_eq!(auction.pass(pos::PlayerPos::P3), Err(BidError::TurnError));
+        assert_eq!(auction.pass(pos::PlayerPos::from_n(3, 5)), Err(BidError::TurnError));
 
-        assert_eq!(auction.pass(pos::PlayerPos::P2), Ok(AuctionState::Bidding));
+        assert_eq!(auction.pass(pos::PlayerPos::from_n(2, 5)), Ok(AuctionState::Bidding));
 
 
         // Someone bids.
         assert_eq!(
-            auction.bid(pos::PlayerPos::P3, Target::Garde),
+            auction.bid(pos::PlayerPos::from_n(3, 5), Target::Garde),
             Ok(AuctionState::Bidding)
         );
 
         assert_eq!(
-            auction.bid(pos::PlayerPos::P4, Target::Garde).err(),
+            auction.bid(pos::PlayerPos::from_n(4, 5), Target::Garde).err(),
             Some(BidError::NonRaisedTarget)
         );
         // Surbid
         assert_eq!(
-            auction.bid(pos::PlayerPos::P4, Target::GardeSans),
+            auction.bid(pos::PlayerPos::from_n(4, 5), Target::GardeSans),
             Ok(AuctionState::Bidding)
         );
 
         // Allready passed
-        assert_eq!(auction.pass(pos::PlayerPos::P0), Err(BidError::TurnError));
+        assert_eq!(auction.pass(pos::PlayerPos::from_n(0, 5)), Err(BidError::TurnError));
 
         // Last to pass
-        assert_eq!(auction.pass(pos::PlayerPos::P3), Ok(AuctionState::Over));
+        assert_eq!(auction.pass(pos::PlayerPos::from_n(3, 5)), Ok(AuctionState::Over));
 
         assert!(auction.state == AuctionState::Over);
 

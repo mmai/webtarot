@@ -17,12 +17,12 @@
 //!     let hands = auction.hands();
 //!
 //!     // Players bid or pass
-//!     auction.bid(pos::PlayerPos::P0, bid::Target::Garde).unwrap();
-//!     auction.pass(pos::PlayerPos::P1).unwrap();
-//!     auction.pass(pos::PlayerPos::P2).unwrap();
-//!     auction.pass(pos::PlayerPos::P3).unwrap();
+//!     auction.bid(pos::PlayerPos::from_n(0, 5), bid::Target::Garde).unwrap();
+//!     auction.pass(pos::PlayerPos::from_n(1, 5)).unwrap();
+//!     auction.pass(pos::PlayerPos::from_n(2, 5)).unwrap();
+//!     auction.pass(pos::PlayerPos::from_n(3, 5)).unwrap();
 //!     // The result is `Over` when the auction is ready to complete
-//!     match auction.pass(pos::PlayerPos::P4) {
+//!     match auction.pass(pos::PlayerPos::from_n(4, 5)) {
 //!         Ok(bid::AuctionState::Over) => (),
 //!         _ => panic!("Should not happen"),
 //!     };
@@ -31,7 +31,7 @@
 //!     let mut deal = auction.complete().unwrap();
 //!
 //!     // Play some cards
-//!     deal.play_card(pos::PlayerPos::P0, hands[0].get_card());
+//!     deal.play_card(pos::PlayerPos::from_n(0, 5), hands[0].get_card());
 //!     // ...
 //! }
 //! ```
@@ -47,9 +47,9 @@ pub mod points;
 pub mod pos;
 pub mod trick;
 
-pub const NB_PLAYERS:usize = 5;
+// pub const NB_PLAYERS:usize = 5;
 pub const DOG_SIZE:usize = 3;
-const DEAL_SIZE:usize = (78 - DOG_SIZE) / NB_PLAYERS ;
+// const DEAL_SIZE:usize = (78 - DOG_SIZE) / NB_PLAYERS ;
 
 // Expose the module or their content directly? Still unsure.
 
@@ -63,8 +63,8 @@ const DEAL_SIZE:usize = (78 - DOG_SIZE) / NB_PLAYERS ;
 /// Quick method to get cards for 4 players.
 ///
 /// Deals cards to 5 players randomly.
-pub fn deal_hands() -> ([cards::Hand; NB_PLAYERS], cards::Hand) {
-    let mut hands = [cards::Hand::new(); NB_PLAYERS];
+pub fn deal_hands(count: usize) -> (Vec<cards::Hand>, cards::Hand) {
+    let mut hands = [cards::Hand::new(); count];
     let mut dog = cards::Hand::new();
 
     let mut d = cards::Deck::new();

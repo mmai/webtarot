@@ -3,38 +3,47 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use tarotgame::{NB_PLAYERS, bid, cards, pos, deal, trick};
+use tarotgame::{bid, cards, pos, deal, trick};
 use webgame_protocol::{GameState, PlayerInfo, ProtocolErrorKind};
 use crate::{ ProtocolError };
 
 use crate::turn::Turn;
 use crate::deal::{Deal, DealSnapshot};
 use crate::player::{PlayerRole, GamePlayerState};
+use crate::message::Variant;
 
 pub struct TarotGameState {
+    nb_players: u8,
     players: BTreeMap<Uuid, GamePlayerState>,
     turn: Turn,
     deal: Deal,
     first: pos::PlayerPos,
-    scores: Vec<[f32; NB_PLAYERS]>,
+    scores: Vec<Vec<f32>>,
 }
 
 impl Default for TarotGameState {
     fn default() -> TarotGameState {
         TarotGameState {
+            nb_players: 5,
             players: BTreeMap::new(),
             turn: Turn::Pregame,
-            deal: Deal::new(pos::PlayerPos::P0),
-            first: pos::PlayerPos::P0,
+            deal: Deal::new(pos::PlayerPos::from_n(0, 5)),
+            first: pos::PlayerPos::from_n(0, 5),
             scores: vec![],
         }
     }
 }
 
-impl GameState< GamePlayerState, GameStateSnapshot> for TarotGameState {
+impl GameState< GamePlayerState, GameStateSnapshot, VariantSettings> for TarotGameState {
     type PlayerPos = pos::PlayerPos;
     type PlayerRole = PlayerRole;
 
+    fn set_variant(&mut self, variant: Variant) {
+        self.nb_players == variant.parameters.nb_players;
+        self.deal = Deal::new(pos::PlayerPos::from_n(0, self.nb_players));
+        self.first = pos::PlayerPos::from_n(0, self.nb_players);
+    }
+    
     fn is_joinable(&self) -> bool {
         self.turn == Turn::Pregame
     }
@@ -50,16 +59,12 @@ impl GameState< GamePlayerState, GameStateSnapshot> for TarotGameState {
 
         //Default pos
         let nb_players = self.players.len();
-        let mut newpos = pos::PlayerPos::from_n(nb_players);
+        let mut newpos = pos::PlayerPos::from_n(nb_players, self.nb_players);
 
-        //TODO rendre générique
-        for p in &[ pos::PlayerPos::P0,
-        pos::PlayerPos::P1,
-        pos::PlayerPos::P2,
-        pos::PlayerPos::P3,
-        ] {
-            if !self.position_taken(*p){
-                newpos = p.clone();
+        for p in 0..self.nb_players {
+            let position = pos::PlayerPos::from_n(p as usize, self.nb_players);
+            if !self.position_taken(position){
+                newpos = position.clone();
                 break;
             }
         }
@@ -98,7 +103,7 @@ impl GameState< GamePlayerState, GameStateSnapshot> for TarotGameState {
         }
         players.sort_by(|a, b| a.pos.to_n().cmp(&b.pos.to_n()));
         let pos = self.players[&player_id].pos;
-        let mut scores = [0.0; 5];
+        let mut scores = vec![0.0; self.nb_players as usize];
         let mut dog = cards::Hand::new();
         let mut taker_diff = 0.0;
         let deal = match self.deal.deal_state() {
@@ -136,7 +141,7 @@ impl GameState< GamePlayerState, GameStateSnapshot> for TarotGameState {
                 current: self.deal.next_player(),
                 contract,
                 king: None,
-                scores: [0.0;NB_PLAYERS],
+                scores: vec![0.0;self.nb_players as usize],
                 last_trick: trick::Trick::default(),
                 initial_dog: cards::Hand::new(),
                 dog,
@@ -167,7 +172,7 @@ impl GameState< GamePlayerState, GameStateSnapshot> for TarotGameState {
                         count = count + 1;
                     }
                 }
-                if count == NB_PLAYERS {
+                if count == self.nb_players {
                     if self.turn == Turn::Interdeal { // ongoing game
                         self.update_turn();
                     } else { // new game
@@ -308,7 +313,7 @@ impl TarotGameState {
         self.set_player_role( taker_id, PlayerRole::Taker);
 
         //Update turn
-        self.turn = if NB_PLAYERS == 5 {
+        self.turn = if self.nb_players == 5 {
             Turn::CallingKing
         } else {
             Turn::MakingDog
@@ -365,7 +370,7 @@ pub struct GameStateSnapshot {
     pub players: Vec<GamePlayerState>,
     pub turn: Turn,
     pub deal: DealSnapshot,
-    pub scores: Vec<[f32; NB_PLAYERS]>,
+    pub scores: Vec<Vec<f32>>,
 }
 
 impl webgame_protocol::GameStateSnapshot for GameStateSnapshot {
@@ -432,7 +437,7 @@ impl Default for GameStateSnapshot {
                 current: pos,
                 contract: None,
                 king: None,
-                scores: [0.0;NB_PLAYERS],
+                scores: vec![],
                 last_trick: trick::Trick::new(pos),
                 initial_dog: cards::Hand::new(),
                 dog: cards::Hand::new(),

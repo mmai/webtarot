@@ -147,11 +147,11 @@ impl fmt::Display for BidError {
 impl Auction {
     /// Starts a new auction, starting with the player `first`.
     pub fn new(first: pos::PlayerPos) -> Self {
-        let count = first.count;
+        let count = first.count as usize;
         let (hands, dog) = super::deal_hands(count);
         Auction {
             contract: None,
-            players_status: [BidStatus::Todo; count].to_vec(),
+            players_status: vec![BidStatus::Todo; count],
             state: AuctionState::Bidding,
             first,
             players: hands,
@@ -160,7 +160,7 @@ impl Auction {
     }
 
     /// Override Auction hands (for tests)
-    pub fn set_hands(&mut self, hands: [cards::Hand; super::NB_PLAYERS], dog: cards::Hand) {
+    pub fn set_hands(&mut self, hands: Vec<cards::Hand>, dog: cards::Hand) {
         self.players = hands;
         self.dog = dog;
     }
@@ -252,8 +252,8 @@ impl Auction {
     }
 
     /// Returns the players cards.
-    pub fn hands(&self) -> [cards::Hand; super::NB_PLAYERS] {
-        self.players
+    pub fn hands(&self) -> &Vec<cards::Hand> {
+        &self.players
     }
 
     /// The current player passes his turn.
@@ -291,7 +291,7 @@ impl Auction {
             if let Some(contract) = self.contract.clone() {
                 Ok(deal::DealState::new(
                     self.first,
-                    self.players,
+                    self.players.clone(),
                     self.dog,
                     contract,
                     pos::PlayerPos::from_n(0,5), //XXX placeholder

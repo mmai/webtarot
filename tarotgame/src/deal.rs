@@ -156,8 +156,9 @@ impl DealState {
             return false;
         } 
         let cards_list = cards.list();
-        if cards_list.len() != super::DOG_SIZE {
-            println!("Wrong number of cards: {} instead of {}", cards_list.len(), super::DOG_SIZE);
+        let dog_size = super::dog_size(self.players.len());
+        if cards_list.len() != dog_size {
+            println!("Wrong number of cards: {} instead of {}", cards_list.len(), dog_size);
             return false;
         }
 
@@ -194,6 +195,7 @@ impl DealState {
         }
 
         let is_first_trick = self.tricks.len() == 1;
+        let deal_size = super::deal_size(self.players.len());
 
         // Is that a valid move?
         can_play(
@@ -227,12 +229,13 @@ impl DealState {
                 let excuse = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank22);
                 let count = self.players.len() as u8;
                 let excuse_player = pos::PlayerPos::from_n(self.current_trick().player_played(excuse).unwrap() as usize, count);
-                if self.tricks.len() == super::DEAL_SIZE && !self.is_slam() {
+                if self.tricks.len() == deal_size && !self.is_slam() {
                     //Excuse played in the last trick when not a slam : goes to the other team
                     let excuse_points = points::points(excuse);
                     if self.in_taker_team(excuse_player) {
+                        let opponent_pos = self.get_opponent().pos as usize;
                         self.points[self.contract.author.pos as usize] -= excuse_points;
-                        self.points[self.get_opponent().pos as usize] += excuse_points;
+                        self.points[opponent_pos] += excuse_points;
                     } else {
                         self.points[excuse_player.pos as usize] -= excuse_points;
                         self.points[self.contract.author.pos as usize] += excuse_points;
@@ -252,7 +255,7 @@ impl DealState {
                 }
             }
 
-            if self.tricks.len() == super::DEAL_SIZE {
+            if self.tricks.len() == deal_size {
                 // TODO petit au bout ? -> maj annonce
             } else {
                 self.tricks.push(trick::Trick::new(winner));
@@ -317,7 +320,7 @@ impl DealState {
         }
 
         DealResult::GameOver {
-            points: self.points,
+            points: self.points.clone(),
             taker_diff,
             scores,
         }
@@ -333,12 +336,13 @@ impl DealState {
     }
 
     /// Returns the cards of all players
-    pub fn hands(&self) -> Vec<cards::Hand> {
-        self.players
+    pub fn hands(&self) -> &Vec<cards::Hand> {
+        &self.players
     }
 
     pub fn is_over(&self) -> bool {
-        self.tricks.len() == super::DEAL_SIZE && !self.tricks[super::DEAL_SIZE -1].cards.iter().any(|&c| c.is_none())
+        let deal_size = super::deal_size(self.players.len());
+        self.tricks.len() == deal_size && !self.tricks[deal_size -1].cards.iter().any(|&c| c.is_none())
     }
 
     /// Return the last trick, if possible

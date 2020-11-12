@@ -48,8 +48,26 @@ pub mod pos;
 pub mod trick;
 
 // pub const NB_PLAYERS:usize = 5;
-pub const DOG_SIZE:usize = 3;
+// pub const DOG_SIZE:usize = 3;
 // const DEAL_SIZE:usize = (78 - DOG_SIZE) / NB_PLAYERS ;
+
+pub fn dog_size(players_count: usize) -> usize {
+    match players_count {
+        3 => 6,
+        4 => 6,
+        5 => 3,
+        _ => 3
+    }
+}
+
+pub fn deal_size(players_count: usize) -> usize {
+    match players_count {
+        3 => 24,
+        4 => 18,
+        5 => 15,
+        _ => 15,
+    }
+}
 
 // Expose the module or their content directly? Still unsure.
 
@@ -64,7 +82,7 @@ pub const DOG_SIZE:usize = 3;
 ///
 /// Deals cards to 5 players randomly.
 pub fn deal_hands(count: usize) -> (Vec<cards::Hand>, cards::Hand) {
-    let mut hands = [cards::Hand::new(); count];
+    let mut hands = vec![cards::Hand::new(); count];
     let mut dog = cards::Hand::new();
 
     let mut d = cards::Deck::new();
@@ -82,9 +100,9 @@ pub fn deal_hands(count: usize) -> (Vec<cards::Hand>, cards::Hand) {
     (hands, dog)
 }
 
-/// Deal cards for 5 players deterministically.
-pub fn deal_seeded_hands(seed: [u8; 32]) -> ([cards::Hand; NB_PLAYERS], cards::Hand) {
-    let mut hands = [cards::Hand::new(); NB_PLAYERS];
+/// Deal cards for players deterministically.
+pub fn deal_seeded_hands(seed: [u8; 32], count: usize) -> (Vec<cards::Hand>, cards::Hand) {
+    let mut hands = vec![cards::Hand::new(); count];
     let mut dog = cards::Hand::new();
 
     let mut d = cards::Deck::new();
@@ -104,7 +122,7 @@ pub fn deal_seeded_hands(seed: [u8; 32]) -> ([cards::Hand; NB_PLAYERS], cards::H
 
 #[test]
 fn test_deals() {
-    let (hands, dog) = deal_hands();
+    let (hands, dog) = deal_hands(5);
     assert!(dog.size() == 3);
 
     let mut count = [0; 78];
@@ -113,7 +131,7 @@ fn test_deals() {
         count[idx_from_id(card.id()) as usize] += 1;
     }
     for hand in hands.iter() {
-        assert!(hand.size() == DEAL_SIZE);
+        assert!(hand.size() == 15);
         for card in hand.list().iter() {
             count[idx_from_id(card.id()) as usize] += 1;
         }

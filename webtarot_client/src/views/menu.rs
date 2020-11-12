@@ -7,7 +7,7 @@ use yew::{
 use tr::tr;
 
 use crate::api::Api;
-use crate::protocol::{Command, Message, Variant, VariantSettings};
+use crate::protocol::{Command, Message, TarotVariant, VariantSettings};
 use crate::gprotocol::{GameInfo, PlayerInfo, JoinGameCommand};
 use crate::utils::format_join_code;
 
@@ -28,17 +28,17 @@ pub struct MenuPage {
 
 pub enum Msg {
     Ignore,
-    NewGame(Variant),
+    NewGame(TarotVariant),
     JoinGame,
     ServerMessage(Message),
     SetJoinCode(String),
 }
 
-const TAROT4: Variant = Variant {
+const TAROT4: TarotVariant = TarotVariant {
     parameters: VariantSettings { nb_players: 4 }
 };
 
-const TAROT5: Variant = Variant {
+const TAROT5: TarotVariant = TarotVariant {
     parameters: VariantSettings { nb_players: 5 }
 };
 

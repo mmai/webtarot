@@ -10,7 +10,7 @@ use crate::{ ProtocolError };
 use crate::turn::Turn;
 use crate::deal::{Deal, DealSnapshot};
 use crate::player::{PlayerRole, GamePlayerState};
-use crate::message::Variant;
+use crate::message::TarotVariant;
 
 pub struct TarotGameState {
     nb_players: u8,
@@ -34,12 +34,36 @@ impl Default for TarotGameState {
     }
 }
 
-impl GameState< GamePlayerState, GameStateSnapshot, VariantSettings> for TarotGameState {
+/*
+ * the trait bound `webtarot_protocol::game::TarotGameState: 
+ * webgame_protocol::game::GameState<
+ *        webtarot_protocol::player::GamePlayerState,
+ *        webtarot_protocol::game::GameStateSnapshot,
+ *        webgame_protocol::game::Variant<
+ *          webtarot_protocol::game::VariantSettings
+ *          >
+ *  >` is not satisfied
+  --> webtarot_server/src/main.rs:19:5
+   |
+  ::: /home/henri/travaux/programmes/webgame/webgame_server/src/launcher.rs:11:20
+   |
+11 |     GameStateType: GameState<GamePlayerStateT, GameStateSnapshotT, VariantParameters>+'static,
+   |                    ------------------------------------------------------------------ required by this bound in `webgame_server::launcher::launch`
+   |
+   = help: the following implementations were found:
+    webgame_protocol::game::GameState<
+        webtarot_protocol::player::GamePlayerState,
+        webtarot_protocol::game::GameStateSnapshot,
+        webtarot_protocol::game::VariantSettings>>
+
+ */
+
+impl GameState<GamePlayerState, GameStateSnapshot, VariantSettings> for TarotGameState {
     type PlayerPos = pos::PlayerPos;
     type PlayerRole = PlayerRole;
 
-    fn set_variant(&mut self, variant: Variant) {
-        self.nb_players == variant.parameters.nb_players;
+    fn set_variant(&mut self, variant: TarotVariant) {
+        self.nb_players = variant.parameters.nb_players;
         self.deal = Deal::new(pos::PlayerPos::from_n(0, self.nb_players));
         self.first = pos::PlayerPos::from_n(0, self.nb_players);
     }
@@ -124,7 +148,7 @@ impl GameState< GamePlayerState, GameStateSnapshot, VariantSettings> for TarotGa
                     state.dog()
                 } else { cards::Hand::new() };
                 DealSnapshot {
-                    hand: state.hands()[pos as usize],
+                    hand: state.hands()[pos.pos as usize],
                     current: state.next_player(),
                     contract,
                     king: state.king(),
@@ -137,7 +161,7 @@ impl GameState< GamePlayerState, GameStateSnapshot, VariantSettings> for TarotGa
                 }
             },
             None => DealSnapshot { // In bidding phase
-                hand: self.deal.hands()[pos as usize],
+                hand: self.deal.hands()[pos.pos as usize],
                 current: self.deal.next_player(),
                 contract,
                 king: None,
@@ -176,7 +200,7 @@ impl GameState< GamePlayerState, GameStateSnapshot, VariantSettings> for TarotGa
                     if self.turn == Turn::Interdeal { // ongoing game
                         self.update_turn();
                     } else { // new game
-                        self.turn = Turn::Bidding((bid::AuctionState::Bidding, pos::PlayerPos::P0));
+                        self.turn = Turn::Bidding((bid::AuctionState::Bidding, pos::PlayerPos::from_n(0, count)));
                         return true
                     }
                 }
@@ -229,7 +253,7 @@ impl TarotGameState {
     }
 
     fn was_last_trick(&self) -> bool {
-        let p0 = self.player_by_pos(pos::PlayerPos::P0).unwrap();
+        let p0 = self.player_by_pos(pos::PlayerPos::from_n(0, self.players.len() as u8)).unwrap();
         self.turn == Turn::Intertrick && p0.role == PlayerRole::Unknown
     }
 
@@ -427,7 +451,7 @@ impl GameStateSnapshot {
 
 impl Default for GameStateSnapshot {
     fn default() -> GameStateSnapshot {
-        let pos = pos::PlayerPos::P0; // could be anything
+        let pos = pos::PlayerPos::from_n(0, 5); // could be anything
         GameStateSnapshot {
             players: vec![],
             scores: vec![],
@@ -515,7 +539,7 @@ mod tests {
         assert_eq!(game.get_turn(), Turn::Bidding((bid::AuctionState::Bidding, pos0)));
 
         let seed = [3, 32, 3, 32, 54, 1, 84, 3, 32, 54, 1, 84, 3, 32, 65, 1, 84, 3, 32, 64, 1, 44, 3, 32, 54, 1, 84, 3, 32, 65, 1, 44];
-        let (hands, dog) = deal_seeded_hands(seed);
+        let (hands, dog) = deal_seeded_hands(seed, 5);
         // println!("{}", _dog.to_string());
         // for hand in hands.iter() {
         //     println!("{}", hand.to_string()); // `cargo test -- --nocapture` to view output

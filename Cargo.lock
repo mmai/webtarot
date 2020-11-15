@@ -2034,7 +2034,8 @@ dependencies = [
 
 [[package]]
 name = "webgame_protocol"
-version = "0.4.0"
+version = "0.5.0"
+source = "git+https://github.com/mmai/webgame#9645b598aaeb87a89b6c0a8fb89d0ebf1ea08a7a"
 dependencies = [
  "serde",
  "uuid 0.8.1",
@@ -2042,7 +2043,8 @@ dependencies = [
 
 [[package]]
 name = "webgame_server"
-version = "0.4.0"
+version = "0.5.0"
+source = "git+https://github.com/mmai/webgame#9645b598aaeb87a89b6c0a8fb89d0ebf1ea08a7a"
 dependencies = [
  "clap",
  "futures 0.3.5",
@@ -2063,7 +2065,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_client"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
@@ -2089,7 +2091,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_protocol"
-version = "0.3.0"
+version = "0.5.0"
 dependencies = [
  "serde",
  "tarotgame",
@@ -2099,7 +2101,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_server"
-version = "0.4.1"
+version = "0.5.0"
 dependencies = [
  "clap",
  "futures 0.3.5",

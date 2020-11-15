@@ -39,7 +39,8 @@ impl Component for PlayerList {
     }
 
     fn view(&self) -> Html {
-        let empty_scores = vec![0.0;self.players.len()];
+        let nb_players = self.game_state.players[0].pos.count as usize;
+        let empty_scores = vec![0.0;nb_players];
         html! {
             <section class="players">
                 {

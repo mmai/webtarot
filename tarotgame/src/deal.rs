@@ -81,6 +81,7 @@ impl fmt::Display for PlayError {
 impl DealState {
     /// Creates a new DealState, with the given cards, first player and contract.
     pub fn new(first: pos::PlayerPos, hands: Vec<cards::Hand>, dog: cards::Hand, contract: bid::Contract, partner: pos::PlayerPos) -> Self {
+        let count = hands.len();
         DealState {
             players: hands,
             partner,
@@ -90,7 +91,7 @@ impl DealState {
             contract,
             tricks: vec![trick::Trick::new(first)],
             oudlers_count: 0,
-            points: vec![],
+            points: vec![0.0;count],
         }
     }
 
@@ -309,7 +310,7 @@ impl DealState {
 
         let count = self.players.len() as u8;
         let mut scores = vec![0.0; count as usize];
-        for position in 0..=count {
+        for position in 0..count {
             if !self.in_taker_team(pos::PlayerPos::from_n(position as usize, count)) {
                 scores[position as usize] -= base_points;
                 scores[self.contract.author.pos as usize] += base_points;
@@ -447,7 +448,7 @@ fn highest_trump(trick: &trick::Trick, player: pos::PlayerPos) -> i32 {
 mod tests {
     use super::has_higher_trump;
     use super::*;
-    use crate::{NB_PLAYERS, cards, points, pos};
+    use crate::{cards, points, pos};
 
     #[test]
     fn test_play_card() {
@@ -456,7 +457,7 @@ mod tests {
         dog.add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank5));
         dog.add(cards::Card::new(cards::Suit::Club, cards::Rank::Rank2));
 
-        let mut hands = [cards::Hand::new(); NB_PLAYERS];
+        let mut hands = [cards::Hand::new(); 5];
         hands[0].add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank8));
         hands[0].add(cards::Card::new(cards::Suit::Heart, cards::Rank::Rank9));
         hands[0].add(cards::Card::new(cards::Suit::Club, cards::Rank::Rank7));

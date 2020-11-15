@@ -153,7 +153,7 @@ impl Component for App {
                 self.game_info = None;
             }
             Msg::Ping => {
-                log!("sending ping");
+                // log::debug!("sending ping");
                 self.api.send(Command::Ping);
             }
             Msg::ServerMessage(_) => {}

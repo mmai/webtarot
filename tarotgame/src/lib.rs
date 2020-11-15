@@ -8,7 +8,7 @@
 //!
 //! fn main() {
 //!     // The first player
-//!     let first = pos::PlayerPos::P0;
+//!     let first = pos::PlayerPos::from_n(0, 5);
 //!
 //!     // Start the first phase with an auction
 //!     let mut auction = bid::Auction::new(first);
@@ -31,7 +31,7 @@
 //!     let mut deal = auction.complete().unwrap();
 //!
 //!     // Play some cards
-//!     deal.play_card(pos::PlayerPos::from_n(0, 5), hands[0].get_card());
+//!     // deal.play_card(pos::PlayerPos::from_n(0, 5), hands[0].get_card());
 //!     // ...
 //! }
 //! ```

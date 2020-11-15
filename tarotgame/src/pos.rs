@@ -93,7 +93,9 @@ impl PlayerPos {
 
     /// Returns the previous player.
     pub fn prev(self) -> PlayerPos {
-        PlayerPos::from_n((self.to_n() as usize - 1) % self.count as usize, self.count)
+        let count = self.count as i32;
+        let pos_n = (self.to_n() as i32 + count - 1) % count;
+        PlayerPos::from_n(pos_n as usize, self.count)
     }
 
     /// Returns an iterator that iterates on `n` players, including this one.
@@ -143,5 +145,20 @@ mod tests {
             assert!(PlayerPos::from_n(i as usize, count) == PlayerPos::from_n((i as usize + 1) % count as usize, count).prev());
             assert!(PlayerPos::from_n(i as usize, count).next().prev() == PlayerPos::from_n(i as usize, count));
         }
+    }
+
+    #[test]
+    fn test_prev() {
+        let pos = PlayerPos::from_n(1, 5);
+        let prev = pos.prev();
+
+        assert!(prev == PlayerPos::from_n(0, 5));
+    }
+
+    fn test_next() {
+        let pos = PlayerPos::from_n(4, 5);
+        let next = pos.next();
+
+        assert!(next == PlayerPos::from_n(0, 5));
     }
 }

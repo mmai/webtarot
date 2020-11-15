@@ -7,8 +7,8 @@ use yew::{
 use tr::tr;
 
 use crate::api::Api;
-use crate::protocol::{Command, JoinGameCommand, Message};
-use crate::gprotocol::{GameInfo, PlayerInfo};
+use crate::protocol::{Command, Message, TarotVariant, VariantSettings};
+use crate::gprotocol::{GameInfo, PlayerInfo, JoinGameCommand};
 use crate::utils::format_join_code;
 
 #[derive(Clone, Properties)]
@@ -28,11 +28,19 @@ pub struct MenuPage {
 
 pub enum Msg {
     Ignore,
-    NewGame,
+    NewGame(TarotVariant),
     JoinGame,
     ServerMessage(Message),
     SetJoinCode(String),
 }
+
+const TAROT4: TarotVariant = TarotVariant {
+    parameters: VariantSettings { nb_players: 4 }
+};
+
+const TAROT5: TarotVariant = TarotVariant {
+    parameters: VariantSettings { nb_players: 5 }
+};
 
 impl Component for MenuPage {
     type Message = Msg;
@@ -57,9 +65,9 @@ impl Component for MenuPage {
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Msg::NewGame => {
+            Msg::NewGame(variant) => {
                 log::info!("New Game");
-                self.api.send(Command::NewGame);
+                self.api.send(Command::NewGame(variant));
             }
             Msg::JoinGame => {
                 log::info!("Join Game");
@@ -105,7 +113,8 @@ impl Component for MenuPage {
                 </div>
                 <p class="explanation">{ tr!("...or start a new game.")}</p>
                 <div class="toolbar">
-                    <button class="primary" onclick=self.link.callback(|_| Msg::NewGame)>{ tr!("New Game")}</button>
+                    <button class="primary" onclick=self.link.callback(|_| Msg::NewGame(TAROT4))>{ tr!("New 4 players Game")}</button>
+                    <button class="primary" onclick=self.link.callback(|_| Msg::NewGame(TAROT5))>{ tr!("New 5 players Game")}</button>
                 </div>
                 {
                     if let Some(ref error) = self.error {

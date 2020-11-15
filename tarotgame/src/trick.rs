@@ -6,11 +6,14 @@ use super::cards;
 use super::points;
 use super::pos;
 
+
+const MAX_PLAYERS: usize = 5;
+
 /// The current cards on the table.
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 pub struct Trick {
     /// Cards currently on the table (they are `None` until played).
-    pub cards: [Option<cards::Card>; super::NB_PLAYERS],
+    pub cards: [Option<cards::Card>; MAX_PLAYERS],
     /// First player in this trick.
     pub first: pos::PlayerPos,
     /// Current winner of the trick (updated after each card played).
@@ -23,17 +26,17 @@ impl Trick {
         Trick {
             first,
             winner: first,
-            cards: [None; super::NB_PLAYERS],
+            cards: [None; MAX_PLAYERS],
         }
     }
 
     /// Creates a default trick
     pub fn default() -> Self {
-        let default = pos::PlayerPos::P0;
+        let default = pos::PlayerPos::from_n(0, 5);
         Trick {
             first: default,
             winner: default,
-            cards: [None; super::NB_PLAYERS],
+            cards: [None; MAX_PLAYERS],
         }
     }
 
@@ -58,8 +61,8 @@ impl Trick {
     }
 
     /// Returns the player who played a card
-    pub fn player_played(&self, card: cards::Card) -> Option<pos::PlayerPos> {
-        self.cards.iter().position(|c| c == &Some(card)).map(|idx| pos::PlayerPos::from_n(idx))
+    pub fn player_played(&self, card: cards::Card) -> Option<pos::AbsolutePos> {
+        self.cards.iter().position(|c| c == &Some(card)).map(|idx| pos::PlayerPos::from_n(idx, MAX_PLAYERS as u8).pos)
     }
 
     /// Returns `true` if `self` contains `card`.
@@ -90,14 +93,16 @@ impl Trick {
         player: pos::PlayerPos,
         card: cards::Card,
     ) -> bool {
-        self.cards[player as usize] = Some(card);
+        self.cards[player.pos as usize] = Some(card);
         if player == self.first {
             return false;
         }
 
-        let winner_card = self.cards[self.winner as usize].unwrap();
-        if points::strength(card) > points::strength(winner_card)
-            && (card.suit() == winner_card.suit() || card.suit() == cards::Suit::Trump )
+        let winner_card = self.cards[self.winner.pos as usize].unwrap();
+        if points::strength(winner_card) == 0 || // when the Excuse is played by the first player
+           (  points::strength(card) > points::strength(winner_card)
+           && (card.suit() == winner_card.suit() || card.suit() == cards::Suit::Trump )
+           )
         {
             self.winner = player
         }
@@ -109,7 +114,17 @@ impl Trick {
     ///
     /// Returns `None` if the trick hasn't started yet.
     pub fn suit(&self) -> Option<cards::Suit> {
-        self.cards[self.first as usize].map(|c| c.suit())
+        // self.cards[self.first as usize].map(|c| c.suit())
+        if let Some(first_card) = self.cards[self.first.pos as usize]{
+            if first_card.rank() == cards::Rank::Rank22 {
+                // first card is the Excuse : we look at the second card played
+                return self.cards[self.first.next().pos as usize].map(|c| c.suit())
+            } else {
+                return Some(first_card.suit())
+            }
+        } else {
+            return None;
+        }
     }
 }
 
@@ -122,23 +137,23 @@ mod tests {
     fn test_play_card() {
         let mut trick = Trick::default();
         trick.play_card(
-            pos::PlayerPos::P0,
+            pos::PlayerPos::from_n(0, 5),
             cards::Card::new(cards::Suit::Club, cards::Rank::Rank5)
         );
-        assert_eq!( trick.winner, pos::PlayerPos::P0);
+        assert_eq!( trick.winner, pos::PlayerPos::from_n(0, 5));
 
         //Higher card
         trick.play_card(
-            pos::PlayerPos::P1,
+            pos::PlayerPos::from_n(1, 5),
             cards::Card::new(cards::Suit::Club, cards::Rank::Rank8)
         );
-        assert_eq!( trick.winner, pos::PlayerPos::P1);
+        assert_eq!( trick.winner, pos::PlayerPos::from_n(1, 5));
 
         //Higher rank bug wrong color
         trick.play_card(
-            pos::PlayerPos::P2,
+            pos::PlayerPos::from_n(2, 5),
             cards::Card::new(cards::Suit::Heart, cards::Rank::Rank10)
         );
-        assert_eq!( trick.winner, pos::PlayerPos::P1);
+        assert_eq!( trick.winner, pos::PlayerPos::from_n(1, 5));
     }
 }

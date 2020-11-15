@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0
+
+- variants support
+
 ## 0.4.0
 
 - webgame_server & webgame_protocol extracted to an external repository

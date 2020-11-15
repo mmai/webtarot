@@ -26,3 +26,10 @@ assemble:
 	cp -R webtarot_client/dist/ dist/public
 	cp target/release/webtarot_server dist/
 .PHONY: assemble
+
+runclients:
+	firefox -p tarot1 http://127.0.0.1:8001 &
+	firefox -p tarot2 http://127.0.0.1:8001 &
+	firefox -p tarot3 http://127.0.0.1:8001 &
+	firefox -p tarot4 http://127.0.0.1:8001 &
+	firefox -p tarot5 http://127.0.0.1:8001 &

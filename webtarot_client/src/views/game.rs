@@ -17,10 +17,10 @@ use crate::components::player_list::PlayerList;
 use crate::components::bidding_actions::BiddingActions;
 use crate::components::call_king_action::CallKingAction;
 use crate::components::scores::Scores;
-use crate::gprotocol::{GameInfo, PlayerInfo};
+use crate::gprotocol::{GameInfo, PlayerInfo, SendTextCommand};
+    
 use crate::protocol::{
     Command, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
-    SendTextCommand,
     GamePlayCommand,
     BidCommand, PlayCommand, CallKingCommand, MakeDogCommand,
     Turn,
@@ -148,13 +148,11 @@ impl Component for GamePage {
                     self.sound_player.play("card".into());
                     let PlayEvent::Play(uuid, card) = evt;
                     self.add_chat_message(uuid, ChatLineData::Text(format!("play: {}", card.to_string())));
-                    log!("play event {:?}", evt);
                 }
                 Message::Error(e) => {
                     self.is_waiting = false;
                     self.error = Some(e.message().into());
                     self.sound_player.play("error".into());
-                    log!("error from server {:?}", e);
                 }
                 Message::PlayerConnected(state) => {
                     let player_id = state.player.id;
@@ -198,7 +196,6 @@ impl Component for GamePage {
             }
             Msg::Bid(target) => {
                 self.is_waiting = true;
-                log!("received bid {:?}", target);
                 self.api.send(Command::GamePlay(GamePlayCommand::Bid(BidCommand { target })));
             }
             Msg::Pass => {
@@ -308,6 +305,7 @@ impl Component for GamePage {
               _ => None
         };
 
+        // log::debug!("after message content");
         let player = self.game_state.current_player_name();
         let turn_info = match self.game_state.turn {
             Turn::Pregame => tr!("pre-game"),

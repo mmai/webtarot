@@ -17,14 +17,16 @@ use crate::tarot_protocol::{
     PlayEvent,
     TarotGameState,
     GamePlayerState,
-    GameStateSnapshot
+    GameStateSnapshot,
+    TarotVariant,
+    VariantSettings,
 };
 
 //see https://users.rust-lang.org/t/how-to-store-async-function-pointer/38343/4
 type DynFut<T> = ::std::pin::Pin<Box<dyn Send + ::std::future::Future<Output = T>>>;
 
 pub fn on_gameplay(
-    universe: Arc<Universe<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent>>,
+    universe: Arc<Universe<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, VariantSettings>>,
     user_id: Uuid,
     cmd: GamePlayCommand,
 ) -> DynFut<Result<(), ProtocolError>> {
@@ -48,7 +50,7 @@ pub fn on_gameplay(
 }                                
 
 pub fn on_player_set_role(
-    universe: Arc<Universe<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent>>,
+    universe: Arc<Universe<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, VariantSettings>>,
     user_id: Uuid,
     cmd: SetPlayerRoleCommand,
 ) -> DynFut<Result<(), ProtocolError>> {
@@ -62,10 +64,12 @@ pub fn on_player_set_role(
             }
 
             let game_state = game.state_handle();
-            let mut game_state = game_state.lock().await;
-            game_state.set_player_role(user_id, cmd.role);
-
+            {
+                let mut game_state = game_state.lock().await;
+                game_state.set_player_role(user_id, cmd.role);
+            }
             game.set_player_not_ready(user_id).await;
+
             game.broadcast_state().await;
             Ok(())
         } else {
@@ -78,7 +82,7 @@ pub fn on_player_set_role(
 }
 
 pub async fn on_player_bid(
-    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent>>,
+    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, VariantSettings>>,
     player_id: Uuid,
     cmd: BidCommand,
 ) -> Result<(), ProtocolError> {
@@ -89,23 +93,27 @@ pub async fn on_player_bid(
         .await;
 
         let game_state = game.state_handle();
-        let mut game_state = game_state.lock().await;
-        game_state.set_bid(player_id, cmd.target)?;
-
+        { //lock
+            let mut game_state = game_state.lock().await;
+            game_state.set_bid(player_id, cmd.target)?;
+        }
         game.broadcast_state().await;
+
         Ok(())
 }
 
 pub async fn on_player_play(
-    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent>>,
+    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, VariantSettings>>,
     player_id: Uuid,
     cmd: PlayCommand,
 ) -> Result<(), ProtocolError> {
         let game_state = game.state_handle();
         let mut game_state = game_state.lock().await;
         if let Err(e) = game_state.set_play(player_id, cmd.card) {
+            drop(game_state);
             game.send(player_id, &Message::Error(e.into())).await;
         } else {
+            drop(game_state);
             game.broadcast(&Message::PlayEvent(PlayEvent::Play ( player_id, cmd.card )))
             .await;
             game.broadcast_state().await;
@@ -115,12 +123,14 @@ pub async fn on_player_play(
 
 
 pub async fn on_player_pass(
-    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent>>,
+    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, VariantSettings>>,
     player_id: Uuid,
 ) -> Result<(), ProtocolError> {
         let game_state = game.state_handle();
-        let mut game_state = game_state.lock().await;
-        game_state.set_pass(player_id)?;
+        {
+            let mut game_state = game_state.lock().await;
+            game_state.set_pass(player_id)?;
+        }
         game.broadcast(&Message::Chat(ChatMessage {
             player_id,
             text: format!("pass"),
@@ -132,7 +142,7 @@ pub async fn on_player_pass(
 
 
 pub async fn on_player_call_king(
-    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent>>,
+    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, VariantSettings>>,
     player_id: Uuid,
     cmd: CallKingCommand,
 ) -> Result<(), ProtocolError> {
@@ -142,21 +152,24 @@ pub async fn on_player_call_king(
         }))
         .await;
         let game_state = game.state_handle();
-        let mut game_state = game_state.lock().await;
-        game_state.set_pass(player_id)?;
-        game_state.call_king(player_id, cmd.card);
+        {
+            let mut game_state = game_state.lock().await;
+            game_state.call_king(player_id, cmd.card);
+        }
         game.broadcast_state().await;
         Ok(())
 }
 
 pub async fn on_player_make_dog(
-    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent>>,
+    game: Arc<Game<TarotGameState, GamePlayerState, GameStateSnapshot, PlayEvent, VariantSettings>>,
     player_id: Uuid,
     cmd: MakeDogCommand,
 ) -> Result<(), ProtocolError> {
+    {
         let game_state = game.state_handle();
         let mut game_state = game_state.lock().await;
         game_state.make_dog(player_id, cmd.cards);
-        game.broadcast_state().await;
-        Ok(())
+    }
+    game.broadcast_state().await;
+    Ok(())
 }

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use tarotgame::{NB_PLAYERS, bid, cards, pos, deal, trick};
+use tarotgame::{bid, cards, pos, deal, trick};
 
 /// Describe a single deal.
 pub enum Deal {
@@ -24,7 +24,7 @@ impl Deal {
         }
     }
 
-    pub fn hands(&self) -> [cards::Hand; NB_PLAYERS] {
+    pub fn hands(&self) -> &Vec<cards::Hand> {
         match self {
             &Deal::Bidding(ref auction) => auction.hands(),
             &Deal::Playing(ref deal) => deal.hands(),
@@ -73,7 +73,7 @@ pub struct DealSnapshot {
     pub current: pos::PlayerPos,
     pub contract: Option<bid::Contract>,
     pub king: Option<cards::Card>,
-    pub scores: [f32; NB_PLAYERS],
+    pub scores: Vec<f32>,
     pub last_trick: trick::Trick,
     pub initial_dog: cards::Hand,
     pub dog: cards::Hand, // set to empty hand until the deal is over

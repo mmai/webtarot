@@ -39,6 +39,8 @@ impl Component for PlayerList {
     }
 
     fn view(&self) -> Html {
+        let nb_players = self.game_state.players[0].pos.count as usize;
+        let empty_scores = vec![0.0;nb_players];
         html! {
             <section class="players">
                 {
@@ -46,7 +48,7 @@ impl Component for PlayerList {
                         let card_played = self.game_state.deal.last_trick.card_played(state.pos);
                         let is_my_turn = self.game_state.get_playing_pos() == Some(state.pos);
 
-                        let scores = self.game_state.scores.last().unwrap_or(&[0.0;5]);
+                        let scores = self.game_state.scores.last().unwrap_or(&empty_scores);
                         let my_points= scores[state.pos.to_n()];
                         let mut player_classes = vec!["player"];
                         if is_my_turn {

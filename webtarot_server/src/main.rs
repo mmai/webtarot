@@ -6,5 +6,19 @@ pub(crate) use webtarot_protocol as tarot_protocol;
 
 #[tokio::main]
 pub async fn main() {
-    webgame_server::launcher::launch(dispatcher::on_gameplay, dispatcher::on_player_set_role).await;
+    let version = format!("{}.{}.{}{}",
+        env!("CARGO_PKG_VERSION_MAJOR"),
+        env!("CARGO_PKG_VERSION_MINOR"),
+        env!("CARGO_PKG_VERSION_PATCH"),
+        option_env!("CARGO_PKG_VERSION_PRE").unwrap_or(""));
+    // let author = format!("{}", env!("CARGO_PKG_AUTHORS"));
+    let author = env!("CARGO_PKG_AUTHORS");
+    // let name = format!("{}", env!("CARGO_PKG_NAME"));
+    let name = env!("CARGO_PKG_NAME");
+
+    webgame_server::launcher::launch(
+        name, version, author,
+        dispatcher::on_gameplay,
+        dispatcher::on_player_set_role
+        ).await;
 }

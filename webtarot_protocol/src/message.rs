@@ -1,12 +1,11 @@
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
-use webgame_protocol::{GameInfo, GameExtendedInfo, PlayerInfo, ProtocolErrorKind};
+use webgame_protocol::{ProtocolErrorKind, Message as GenericMessage, Variant, Command as GenericCommand};
 use webgame_protocol::ProtocolError as GenericProtocolError;
 
+use crate::player::{PlayerRole, GamePlayerState};
+use crate::game::{GameStateSnapshot, PlayEvent, VariantSettings};
 use crate::game_messages::GamePlayCommand;
-use crate::game::{GameStateSnapshot, PlayEvent};
-use crate::player::{GamePlayerState, PlayerRole};
 
 impl From<ProtocolError> for GenericProtocolError {
     fn from(error: ProtocolError) -> Self {
@@ -15,26 +14,6 @@ impl From<ProtocolError> for GenericProtocolError {
             error.message      
        )
     }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "cmd", rename_all = "snake_case")]
-pub enum Command {
-    Ping,
-    Authenticate(AuthenticateCommand),
-    SendText(SendTextCommand),
-    NewGame,
-    JoinGame(JoinGameCommand),
-    LeaveGame,
-    MarkReady,
-    Continue,
-
-    GamePlay(GamePlayCommand),
-    SetPlayerRole(SetPlayerRoleCommand),
-
-    DebugUi(DebugUiCommand), // Used to send a custom state to a client, allows to quickly view the UI at a given state of the game without having to play all the hands leading to this state.
-    ShowUuid, // get uuid of connected client : for use with debugUi
-    ShowServerStatus, // get server infos : active games, players connected...
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -61,62 +40,10 @@ impl ProtocolError {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct AuthenticateCommand {
-    pub nickname: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct DebugUiCommand {
-    pub player_id: Uuid,
-    pub snapshot: GameStateSnapshot,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SendTextCommand {
-    pub text: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct JoinGameCommand {
-    pub join_code: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SetPlayerRoleCommand {
     pub role: PlayerRole,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum Message {
-    Connected,
-    Pong,
-    ServerStatus(ServerStatus),
-    Chat(ChatMessage),
-    PlayerConnected(GamePlayerState),
-    PlayerDisconnected(PlayerDisconnectedMessage),
-    PregameStarted,
-    GameJoined(GameInfo),
-    GameLeft,
-    Authenticated(PlayerInfo),
-    Error(ProtocolError),
-    PlayEvent(PlayEvent),
-    GameStateSnapshot(GameStateSnapshot),
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ServerStatus {
-    pub players: Vec<Uuid>,
-    pub games: Vec<GameExtendedInfo>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct ChatMessage {
-    pub player_id: Uuid,
-    pub text: String,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct PlayerDisconnectedMessage {
-    pub player_id: Uuid,
-}
+pub type Message = GenericMessage<GamePlayerState, GameStateSnapshot, PlayEvent>;
+pub type TarotVariant = Variant<VariantSettings>;
+pub type Command = GenericCommand<GamePlayCommand, SetPlayerRoleCommand, GameStateSnapshot, TarotVariant>;

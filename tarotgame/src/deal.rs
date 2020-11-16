@@ -627,6 +627,34 @@ mod tests {
     }
 
     #[test]
+    fn test_excuse_not_required_after_trump() {
+        let first_player = pos::PlayerPos::from_n(1, 5);
+        let heart = cards::Card::new(cards::Suit::Heart, cards::Rank::Rank8);
+        let excuse = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank22);
+        let trump = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank1);
+        let king = cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK);
+
+        let mut hand = cards::Hand::new();
+        hand.add(heart);
+        hand.add(excuse);
+
+        let trick = trick::Trick {
+            cards: [ None, Some(trump), None, None, None ],
+            first: first_player,
+            winner: first_player, 
+        };
+
+        assert!(!can_play(
+            pos::PlayerPos::from_n(2,5),
+            heart,
+            hand,
+            &trick,
+            Some(king),
+            false,
+        ).is_err());
+    }
+
+    #[test]
     fn test_has_higher_1() {
         // Simple case
         let mut hand = cards::Hand::new();

@@ -374,7 +374,10 @@ impl Hand {
     /// Returns `true` if the hand contains any card of the given suit.
     pub fn has_any(self, suit: Suit) -> bool {
         if suit == Suit::Trump {
-            self.1 != 0
+            //We do not consider the excuse as a trump
+            let mut without_excuse = self.clone();
+            without_excuse.remove(Card::new(Suit::Trump, Rank::Rank22));
+            without_excuse.1 != 0
         } else {
             self.0 & (RANK_MASK * suit as u64) != 0
         }

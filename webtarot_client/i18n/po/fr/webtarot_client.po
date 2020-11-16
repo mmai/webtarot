@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: webtarot_client 0.2.6\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-11-15 13:52+0000\n"
+"POT-Creation-Date: 2020-11-16 17:00+0000\n"
 "PO-Revision-Date: 2020-07-11 18:47+0200\n"
 "Last-Translator:  <henri@henri-desktop>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -21,13 +21,9 @@ msgstr ""
 msgid "send some text"
 msgstr "envoyez un message"
 
-#: src/components/player_list.rs:74
+#: src/components/player_list.rs:75
 msgid " — ready"
 msgstr " - prêt"
-
-#: src/components/player_list.rs:82
-msgid "points : {0}"
-msgstr "points : {0}"
 
 #: src/components/bidding_actions.rs:65
 msgid "Passe"
@@ -145,33 +141,35 @@ msgstr "terminer"
 msgid "Your turn to play!"
 msgstr "C'est à vous de jouer!"
 
-#: src/views/menu.rs:98
+#: src/views/menu.rs:102
 msgid "Hello {0}!"
 msgstr "Bonjour {0}!"
 
-#: src/views/menu.rs:99
+#: src/views/menu.rs:103
 msgid "Enter the code of a game to join"
 msgstr "Entrez le code d'une partie à rejoindre"
 
-#: src/views/menu.rs:112
+#: src/views/menu.rs:116
 msgid "Join Game"
 msgstr "Rejoindre"
 
-#: src/views/menu.rs:114
+#: src/views/menu.rs:118
 msgid "...or start a new game."
 msgstr "...ou démarrez une nouvelle partie"
 
-#: src/views/menu.rs:116
-#, fuzzy
+#: src/views/menu.rs:120
+msgid "New 3 players Game"
+msgstr "Nouvelle partie à 3"
+
+#: src/views/menu.rs:121
 msgid "New 4 players Game"
 msgstr "Nouvelle partie à 4"
 
-#: src/views/menu.rs:117
-#, fuzzy
+#: src/views/menu.rs:122
 msgid "New 5 players Game"
 msgstr "Nouvelle partie à 5"
 
-#: src/views/menu.rs:122
+#: src/views/menu.rs:127
 msgid "Error: {0}"
 msgstr "Erreur : {0}"
 
@@ -194,3 +192,6 @@ msgstr "Jouer"
 #: src/views/start.rs:104
 msgid "not good: {0}"
 msgstr "problème : {0}"
+
+#~ msgid "points : {0}"
+#~ msgstr "points : {0}"

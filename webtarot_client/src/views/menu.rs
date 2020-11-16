@@ -34,6 +34,10 @@ pub enum Msg {
     SetJoinCode(String),
 }
 
+const TAROT3: TarotVariant = TarotVariant {
+    parameters: VariantSettings { nb_players: 3 }
+};
+
 const TAROT4: TarotVariant = TarotVariant {
     parameters: VariantSettings { nb_players: 4 }
 };
@@ -113,6 +117,7 @@ impl Component for MenuPage {
                 </div>
                 <p class="explanation">{ tr!("...or start a new game.")}</p>
                 <div class="toolbar">
+                    <button class="primary" onclick=self.link.callback(|_| Msg::NewGame(TAROT3))>{ tr!("New 3 players Game")}</button>
                     <button class="primary" onclick=self.link.callback(|_| Msg::NewGame(TAROT4))>{ tr!("New 4 players Game")}</button>
                     <button class="primary" onclick=self.link.callback(|_| Msg::NewGame(TAROT5))>{ tr!("New 5 players Game")}</button>
                 </div>

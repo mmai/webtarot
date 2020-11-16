@@ -33,3 +33,8 @@ runclients:
 	firefox -p tarot3 http://127.0.0.1:8001 &
 	firefox -p tarot4 http://127.0.0.1:8001 &
 	firefox -p tarot5 http://127.0.0.1:8001 &
+
+docker:
+	nix build .#webtarot-docker
+	docker push mmai/webtarot
+

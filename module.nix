@@ -4,7 +4,6 @@ with lib;
 
 let
   cfg = config.services.webtarot;
-  webtarot = (import ./webtarot.nix) { pkgs = pkgs; };
 in 
   {
 
@@ -73,16 +72,16 @@ in
           proxy_set_header X-Forwarded-Port $server_port;
           proxy_redirect off;
 
-          # websocket support
+          # config for websockets proxying (cf. http://nginx.org/en/docs/http/websocket.html)
           proxy_http_version 1.1;
           proxy_set_header Upgrade $http_upgrade;
           proxy_set_header Connection $connection_upgrade;
         '';
-        withSSL = cfg.protocol == "http";
+        withSSL = cfg.protocol == "https";
         in {
           "${cfg.hostname}" = {
             enableACME = withSSL;
-            forceSSL = withSSL;
+            forceSSL = false;
             locations = {
               "/" = { 
                 extraConfig = proxyConfig;
@@ -100,7 +99,7 @@ in
       systemd.services = 
       let serviceConfig = {
         User = "${cfg.user}";
-        WorkingDirectory = "${webtarot}";
+        WorkingDirectory = "${pkgs.webtarot}";
       };
       in {
         webtarot-server = {
@@ -108,7 +107,7 @@ in
           partOf = [ "webtarot.target" ];
 
           serviceConfig = serviceConfig // { 
-            ExecStart = ''${webtarot}/bin/webtarot_server -d ${webtarot}/front/ \
+            ExecStart = ''${pkgs.webtarot}/bin/webtarot_server -d ${pkgs.webtarot-front}/ \
               -p ${toString cfg.apiPort}'';
           };
 

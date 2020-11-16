@@ -33,7 +33,7 @@ impl Component for Scores {
 
 
     fn view(&self) -> Html {
-        let mut total = vec![0.0,0.0,0.0,0.0,0.0];
+        let mut total = vec![0.0;self.players.len()];
         for score in self.scores.iter() {
             for (idx, points) in score.iter().enumerate() {
                 total[idx] = total[idx] + points;

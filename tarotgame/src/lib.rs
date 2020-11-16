@@ -81,47 +81,58 @@ pub fn deal_size(players_count: usize) -> usize {
 /// Quick method to get cards for 4 players.
 ///
 /// Deals cards to 5 players randomly.
+// pub fn deal_hands(count: usize) -> (Vec<cards::Hand>, cards::Hand) {
+//     let mut hands = vec![cards::Hand::new(); count];
+//     let mut dog = cards::Hand::new();
+//
+//     let mut d = cards::Deck::new();
+//     d.shuffle();
+//     d.deal_each(&mut hands, deal_size(count));
+//     for idx in 0..dog_size(count) {
+//         dog.add(d.draw());
+//     }
+//
+//     (hands, dog)
+// }
 pub fn deal_hands(count: usize) -> (Vec<cards::Hand>, cards::Hand) {
-    let mut hands = vec![cards::Hand::new(); count];
-    let mut dog = cards::Hand::new();
-
     let mut d = cards::Deck::new();
     d.shuffle();
-
-    d.deal_each(&mut hands, 3);
-    d.deal_each(&mut hands, 3);
-    dog.add(d.draw());
-    d.deal_each(&mut hands, 3);
-    dog.add(d.draw());
-    d.deal_each(&mut hands, 3);
-    dog.add(d.draw());
-    d.deal_each(&mut hands, 3);
-
-    (hands, dog)
+    deal_with_deck(d, count)
 }
 
 /// Deal cards for players deterministically.
 pub fn deal_seeded_hands(seed: [u8; 32], count: usize) -> (Vec<cards::Hand>, cards::Hand) {
+    let mut d = cards::Deck::new();
+    d.shuffle_seeded(seed);
+    deal_with_deck(d, count)
+}
+
+fn deal_with_deck(mut d: cards::Deck, count: usize) -> (Vec<cards::Hand>, cards::Hand) {
     let mut hands = vec![cards::Hand::new(); count];
     let mut dog = cards::Hand::new();
 
-    let mut d = cards::Deck::new();
-    d.shuffle_seeded(seed);
+    let batch_size = 3;
+    let mut batch_done = 0;
+    if count == 5 {
+        d.deal_each(&mut hands, batch_size);
+        batch_done = batch_done + 1;
+    }
 
-    d.deal_each(&mut hands, 3);
-    d.deal_each(&mut hands, 3);
-    dog.add(d.draw());
-    d.deal_each(&mut hands, 3);
-    dog.add(d.draw());
-    d.deal_each(&mut hands, 3);
-    dog.add(d.draw());
-    d.deal_each(&mut hands, 3);
+    let dog_count = dog_size(count);
+    for _idx in 0..dog_count {
+        d.deal_each(&mut hands, batch_size);
+        batch_done = batch_done + 1;
+        dog.add(d.draw());
+    }
+
+    let left_count = deal_size(count) - batch_size * batch_done;
+    d.deal_each(&mut hands, left_count);
 
     (hands, dog)
 }
 
 #[test]
-fn test_deals() {
+fn test_deals_tarot5() {
     let (hands, dog) = deal_hands(5);
     assert!(dog.size() == 3);
 
@@ -141,12 +152,57 @@ fn test_deals() {
         assert!(*c == 1);
     }
 
-    fn idx_from_id(id: u32) -> u32 {
-        if id < 66 {
-            id
-        } else {
-            id - 4
+}
+
+#[test]
+fn test_deals_tarot4() {
+    let (hands, dog) = deal_hands(4);
+    assert!(dog.size() == 6);
+
+    let mut count = [0; 78];
+
+    for card in dog.list().iter() {
+        count[idx_from_id(card.id()) as usize] += 1;
+    }
+    for hand in hands.iter() {
+        assert!(hand.size() == 18);
+        for card in hand.list().iter() {
+            count[idx_from_id(card.id()) as usize] += 1;
         }
+    }
+
+    for c in count.iter() {
+        assert!(*c == 1);
     }
 }
 
+#[test]
+fn test_deals_tarot3() {
+    let (hands, dog) = deal_hands(3);
+    assert!(dog.size() == 6);
+
+    let mut count = [0; 78];
+
+    for card in dog.list().iter() {
+        count[idx_from_id(card.id()) as usize] += 1;
+    }
+    for hand in hands.iter() {
+        assert!(hand.size() == 24);
+        for card in hand.list().iter() {
+            count[idx_from_id(card.id()) as usize] += 1;
+        }
+    }
+
+    for c in count.iter() {
+        assert!(*c == 1);
+    }
+
+}
+
+fn idx_from_id(id: u32) -> u32 {
+    if id < 66 {
+        id
+    } else {
+        id - 4
+    }
+}

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.1
+
+- fix excuse not mandatory after trump
+- fix bidding buttons
+- remove erroneous points on players (on mouse over)
+- fix dog cards dealing at 3 or 4 players games
+
 ## 0.5.0
 
 - variants support

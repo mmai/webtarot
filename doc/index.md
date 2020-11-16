@@ -15,12 +15,6 @@ Tarot en ligne
 * design
   * https://play.google.com/store/apps/details?id=com.eryodsoft.android.cards.tarot.lite&hl=fr
 
-## Bugs
-
-- contract failed by 0 (mais points bien comptabilisés..)
-- boutons affichés enchères
-- points affichés au survol des noms ne correspondent à rien
-
 ## Backlog
 
 - arrêt automatique parties inactives depuis 30mn (sauf si sur pause ?) => sérialisation..

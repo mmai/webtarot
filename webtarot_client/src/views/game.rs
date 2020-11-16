@@ -285,7 +285,7 @@ impl Component for GamePage {
                        let scores: Vec<Vec<f32>> = self.game_state.scores.iter().map(|score| score.to_vec()).collect();
                        let players: Vec<String> = self.game_state.players.iter().map(|pl| pl.player.nickname.clone()).collect();
 
-                       let taker_won = self.game_state.deal.taker_diff > 0.0;
+                       let taker_won = self.game_state.deal.taker_diff >= 0.0;
                        let diff_abs = f32::abs(self.game_state.deal.taker_diff);
                        let contract_message = if taker_won {
                            tr!("Contract succeded by {0} points", diff_abs)

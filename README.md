@@ -2,9 +2,7 @@
 
 A online game of [french tarot](https://en.wikipedia.org/wiki/French_tarot) in rust / webassembly
 
-Currently only the 5 players variant is implemented.
-
-The project is in its early stages. It is somewhat playable but has an ugly UI, lacks a lot of features and is probably full of bugs. 
+The project is in its early stages. It is playable but still lacks a lot of features and it may be unstable. 
 (I am learning rust with this project, don't hesitate to make pull requests)
 
 ## Docker image

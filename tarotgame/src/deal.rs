@@ -18,6 +18,7 @@ pub struct DealState {
     contract: bid::Contract,
     points: Vec<f32>,
     oudlers_count: u8,
+    petit_au_bout: Option<pos::PlayerPos>,
     tricks: Vec<trick::Trick>,
 }
 
@@ -91,6 +92,7 @@ impl DealState {
             contract,
             tricks: vec![trick::Trick::new(first)],
             oudlers_count: 0,
+            petit_au_bout: None,
             points: vec![0.0;count],
         }
     }
@@ -257,7 +259,9 @@ impl DealState {
             }
 
             if self.tricks.len() == deal_size {
-                // TODO petit au bout ? -> maj annonce
+                if has_petit {
+                    self.petit_au_bout = Some(winner);
+                }
             } else {
                 self.tricks.push(trick::Trick::new(winner));
             }
@@ -306,7 +310,8 @@ impl DealState {
             taking_points += points::hand_points(self.dog);
         }
         let (taker_diff, score) = points::score(taking_points, self.oudlers_count);
-        let base_points = self.contract.target.multiplier() as f32 * score;
+        let bonus = self.petit_au_bout_bonus();
+        let base_points = self.contract.target.multiplier() as f32 * (score + bonus);
 
         let count = self.players.len() as u8;
         let mut scores = vec![0.0; count as usize];
@@ -324,6 +329,18 @@ impl DealState {
             points: self.points.clone(),
             taker_diff,
             scores,
+        }
+    }
+
+    fn petit_au_bout_bonus(&self) -> f32 {
+        if let Some(winner) = self.petit_au_bout {
+            if self.in_taker_team(winner) {
+                10.0
+            } else {
+                -10.0
+            }
+        } else {
+            0.0 //Default : no petit au bout = 0 points
         }
     }
 

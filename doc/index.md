@@ -9,6 +9,8 @@ Tarot en ligne
   * https://en.wikipedia.org/wiki/Glossary_of_card_game_terms
   * https://en.wikipedia.org/wiki/French_tarot
 
+* calcul scores https://bric-a-brac.org/tarot/scores.php
+
 * cartes
   - https://fr.m.wikipedia.org/wiki/Tarot_nouveau
 
@@ -18,11 +20,12 @@ Tarot en ligne
 ## Backlog
 
 - **rules** annonces
-  - annulation partie (petit sec)
   - petit au bout
+  - parole
+  - annulation partie (petit sec)
   - poignées
   - misères
-  - chelem
+  - chelems
 - **UX** annuler dernière carte jouée
 - **UX** chien : interdire de finir si le chien ne contient pas trois cartes
 - arrêt automatique parties inactives depuis 30mn (sauf si sur pause ?) => sérialisation..

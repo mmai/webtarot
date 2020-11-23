@@ -177,7 +177,23 @@ impl DealState {
                 println!("{} is neither in the taker's hand nor in the dog", card.to_string());
                 return false;
             }
-
+            if card.is_oudler() {
+                println!("Can't put an oudler ({}) in the dog", card.to_string());
+                return false;
+            }
+            if card.rank() == cards::Rank::RankK {
+                println!("Can't put a king ({}) in the dog", card.to_string());
+                return false;
+            }
+            if card.suit() == cards::Suit::Trump {
+                //Check if there is no alternative (taker has only trumps and kings)
+                if taker_cards.list().iter().filter(|tcard| 
+                        tcard.rank() != cards::Rank::RankK && tcard.suit() != cards::Suit::Trump
+                    ).peekable().peek().is_some() {
+                    println!("Can't put a trump ({}) in the dog", card.to_string());
+                    return false;
+                }
+            }
             taker_cards.remove(card);
             new_dog.add(card);
         }
@@ -312,6 +328,8 @@ impl DealState {
         let (taker_diff, score) = points::score(taking_points, self.oudlers_count);
         let bonus = self.petit_au_bout_bonus();
         let base_points = self.contract.target.multiplier() as f32 * (score + bonus);
+        // other bonuses not multiplied by the contract level
+        // poignees
 
         let count = self.players.len() as u8;
         let mut scores = vec![0.0; count as usize];

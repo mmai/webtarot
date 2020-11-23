@@ -147,6 +147,19 @@ impl GameState<GamePlayerState, GameStateSnapshot, VariantSettings> for TarotGam
                 let initial_dog = if self.turn == Turn::MakingDog {
                     state.dog()
                 } else { cards::Hand::new() };
+
+                //When the dog is done
+                if self.turn == Turn::Intertrick || matches!(self.turn, Turn::Playing(_x)) {
+                    //We check if there are cards to show
+                    let to_show: Vec<cards::Card> = state.dog().list()
+                        .into_iter()
+                        .filter(|c| c.suit() == cards::Suit::Trump || c.rank() == cards::Rank::RankK)
+                        .collect();
+                    for c in to_show {
+                        dog.add(c);
+                    }
+                }
+
                 DealSnapshot {
                     hand: state.hands()[pos.pos as usize],
                     current: state.next_player(),

@@ -316,6 +316,10 @@ impl Card {
             Card(suit as u64 * rank as u64, 0)
         }
     }
+
+    pub fn is_oudler(self) -> bool {
+        self.suit() == Suit::Trump && [Rank::Rank1, Rank::Rank21, Rank::Rank22].contains(&self.rank())
+    }
 }
 
 /// Represents an unordered set of cards.

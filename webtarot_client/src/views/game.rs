@@ -323,10 +323,11 @@ impl Component for GamePage {
       <header>
         <p class="turn-info">{turn_info}</p>
         {if let Some(contract) = &self.game_state.deal.contract {
+             let dog_info = &self.game_state.deal.dog.to_string();
              let king_info = if let Some(king) = &self.game_state.deal.king {
                 format!(" ({})", king.to_string())
              } else { "".into() };
-             html! {<p class="deal-info">{format!("{} {}", contract.to_string(), king_info)}</p>}
+             html! {<p class="deal-info">{format!("{} {} {}", contract.to_string(), king_info, dog_info)}</p>}
         } else {
              html! {}
         }}

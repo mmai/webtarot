@@ -19,14 +19,9 @@ Tarot en ligne
 
 ## Backlog
 
-- afficher les erreurs du chien
 - atouts et rois du chien : affichage conditionnnel
 - **rules**
   - [x] petit au bout
-  - [x] contrôle chien : 
-    - [x] bout interdit
-    - [x] pas de roi 
-    - [x] ni d'atout (sauf si impossible autrement, dans ce cas : montrer)
   - annulation partie (petit sec)
     - si excuse : n'annule pas
   - chelem (non multiplié par le contrat)

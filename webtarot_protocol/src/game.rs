@@ -315,11 +315,11 @@ impl TarotGameState {
         }
     }
 
-    pub fn make_dog(&mut self, pid: Uuid, cards: cards::Hand){
-        let pos = self.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
-        if self.deal.deal_state_mut().unwrap().make_dog(pos, cards) {
-            self.turn = Turn::from_deal(&self.deal);
-        }
+    pub fn make_dog(&mut self, pid: Uuid, cards: cards::Hand) -> Result<(), ProtocolError> {
+        let pos = self.players.get(&pid).map(|p| p.pos).unwrap();
+        self.deal.deal_state_mut().unwrap().make_dog(pos, cards)?;
+        self.turn = Turn::from_deal(&self.deal);
+        Ok(())
     }
 
     pub fn set_play(&mut self, pid: Uuid, card: cards::Card) -> Result<(), ProtocolError> {

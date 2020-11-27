@@ -197,7 +197,7 @@ impl GameState<GamePlayerState, GameStateSnapshot, VariantSettings> for TarotGam
         let turn = self.turn.clone();
         if let Some(player_state) = self.players.get_mut(&player_id) {
             player_state.ready = true;
-            println!("set_player_ready, turn = {}", turn.to_string());
+            // println!("set_player_ready, turn = {}", turn.to_string());
             if turn == Turn::Intertrick {
                 self.update_turn();
             } else {
@@ -210,7 +210,7 @@ impl GameState<GamePlayerState, GameStateSnapshot, VariantSettings> for TarotGam
                         count = count + 1;
                     }
                 }
-                println!("set_player_ready, count = {} ; nb_players = {}", count, self.nb_players);
+                // println!("set_player_ready, count = {} ; nb_players = {}", count, self.nb_players);
                 if count == self.nb_players {
                     if self.turn == Turn::Interdeal { // ongoing game
                         self.update_turn();
@@ -864,7 +864,8 @@ mod tests {
 
     #[test]
     fn test_generic_game() {
-        let variant: usize = 4;
+        // let variant: usize = 4;
+        let variant: usize = 5;
         let mut game = TarotGameState {
                 nb_players: variant as u8,
                 players: BTreeMap::new(),
@@ -881,10 +882,10 @@ mod tests {
 
         assert_eq!(false, game.is_joinable());
 
-        let seed = [3, 32, 3, 32, 54, 1, 84, 3, 32, 54, 1, 84, 3, 32, 65, 1, 84, 3, 32, 64, 1, 44, 3, 32, 54, 1, 84, 3, 32, 65, 1, 44];
+        let seed = [7, 32, 3, 32, 54, 1, 84, 3, 32, 54, 1, 84, 3, 32, 65, 1, 84, 3, 32, 64, 1, 44, 3, 32, 54, 1, 84, 3, 32, 65, 1, 44];
         let (hands, dog) = deal_seeded_hands(seed, variant);
 
-        // println!("{}", dog.to_string());
+        println!("{}", dog.to_string());
         // for hand in hands.iter() {
         //     println!("{}", hand.to_string()); // `cargo test -- --nocapture` to view output
         // }

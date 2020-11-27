@@ -4,7 +4,7 @@ description = "A library to model the Tarot card game."
 keywords = ["tarot", "game", "cards"]
 license = "MIT"
 name = "tarotgame"
-version = "0.4.0"
+version = "0.5.2"
 edition="2018"
 
 [dependencies]

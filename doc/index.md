@@ -19,7 +19,7 @@ Tarot en ligne
 
 ## Backlog
 
-- atouts et rois du chien : affichage conditionnnel
+- [ ] atouts et rois du chien : affichage conditionnnel
 - **rules**
   - [x] petit au bout
   - annulation partie (petit sec)

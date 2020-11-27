@@ -10,8 +10,8 @@ The project is in its early stages. It is playable but still lacks a lot of feat
 You can test the application using its docker image:
 
 ```
-docker pull mmai/webtarot:0.5.1b
-docker run mmai/webtarot:0.5.1b
+docker pull mmai/webtarot:0.5.2
+docker run mmai/webtarot:0.5.2
 ```
 
 ## Manual installation

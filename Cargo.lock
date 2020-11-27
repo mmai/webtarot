@@ -1532,7 +1532,7 @@ dependencies = [
 
 [[package]]
 name = "tarotgame"
-version = "0.4.0"
+version = "0.5.2"
 dependencies = [
  "rand 0.7.3",
  "serde",
@@ -2065,7 +2065,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_client"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
@@ -2091,7 +2091,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_protocol"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "serde",
  "tarotgame",
@@ -2101,7 +2101,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_server"
-version = "0.5.1"
+version = "0.5.2"
 dependencies = [
  "clap",
  "futures 0.3.5",

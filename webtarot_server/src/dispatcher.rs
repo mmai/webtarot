@@ -165,11 +165,14 @@ pub async fn on_player_make_dog(
     player_id: Uuid,
     cmd: MakeDogCommand,
 ) -> Result<(), ProtocolError> {
-    {
-        let game_state = game.state_handle();
-        let mut game_state = game_state.lock().await;
-        game_state.make_dog(player_id, cmd.cards);
+    let game_state = game.state_handle();
+    let mut game_state = game_state.lock().await;
+    if let Err(e) = game_state.make_dog(player_id, cmd.cards) {
+        drop(game_state);
+        game.send(player_id, &Message::Error(e.into())).await;
+    } else {
+        drop(game_state);
+        game.broadcast_state().await;
     }
-    game.broadcast_state().await;
     Ok(())
 }

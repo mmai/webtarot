@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2
+
+- petit au bout 
+- check dog cards
+- UI larger dog
+
 ## 0.5.1
 
 - fix excuse not mandatory after trump

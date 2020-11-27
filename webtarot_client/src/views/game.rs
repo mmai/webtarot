@@ -323,10 +323,15 @@ impl Component for GamePage {
       <header>
         <p class="turn-info">{turn_info}</p>
         {if let Some(contract) = &self.game_state.deal.contract {
+             let dog_info = if self.game_state.deal.dog.is_empty() {
+                 "".to_string()
+             } else {
+                 self.game_state.deal.dog.to_string()
+             };
              let king_info = if let Some(king) = &self.game_state.deal.king {
                 format!(" ({})", king.to_string())
              } else { "".into() };
-             html! {<p class="deal-info">{format!("{} {}", contract.to_string(), king_info)}</p>}
+             html! {<p class="deal-info">{format!("{} {} {}", contract.to_string(), king_info, dog_info)}</p>}
         } else {
              html! {}
         }}
@@ -348,6 +353,13 @@ impl Component for GamePage {
             "play: too weak trump played" => tr!("too weak trump played" ),
             "play: you cannot play the suit of the called king in the first trick" => tr!("you cannot play the suit of the called king in the first trick" ),
             "play: no trick has been played yet" => tr!("no trick has been played yet" ),
+            "play: you are not the taker" => tr!("you are not the taker"),
+            "play: Wrong number of cards" => tr!("Wrong number of cards"),
+            "play: Can't put the same card twice in the dog" => tr!("Can't put the same card twice in the dog"),
+            "play: Card neither in the taker's hand nor in the dog" => tr!("Card neither in the taker's hand nor in the dog"),
+            "play: Can't put an oudler in the dog" => tr!("Can't put an oudler in the dog"),
+            "play: Can't put a king in the dog" => tr!("Can't put a king in the dog"),
+            "play: Can't put a trump in the dog" => tr!("Can't put a trump in the dog"),
             _ => error.to_string()
             };
             html! {
@@ -409,7 +421,7 @@ impl Component for GamePage {
                },
                Turn::MakingDog => {
                    html! {
-                       <div>
+                       <div style="width: 90vh;">
                            <section class="hand">
                            {
                                for self.dog.list().iter().map(|card| {

@@ -147,6 +147,19 @@ impl GameState<GamePlayerState, GameStateSnapshot, VariantSettings> for TarotGam
                 let initial_dog = if self.turn == Turn::MakingDog {
                     state.dog()
                 } else { cards::Hand::new() };
+
+                //When the dog is done
+                if self.turn == Turn::Intertrick || matches!(self.turn, Turn::Playing(_x)) {
+                    //We check if there are cards to show
+                    let to_show: Vec<cards::Card> = state.dog().list()
+                        .into_iter()
+                        .filter(|c| c.suit() == cards::Suit::Trump || c.rank() == cards::Rank::RankK)
+                        .collect();
+                    for c in to_show {
+                        dog.add(c);
+                    }
+                }
+
                 DealSnapshot {
                     hand: state.hands()[pos.pos as usize],
                     current: state.next_player(),
@@ -184,7 +197,7 @@ impl GameState<GamePlayerState, GameStateSnapshot, VariantSettings> for TarotGam
         let turn = self.turn.clone();
         if let Some(player_state) = self.players.get_mut(&player_id) {
             player_state.ready = true;
-            println!("set_player_ready, turn = {}", turn.to_string());
+            // println!("set_player_ready, turn = {}", turn.to_string());
             if turn == Turn::Intertrick {
                 self.update_turn();
             } else {
@@ -197,7 +210,7 @@ impl GameState<GamePlayerState, GameStateSnapshot, VariantSettings> for TarotGam
                         count = count + 1;
                     }
                 }
-                println!("set_player_ready, count = {} ; nb_players = {}", count, self.nb_players);
+                // println!("set_player_ready, count = {} ; nb_players = {}", count, self.nb_players);
                 if count == self.nb_players {
                     if self.turn == Turn::Interdeal { // ongoing game
                         self.update_turn();
@@ -302,11 +315,11 @@ impl TarotGameState {
         }
     }
 
-    pub fn make_dog(&mut self, pid: Uuid, cards: cards::Hand){
-        let pos = self.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
-        if self.deal.deal_state_mut().unwrap().make_dog(pos, cards) {
-            self.turn = Turn::from_deal(&self.deal);
-        }
+    pub fn make_dog(&mut self, pid: Uuid, cards: cards::Hand) -> Result<(), ProtocolError> {
+        let pos = self.players.get(&pid).map(|p| p.pos).unwrap();
+        self.deal.deal_state_mut().unwrap().make_dog(pos, cards)?;
+        self.turn = Turn::from_deal(&self.deal);
+        Ok(())
     }
 
     pub fn set_play(&mut self, pid: Uuid, card: cards::Card) -> Result<(), ProtocolError> {
@@ -851,7 +864,8 @@ mod tests {
 
     #[test]
     fn test_generic_game() {
-        let variant: usize = 4;
+        // let variant: usize = 4;
+        let variant: usize = 5;
         let mut game = TarotGameState {
                 nb_players: variant as u8,
                 players: BTreeMap::new(),
@@ -868,10 +882,10 @@ mod tests {
 
         assert_eq!(false, game.is_joinable());
 
-        let seed = [3, 32, 3, 32, 54, 1, 84, 3, 32, 54, 1, 84, 3, 32, 65, 1, 84, 3, 32, 64, 1, 44, 3, 32, 54, 1, 84, 3, 32, 65, 1, 44];
+        let seed = [7, 32, 3, 32, 54, 1, 84, 3, 32, 54, 1, 84, 3, 32, 65, 1, 84, 3, 32, 64, 1, 44, 3, 32, 54, 1, 84, 3, 32, 65, 1, 44];
         let (hands, dog) = deal_seeded_hands(seed, variant);
 
-        // println!("{}", dog.to_string());
+        println!("{}", dog.to_string());
         // for hand in hands.iter() {
         //     println!("{}", hand.to_string()); // `cargo test -- --nocapture` to view output
         // }

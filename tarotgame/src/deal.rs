@@ -18,6 +18,7 @@ pub struct DealState {
     contract: bid::Contract,
     points: Vec<f32>,
     oudlers_count: u8,
+    petit_au_bout: Option<pos::PlayerPos>,
     tricks: Vec<trick::Trick>,
 }
 
@@ -62,6 +63,14 @@ pub enum PlayError {
     CallKingSuit,
     /// No last trick is available for display
     NoLastTrick,
+
+    DogNotTaker,
+    DogWrongNumberOfCards(usize, usize),
+    DogSameCardTwice(cards::Card),
+    DogCardNotFound(cards::Card),
+    DogOudler(cards::Card),
+    DogKing(cards::Card),
+    DogTrump(cards::Card),
 }
 
 impl fmt::Display for PlayError {
@@ -74,6 +83,19 @@ impl fmt::Display for PlayError {
             PlayError::NonRaisedTrump => write!(f, "too weak trump played"),
             PlayError::CallKingSuit => write!(f, "you cannot play the suit of the called king in the first trick"),
             PlayError::NoLastTrick => write!(f, "no trick has been played yet"),
+            PlayError::DogNotTaker => write!(f, "you are not the taker"),
+            PlayError::DogWrongNumberOfCards(_wrong, _right) => write!(f, "Wrong number of cards"),
+            PlayError::DogSameCardTwice(_card) => write!(f, "Can't put the same card twice in the dog"),
+            PlayError::DogCardNotFound(_card) => write!(f, "Card neither in the taker's hand nor in the dog"),
+            PlayError::DogOudler(_card) => write!(f, "Can't put an oudler in the dog"),
+            PlayError::DogKing(_card) => write!(f, "Can't put a king in the dog"),
+            PlayError::DogTrump(_card) => write!(f, "Can't put a trump in the dog"),
+            // PlayError::DogWrongNumberOfCards(wrong, right) => write!(f, "Wrong number of cards: {} instead of {}", wrong, right),
+            // PlayError::DogSameCardTwice(card) => write!(f, "Can't put the same card ({}) twice in the dog", card.to_string()),
+            // PlayError::DogCardNotFound(card) => write!(f, "{} is neither in the taker's hand nor in the dog", card.to_string()),
+            // PlayError::DogOudler(card) => write!(f, "Can't put an oudler ({}) in the dog", card.to_string()),
+            // PlayError::DogKing(card) => write!(f, "Can't put a king ({}) in the dog", card.to_string()),
+            // PlayError::DogTrump(card) => write!(f, "Can't put a trump ({}) in the dog", card.to_string()),
         }
     }
 }
@@ -91,6 +113,7 @@ impl DealState {
             contract,
             tricks: vec![trick::Trick::new(first)],
             oudlers_count: 0,
+            petit_au_bout: None,
             points: vec![0.0;count],
         }
     }
@@ -150,17 +173,14 @@ impl DealState {
     }
 
     /// Make the dog
-    //TODO return Result instead of bool
-    pub fn make_dog(&mut self, pos: pos::PlayerPos, cards: cards::Hand) -> bool {
+    pub fn make_dog(&mut self, pos: pos::PlayerPos, cards: cards::Hand) -> Result<(), PlayError> {
         if pos != self.contract.author {
-            println!("Player {:?} is not the taker", pos);
-            return false;
+            return Err(PlayError::DogNotTaker);
         } 
         let cards_list = cards.list();
         let dog_size = super::dog_size(self.players.len());
         if cards_list.len() != dog_size {
-            println!("Wrong number of cards: {} instead of {}", cards_list.len(), dog_size);
-            return false;
+            return Err(PlayError::DogWrongNumberOfCards(cards_list.len(), dog_size));
         }
 
         let mut taker_cards = self.players[pos.pos as usize].clone();
@@ -168,21 +188,32 @@ impl DealState {
         let mut new_dog = cards::Hand::new();
         for card in cards_list {
             if new_dog.has(card) {
-                println!("Can't put the same card ({}) twice in the dog", card.to_string());
-                return false;
+                return Err(PlayError::DogSameCardTwice(card));
             }
             if !taker_cards.has(card) {
-                println!("{} is neither in the taker's hand nor in the dog", card.to_string());
-                return false;
+                return Err(PlayError::DogCardNotFound(card));
             }
-
+            if card.is_oudler() {
+                return Err(PlayError::DogOudler(card));
+            }
+            if card.rank() == cards::Rank::RankK {
+                return Err(PlayError::DogKing(card));
+            }
+            if card.suit() == cards::Suit::Trump {
+                //Check if there is no alternative (taker has only trumps and kings)
+                if taker_cards.list().iter().filter(|tcard| 
+                        tcard.rank() != cards::Rank::RankK && tcard.suit() != cards::Suit::Trump
+                    ).peekable().peek().is_some() {
+                    return Err(PlayError::DogTrump(card));
+                }
+            }
             taker_cards.remove(card);
             new_dog.add(card);
         }
         //Dog successfully made
         self.dog = new_dog;
         self.players[pos.pos as usize] = taker_cards;
-        true
+        Ok(())
     } 
 
     /// Try to play a card
@@ -257,7 +288,9 @@ impl DealState {
             }
 
             if self.tricks.len() == deal_size {
-                // TODO petit au bout ? -> maj annonce
+                if has_petit {
+                    self.petit_au_bout = Some(winner);
+                }
             } else {
                 self.tricks.push(trick::Trick::new(winner));
             }
@@ -306,7 +339,10 @@ impl DealState {
             taking_points += points::hand_points(self.dog);
         }
         let (taker_diff, score) = points::score(taking_points, self.oudlers_count);
-        let base_points = self.contract.target.multiplier() as f32 * score;
+        let bonus = self.petit_au_bout_bonus();
+        let base_points = self.contract.target.multiplier() as f32 * (score + bonus);
+        // other bonuses not multiplied by the contract level
+        // poignees
 
         let count = self.players.len() as u8;
         let mut scores = vec![0.0; count as usize];
@@ -324,6 +360,18 @@ impl DealState {
             points: self.points.clone(),
             taker_diff,
             scores,
+        }
+    }
+
+    fn petit_au_bout_bonus(&self) -> f32 {
+        if let Some(winner) = self.petit_au_bout {
+            if self.in_taker_team(winner) {
+                10.0
+            } else {
+                -10.0
+            }
+        } else {
+            0.0 //Default : no petit au bout = 0 points
         }
     }
 

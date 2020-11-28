@@ -413,10 +413,12 @@ impl Component for GamePage {
                    };
 
                     html! {
-                        <CallKingAction
-                            rank=rank
-                            on_call_king=self.link.callback(|card| Msg::CallKing(card))
-                            />
+                        <div style="width: 90vh;">
+                            <CallKingAction
+                                rank=rank
+                                on_call_king=self.link.callback(|card| Msg::CallKing(card))
+                                />
+                        </div>
                     }
                },
                Turn::MakingDog => {

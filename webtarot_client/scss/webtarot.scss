@@ -220,6 +220,17 @@ div.toolbar span {
   background: #eee;
 }
 
+.deal-info, .turn-info {
+	/* border-radius: 5px; */
+	/* background: #fffbfb; */
+	/* color: #cc0b0b; */
+	padding: 0.3em;
+	border-color: #d7cbcb;
+	border-style: solid;
+	border-width: 1px;
+	/* font-family: "Courier Prime", monospace; */
+}
+
 p.turn-info {
   float: right;
 }

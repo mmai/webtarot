@@ -19,11 +19,12 @@ Tarot en ligne
 
 ## Backlog
 
-- [ ] atouts et rois du chien : affichage conditionnnel
+- [x] messages entourés de blanc
+- [x] taille choix roi ?
+- bug ? affichage enchères en pleine partie
 - **rules**
   - [x] petit au bout
-  - annulation partie (petit sec)
-    - si excuse : n'annule pas
+  - [x] annulation partie (petit sec) si excuse : n'annule pas
   - chelem (non multiplié par le contrat)
      - annonce éventuelle après écart -> 400 si réussi, -200 si échoué (200 si réussi sans être annoncé)
      - excuse doit être jouée en dernier, et remporte le plis

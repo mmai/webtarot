@@ -332,7 +332,7 @@ impl DealState {
         let _slam = self.is_slam();
 
         let mut taking_points = self.points[self.contract.author.pos as usize];
-        if self.partner != self.contract.author {
+        if self.players.len() == 5 && self.partner != self.contract.author {
             taking_points += self.points[self.partner.pos as usize];
         }
         if self.contract.target != bid::Target::GardeContre {

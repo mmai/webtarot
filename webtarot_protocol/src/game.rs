@@ -355,7 +355,14 @@ impl TarotGameState {
         self.turn = if self.nb_players == 5 {
             Turn::CallingKing
         } else {
-            Turn::MakingDog
+            let target = self.deal.deal_contract().unwrap().target;
+            if target == bid::Target::GardeSans || target == bid::Target::GardeContre {
+                //No dog
+                Turn::from_deal(&self.deal)
+            } else {
+                //Dog
+                Turn::MakingDog
+            }
         };
         Ok(())
     }
@@ -527,6 +534,41 @@ mod tests {
         //5 passes : should start a new deal
         assert_eq!(game.get_turn(), Turn::Bidding((bid::AuctionState::Bidding, pos1)));
         // assert_ne!(game.deal.hands(), hands_deal1);
+    }
+
+    #[test]
+    fn test_garde_contre() {
+        let mut game = TarotGameState::default();
+        let pos0 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player0")});
+        let pos1 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player1")});
+        let pos2 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player2")});
+        let pos3 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player3")});
+        let pos4 = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from("player4")});
+
+        assert_eq!(true, game.is_joinable());
+
+        let id0 = game.player_by_pos(pos0).unwrap().player.id;
+        let id1 = game.player_by_pos(pos1).unwrap().player.id;
+        let id2 = game.player_by_pos(pos2).unwrap().player.id;
+        let id3 = game.player_by_pos(pos3).unwrap().player.id;
+        let id4 = game.player_by_pos(pos4).unwrap().player.id;
+        game.set_player_ready(id0);
+        game.set_player_ready(id1);
+        game.set_player_ready(id2);
+        game.set_player_ready(id3);
+        game.set_player_ready(id4);
+        assert_eq!(false, game.is_joinable());
+        assert_eq!(game.get_turn(), Turn::Bidding((bid::AuctionState::Bidding, pos0)));
+
+        let _hands_deal1 = game.deal.hands();
+
+        game.set_bid(id0, bid::Target::GardeContre).unwrap();
+        assert_eq!(game.get_turn(), Turn::CallingKing);
+        assert_eq!(game.player_by_pos(pos0).unwrap().role, PlayerRole::Taker);
+        game.call_king(id0, cards::Card::new(cards::Suit::Club, cards::Rank::RankK));
+
+        // Garde contre : no dog creation step
+        assert_eq!(game.get_turn(), Turn::Playing(pos0));
     }
 
     #[test]
@@ -859,7 +901,7 @@ mod tests {
         game.set_player_ready(id3);
         game.set_player_ready(id4);
         assert_eq!(game.get_turn(), Turn::Bidding((bid::AuctionState::Bidding, pos1)));
-        println!("scores: {:?}", game.scores);
+        // println!("scores: {:?}", game.scores);
     }
 
     #[test]
@@ -949,4 +991,69 @@ mod tests {
         assert_eq!(game.get_turn(), Turn::Bidding((bid::AuctionState::Bidding, pos1)));
 
     }
+
+    #[test]
+    fn test_garde_contre_4players() {
+        let variant: usize = 4;
+        let mut game = TarotGameState {
+                nb_players: variant as u8,
+                players: BTreeMap::new(),
+                turn: Turn::Pregame,
+                deal: Deal::new(pos::PlayerPos::from_n(0, variant as u8)),
+                first: pos::PlayerPos::from_n(0, variant as u8),
+                scores: vec![],
+            };
+
+        for v in 0..variant {
+            let pos = game.add_player(PlayerInfo {id: Uuid::new_v4(), nickname: String::from(format!("player{:?}", v))});
+            game.set_player_ready(game.player_by_pos(pos).unwrap().player.id);
+        }
+
+        let seed = [7, 32, 3, 32, 54, 1, 84, 3, 32, 54, 1, 84, 3, 32, 65, 1, 84, 3, 32, 64, 1, 44, 3, 32, 54, 1, 84, 3, 32, 65, 1, 44];
+        let (hands, dog) = deal_seeded_hands(seed, variant);
+
+        let auction = game.deal.deal_auction_mut().unwrap();
+        auction.set_hands(hands, dog);
+
+        let pos0 = pos::PlayerPos::from_n(0, variant as u8);
+        let id0 = game.player_by_pos(pos0).unwrap().player.id;
+        game.set_bid(id0, bid::Target::GardeContre).unwrap();
+
+        assert_eq!(game.get_turn(), Turn::Playing(pos0));
+
+
+
+        let deal_size = game.deal.hands()[0].size();
+        for _id in 0..deal_size {
+            // println!("-------------------------");
+            // for hand in game.deal.hands().iter() {
+            //     println!("{}", hand.to_string()); // `cargo test -- --nocapture` to view output
+            // }
+
+            let mut pos = game.deal.next_player();
+            for _v in 0..variant {
+                let player_id = game.player_by_pos(pos).unwrap().player.id;
+                let hand = game.deal.hands()[pos.to_n()];
+                // let mut found = false;
+                for card in hand.list() { // Try to play a card until one is correct
+                    if !game.set_play(player_id, card).is_err() {
+                        // println!("player {:?} played {}", pos, card.to_string());
+                        // found = true;
+                        break;
+                    }
+                }
+                // if !found {
+                //     println!("no playable cards ?? {}", hand.to_string());
+                // }
+                pos = pos.next();
+            }
+            for v in 0..variant {
+                let pos = pos::PlayerPos::from_n(v, variant as u8);
+                game.set_player_ready(game.player_by_pos(pos).unwrap().player.id);
+            }
+        }
+        assert_eq!(game.get_turn(), Turn::Interdeal);
+        // println!("scores: {:?}", game.scores);
+    }
+
 }

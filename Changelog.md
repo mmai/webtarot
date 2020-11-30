@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.3
+
+- removed cards played in chat
+- show played card names next to players names
+- fix score for 3 & 4 players games
+- fix dog on garde sans / garde contre for 3 & 4 players games
+
 ## 0.5.2
 
 - petit au bout 

@@ -423,7 +423,7 @@ impl Component for GamePage {
                },
                Turn::MakingDog => {
                    html! {
-                       <div style="width: 90vh;">
+                       <div style="width: 90vh; text-align: center;">
                            <section class="hand">
                            {
                                for self.dog.list().iter().map(|card| {

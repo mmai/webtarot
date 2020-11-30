@@ -45,8 +45,9 @@ impl Component for PlayerList {
             <section class="players">
                 {
                     for self.players.iter().map(|state| {
-                        let card_played = self.game_state.deal.last_trick.card_played(state.pos);
                         let is_my_turn = self.game_state.get_playing_pos() == Some(state.pos);
+                        let card_played = self.game_state.deal.last_trick.card_played(state.pos);
+                        let str_card: String = if let Some(card) = card_played { format!(" {}", card.to_string()) } else { "".into() };
 
                         // XXX incorrect : scores are known at the end of the trick 
                         // let scores = self.game_state.scores.last().unwrap_or(&empty_scores);
@@ -77,6 +78,7 @@ impl Component for PlayerList {
                                 html!{}
                             }
                         }
+                        {str_card}
                         // {
                         //     if self.game_state.turn != Turn::Pregame {
                         //         html! {

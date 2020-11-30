@@ -19,11 +19,10 @@ Tarot en ligne
 
 ## Backlog
 
-- [ ] atouts et rois du chien : affichage conditionnnel
+- bug ? affichage enchères en pleine partie
+- position du bouton finish dog
 - **rules**
   - [x] petit au bout
-  - annulation partie (petit sec)
-    - si excuse : n'annule pas
   - chelem (non multiplié par le contrat)
      - annonce éventuelle après écart -> 400 si réussi, -200 si échoué (200 si réussi sans être annoncé)
      - excuse doit être jouée en dernier, et remporte le plis
@@ -46,7 +45,6 @@ Tarot en ligne
 - arrêt automatique parties inactives depuis 30mn (sauf si sur pause ?) => sérialisation..
 - **UX** indiquer joueur appelé quand il est connu
 - **UX** voulez-vous vraiment vous déconnecter ?
-- **server** option désactiver chat cartes jouées
 - **UX** pre-game : nb joueurs connectés
 - **server** sécuriser commandes de debug (server_status, debug_ui, etc.)
 - **server** store accounts

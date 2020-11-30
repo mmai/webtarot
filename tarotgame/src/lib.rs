@@ -95,9 +95,19 @@ pub fn deal_size(players_count: usize) -> usize {
 //     (hands, dog)
 // }
 pub fn deal_hands(count: usize) -> (Vec<cards::Hand>, cards::Hand) {
-    let mut d = cards::Deck::new();
-    d.shuffle();
-    deal_with_deck(d, count)
+    let mut dealing: (Vec<cards::Hand>, cards::Hand) = (vec![], cards::Hand::new());
+    let mut isDealOk = false;
+    while !isDealOk {
+        let mut d = cards::Deck::new();
+        d.shuffle();
+        dealing = deal_with_deck(d, count);
+        isDealOk = check_deal_ok(&dealing.0);
+    }
+    dealing
+}
+
+fn check_deal_ok(hands: &Vec<cards::Hand>) -> bool {
+   !hands.iter().any(|hand| hand.has_petit_sec())
 }
 
 /// Deal cards for players deterministically.

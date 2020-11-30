@@ -438,6 +438,18 @@ impl Hand {
         cards
     }
 
+    /// Check if the hand has the "petit sec" (one of trump with no other trump nor the excuse)
+    pub fn has_petit_sec(self) -> bool {
+        let petit = Card::new(Suit::Trump, Rank::Rank1);
+        self.has(petit) && self.trumps_count() == 1
+    }
+
+    /// Returns the number of trumps in `self`.
+    pub fn trumps_count(self) -> usize {
+        let only_trumps = Self(0, self.1);
+        only_trumps.size()
+    }
+
     /// Returns the number of cards in `self`.
     pub fn size(self) -> usize {
         self.list().len()
@@ -657,6 +669,25 @@ mod tests {
         assert!(!hand.has_any(Suit::Heart));
         assert!(hand.has_any(Suit::Club));
         assert!(hand.has_any(Suit::Trump));
+    }
+
+    #[test]
+    fn test_petit_sec() {
+        let mut hand = Hand::new();
+        hand.add(Card::new(Suit::Spade, Rank::Rank1));
+        hand.add(Card::new(Suit::Spade, Rank::Rank10));
+        hand.add(Card::new(Suit::Diamond, Rank::Rank4));
+        hand.add(Card::new(Suit::Diamond, Rank::Rank5));
+        hand.add(Card::new(Suit::Club, Rank::Rank6));
+        hand.add(Card::new(Suit::Club, Rank::Rank9));
+        hand.add(Card::new(Suit::Club, Rank::Rank10));
+        assert!(!hand.has_petit_sec());
+
+        hand.add(Card::new(Suit::Trump, Rank::Rank1));
+        assert!(hand.has_petit_sec());
+
+        hand.add(Card::new(Suit::Trump, Rank::Rank22));
+        assert!(!hand.has_petit_sec());
     }
 
     #[test]

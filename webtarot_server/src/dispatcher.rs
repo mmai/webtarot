@@ -114,8 +114,8 @@ pub async fn on_player_play(
             game.send(player_id, &Message::Error(e.into())).await;
         } else {
             drop(game_state);
-            game.broadcast(&Message::PlayEvent(PlayEvent::Play ( player_id, cmd.card )))
-            .await;
+            // We don't show played cards anymore in the chat box
+            // game.broadcast(&Message::PlayEvent(PlayEvent::Play ( player_id, cmd.card ))).await;
             game.broadcast_state().await;
         }
         Ok(())

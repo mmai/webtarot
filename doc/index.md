@@ -25,6 +25,8 @@ Tarot en ligne
   - [x] petit au bout
   - chelem (non multiplié par le contrat)
      - annonce éventuelle après écart -> 400 si réussi, -200 si échoué (200 si réussi sans être annoncé)
+     - le preneur commence
+     - comptabiliser
      - excuse doit être jouée en dernier, et remporte le plis
   - poignées (non multiplié par le contrat) -> gain au vainqueur de la donne !!
     - la simple poignée : dix atouts (treize atouts à trois joueurs, huit à cinq joueurs) ; la prime est de 20 points ;

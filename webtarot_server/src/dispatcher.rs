@@ -95,7 +95,7 @@ pub async fn on_player_bid(
         let game_state = game.state_handle();
         { //lock
             let mut game_state = game_state.lock().await;
-            game_state.set_bid(player_id, cmd.target)?;
+            game_state.set_bid(player_id, cmd.target, cmd.slam)?;
         }
         game.broadcast_state().await;
 
@@ -167,7 +167,7 @@ pub async fn on_player_make_dog(
 ) -> Result<(), ProtocolError> {
     let game_state = game.state_handle();
     let mut game_state = game_state.lock().await;
-    if let Err(e) = game_state.make_dog(player_id, cmd.cards) {
+    if let Err(e) = game_state.make_dog(player_id, cmd.cards, cmd.slam) {
         drop(game_state);
         game.send(player_id, &Message::Error(e.into())).await;
     } else {

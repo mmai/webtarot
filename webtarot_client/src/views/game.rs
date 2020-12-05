@@ -50,6 +50,7 @@ pub struct GamePage {
     is_waiting: bool,
     sound_player: SoundPlayer,
     error: Option<String>,
+    slam_selected: bool,
 }
 
 pub enum Msg {
@@ -58,12 +59,13 @@ pub enum Msg {
     MarkReady,
     Continue,
     CloseError,
-    Bid(bid::Target),
+    Bid((bid::Target, bool)),
     Pass,
     Play(cards::Card),
     CallKing(cards::Card),
     SetChatLine(String),
     MakeDog,
+    ToggleSlam,
     AddToDog(cards::Card),
     AddToHand(cards::Card),
     ServerMessage(Message),
@@ -130,6 +132,7 @@ impl Component for GamePage {
             is_waiting: false,
             sound_player: SoundPlayer::new(sound_paths),
             error: None,
+            slam_selected: false,
         }
     }
 
@@ -194,9 +197,10 @@ impl Component for GamePage {
             Msg::Disconnect => {
                 self.api.send(Command::LeaveGame);
             }
-            Msg::Bid(target) => {
+            Msg::Bid((target, slam)) => {
                 self.is_waiting = true;
-                self.api.send(Command::GamePlay(GamePlayCommand::Bid(BidCommand { target })));
+                self.slam_selected = slam;
+                self.api.send(Command::GamePlay(GamePlayCommand::Bid(BidCommand { target, slam })));
             }
             Msg::Pass => {
                 self.is_waiting = true;
@@ -216,7 +220,10 @@ impl Component for GamePage {
             },
             Msg::MakeDog => {
                 self.is_waiting = true;
-                self.api.send(Command::GamePlay(GamePlayCommand::MakeDog(MakeDogCommand { cards: self.dog })));
+                self.api.send(Command::GamePlay(GamePlayCommand::MakeDog(MakeDogCommand { cards: self.dog, slam: self.slam_selected })));
+            },
+            Msg::ToggleSlam => {
+                self.slam_selected = !self.slam_selected;
             },
             Msg::Play(card) => {
                 self.is_waiting = true;
@@ -442,10 +449,21 @@ impl Component for GamePage {
                            }
                            </section>
                            { if player_action == Some(PlayerAction::MakeDog) {
+                                let mut slam_classes = vec!["toggle"];
+                                if self.slam_selected {
+                                    slam_classes.push("toggle-selected");
+                                }
                                html! {
+                            <div class=slam_classes>
                                <button onclick=self.link.callback(move |_| Msg::MakeDog)>
                                {{ tr!("finish") }}
                                </button>
+                                <input type="checkbox" id="slam"
+                                    checked=self.slam_selected
+                                    onclick=self.link.callback(move |_| Msg::ToggleSlam)
+                                />
+                                <label for="slam">{tr!("Slam") }</label>
+                            </div>
                              }} else {
                                  html!{}
                              }

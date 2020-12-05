@@ -399,3 +399,31 @@ table.scores {
   flex-direction: column-reverse;
 }
 
+.toggle {
+  background: lightgreen;
+  color: black;
+  margin-top: 0.6em;
+  padding: 0.3em;
+  width: 10em;
+  border: 1px solid black;
+  border-radius: 4px;
+
+  input[type="checkbox"] {
+    display: none;
+  }
+
+  input[type="checkbox"] + label::before {
+    background-color: white;
+    content:'X';
+    border: 1px solid black;
+    padding: 0 0.3rem;
+    margin-right: 0.3rem;
+    color: transparent;
+  }
+
+  input[type="checkbox"]:checked + label::before {
+    color: black;
+  }
+}
+
+

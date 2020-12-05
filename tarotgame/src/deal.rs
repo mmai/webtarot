@@ -173,7 +173,7 @@ impl DealState {
     }
 
     /// Make the dog
-    pub fn make_dog(&mut self, pos: pos::PlayerPos, cards: cards::Hand) -> Result<(), PlayError> {
+    pub fn make_dog(&mut self, pos: pos::PlayerPos, cards: cards::Hand, slam: bool) -> Result<(), PlayError> {
         if pos != self.contract.author {
             return Err(PlayError::DogNotTaker);
         } 
@@ -211,6 +211,7 @@ impl DealState {
             new_dog.add(card);
         }
         //Dog successfully made
+        self.contract.slam = slam;
         self.dog = new_dog;
         self.players[pos.pos as usize] = taker_cards;
         Ok(())

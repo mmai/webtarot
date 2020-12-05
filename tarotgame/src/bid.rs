@@ -69,20 +69,24 @@ pub struct Contract {
     pub author: pos::PlayerPos,
     /// Target for the contract.
     pub target: Target,
+    /// Slam asked ?
+    pub slam: bool,
 }
 
 impl Contract {
-    fn new(author: pos::PlayerPos, target: Target) -> Self {
+    fn new(author: pos::PlayerPos, target: Target, slam: bool) -> Self {
         Contract {
             author,
             target,
+            slam,
         }
     }
 }
 
 impl ToString for Contract {
     fn to_string(&self) -> String {
-        format!("{}", self.target.to_str())
+        let str_slam = if self.slam { " SLAM" } else { "" };
+        format!("{}{}", self.target.to_str(), str_slam)
     }
 }
 
@@ -220,6 +224,7 @@ impl Auction {
         &mut self,
         pos: pos::PlayerPos,
         target: Target,
+        slam: bool,
     ) -> Result<AuctionState, BidError> {
         if pos != self.next_player() {
             return Err(BidError::TurnError);
@@ -232,7 +237,7 @@ impl Auction {
             self.set_player_status(contract.author, BidStatus::Todo);
         }
 
-        let contract = Contract::new(pos, target);
+        let contract = Contract::new(pos, target, slam);
         self.contract = Some(contract);
         self.set_player_status(pos, BidStatus::Bid);
 

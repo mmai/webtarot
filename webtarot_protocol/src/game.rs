@@ -272,10 +272,10 @@ impl TarotGameState {
         self.turn == Turn::Intertrick && p0.role == PlayerRole::Unknown
     }
 
-    pub fn set_bid(&mut self, pid: Uuid, target: bid::Target) -> Result<(), ProtocolError>{
+    pub fn set_bid(&mut self, pid: Uuid, target: bid::Target, slam: bool) -> Result<(), ProtocolError>{
         let pos = self.players.get(&pid).map(|p| p.pos).unwrap();// TODO -> Result<..>
         let auction = self.deal.deal_auction_mut().unwrap();
-        if Ok(bid::AuctionState::Over) == auction.bid(pos, target) {
+        if Ok(bid::AuctionState::Over) == auction.bid(pos, target, slam) {
             self.complete_auction()?;
         }
         self.update_turn();
@@ -315,9 +315,9 @@ impl TarotGameState {
         }
     }
 
-    pub fn make_dog(&mut self, pid: Uuid, cards: cards::Hand) -> Result<(), ProtocolError> {
+    pub fn make_dog(&mut self, pid: Uuid, cards: cards::Hand, slam: bool) -> Result<(), ProtocolError> {
         let pos = self.players.get(&pid).map(|p| p.pos).unwrap();
-        self.deal.deal_state_mut().unwrap().make_dog(pos, cards)?;
+        self.deal.deal_state_mut().unwrap().make_dog(pos, cards, slam)?;
         self.turn = Turn::from_deal(&self.deal);
         Ok(())
     }

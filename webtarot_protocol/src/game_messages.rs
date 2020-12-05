@@ -35,6 +35,7 @@ pub enum GamePlayCommand {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BidCommand {
     pub target: bid::Target,
+    pub slam: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -50,4 +51,5 @@ pub struct CallKingCommand {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MakeDogCommand {
     pub cards: cards::Hand,
+    pub slam: bool,
 }

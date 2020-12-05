@@ -212,6 +212,10 @@ impl DealState {
         }
         //Dog successfully made
         self.contract.slam = slam;
+        if slam {
+            // The taker is the first to play if he asked a slam
+            self.current = self.contract().author;
+        }
         self.dog = new_dog;
         self.players[pos.pos as usize] = taker_cards;
         Ok(())

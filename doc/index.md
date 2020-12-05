@@ -24,10 +24,10 @@ Tarot en ligne
 - **rules**
   - [x] petit au bout
   - chelem (non multiplié par le contrat)
-     - annonce éventuelle après écart -> 400 si réussi, -200 si échoué (200 si réussi sans être annoncé)
-     - le preneur commence
-     - comptabiliser
+     - [x] annonce éventuelle après écart
+     - [x] le preneur commence
      - excuse doit être jouée en dernier, et remporte le plis
+     - comptabiliser -> 400 si réussi, -200 si échoué (200 si réussi sans être annoncé)
   - poignées (non multiplié par le contrat) -> gain au vainqueur de la donne !!
     - la simple poignée : dix atouts (treize atouts à trois joueurs, huit à cinq joueurs) ; la prime est de 20 points ;
     - la double poignée : treize atouts (quinze à trois joueurs, dix à cinq joueurs) ; la prime est de 30 points ;

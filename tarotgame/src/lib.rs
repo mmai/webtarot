@@ -37,6 +37,8 @@
 //! ```
 #[macro_use]
 
+use std::fmt::Display;
+
 #[cfg(feature = "use_bench")]
 extern crate test;
 
@@ -46,6 +48,50 @@ pub mod deal;
 pub mod points;
 pub mod pos;
 pub mod trick;
+
+#[derive(Debug, Clone, Copy)]
+pub enum AnnounceType {
+    Poignee,
+    DoublePoignee,
+    TriplePoignee
+}
+
+impl Display for AnnounceType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        match self {
+            Self::Poignee => write!(f, "Poignée"),
+            Self::DoublePoignee => write!(f, "Double poignee"),
+            Self::TriplePoignee => write!(f, "Triple poignee"),
+        }
+    }
+}
+
+impl AnnounceType {
+    pub fn poignee_size(&self, players_count: usize) -> usize {
+        match players_count {
+            3 => match self { Self::Poignee => 13, Self::DoublePoignee => 15, Self::TriplePoignee => 18, },
+            4 => match self { Self::Poignee => 10, Self::DoublePoignee => 13, Self::TriplePoignee => 15, },
+            5 => match self { Self::Poignee => 8, Self::DoublePoignee => 10, Self::TriplePoignee => 13, },
+            _ => self.poignee_size(5),
+        }
+    }
+
+    pub fn is_eligible(&self, hand: cards::Hand) -> bool {
+        let pcount = players_count(hand.size());
+        self.poignee_size(pcount) <= hand.trumps_count()
+    }
+
+    pub fn eligibles(hand: cards::Hand) -> Vec<AnnounceType> {
+        vec![Self::Poignee, Self::DoublePoignee, Self::TriplePoignee].into_iter()
+            .filter(|atype| atype.is_eligible(hand))
+            .collect()
+    }
+}
+
+pub struct Announce {
+    pub atype: AnnounceType, 
+    pub proof: Option<cards::Hand> 
+}
 
 // pub const NB_PLAYERS:usize = 5;
 // pub const DOG_SIZE:usize = 3;
@@ -66,6 +112,15 @@ pub fn deal_size(players_count: usize) -> usize {
         4 => 18,
         5 => 15,
         _ => 15,
+    }
+}
+
+pub fn players_count(deal_size: usize) -> usize {
+    match deal_size {
+        24 => 3,
+        18 => 4,
+        15 => 5,
+        _  => 5,
     }
 }
 
@@ -96,12 +151,12 @@ pub fn deal_size(players_count: usize) -> usize {
 // }
 pub fn deal_hands(count: usize) -> (Vec<cards::Hand>, cards::Hand) {
     let mut dealing: (Vec<cards::Hand>, cards::Hand) = (vec![], cards::Hand::new());
-    let mut isDealOk = false;
-    while !isDealOk {
+    let mut is_deal_ok = false;
+    while !is_deal_ok {
         let mut d = cards::Deck::new();
         d.shuffle();
         dealing = deal_with_deck(d, count);
-        isDealOk = check_deal_ok(&dealing.0);
+        is_deal_ok = check_deal_ok(&dealing.0);
     }
     dealing
 }

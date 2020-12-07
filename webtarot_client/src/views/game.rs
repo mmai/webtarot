@@ -16,6 +16,7 @@ use crate::components::chat_box::{ChatBox, ChatLine, ChatLineData};
 use crate::components::player_list::PlayerList;
 use crate::components::bidding_actions::BiddingActions;
 use crate::components::call_king_action::CallKingAction;
+use crate::components::announces::Announces;
 use crate::components::scores::Scores;
 use crate::gprotocol::{GameInfo, PlayerInfo, SendTextCommand};
     
@@ -26,7 +27,7 @@ use crate::protocol::{
     Turn,
     PlayEvent,
 };
-use tarotgame::{bid, cards};
+use tarotgame::{bid, cards, deal_size, Announce};
 use crate::utils::format_join_code;
 use crate::sound_player::SoundPlayer;
 
@@ -44,10 +45,12 @@ pub struct GamePage {
     game_info: GameInfo,
     player_info: PlayerInfo,
     game_state: Rc<GameStateSnapshot>,
+    next_states: Vector<GameStateSnapshot>,
     chat_log: Vector<Rc<ChatLine>>,
     dog: cards::Hand,
     hand: cards::Hand,
     is_waiting: bool,
+    update_needs_confirm: bool,
     sound_player: SoundPlayer,
     error: Option<String>,
     slam_selected: bool,
@@ -57,7 +60,8 @@ pub enum Msg {
     Ping,
     Disconnect,
     MarkReady,
-    Continue,
+    Continue, // TODO should be replaced by ContinueSnapshot when server updated to not wait for all players ready
+    ContinueSnapshot,
     CloseError,
     Bid((bid::Target, bool)),
     Pass,
@@ -69,6 +73,7 @@ pub enum Msg {
     AddToDog(cards::Card),
     AddToHand(cards::Card),
     ServerMessage(Message),
+    Announce(Announce),
 }
 
 impl GamePage {
@@ -94,6 +99,20 @@ impl GamePage {
             .iter()
             .find(|state| state.player.id == self.player_info.id)
             .unwrap()
+    }
+
+    fn apply_snapshot(&mut self, snapshot: GameStateSnapshot){
+        self.game_state = Rc::new(snapshot);
+        self.dog = self.game_state.deal.initial_dog;
+        self.hand = self.game_state.deal.hand;
+        // self.update_needs_confirm = match &self.game_state.status {
+        //     Status::Twilight(_, _) => true,
+        //     _ => false
+        // }
+    }
+
+    fn is_first_trick(&self) -> bool {
+        self.hand.size() == deal_size(self.game_state.players.len())
     }
 }
 
@@ -133,6 +152,8 @@ impl Component for GamePage {
             sound_player: SoundPlayer::new(sound_paths),
             error: None,
             slam_selected: false,
+            next_states: Vector::new(),
+            update_needs_confirm: false,
         }
     }
 
@@ -170,9 +191,12 @@ impl Component for GamePage {
                 }
                 Message::GameStateSnapshot(snapshot) => {
                     self.is_waiting = false;
-                    self.game_state = Rc::new(snapshot);
-                    self.dog = self.game_state.deal.initial_dog;
-                    self.hand = self.game_state.deal.hand;
+                    if self.update_needs_confirm {
+                        self.next_states.push_front(snapshot);
+                    } else {
+                        //Update state with snapshot
+                        self.apply_snapshot(snapshot);
+                    }
                 }
                 _ => {}
             },
@@ -189,6 +213,14 @@ impl Component for GamePage {
             Msg::Continue => {
                 self.is_waiting = true;
                 self.api.send(Command::Continue);
+            }
+            Msg::ContinueSnapshot => {
+                if let Some(snapshot) =  self.next_states.pop_back() {
+                    self.apply_snapshot(snapshot);
+                } else {
+                    //No snapshot to apply, we simply allow the direct update for the next one
+                    self.update_needs_confirm = false;
+                }
             }
             Msg::MarkReady => {
                 self.is_waiting = true;
@@ -225,6 +257,11 @@ impl Component for GamePage {
             Msg::ToggleSlam => {
                 self.slam_selected = !self.slam_selected;
             },
+            Msg::Announce(announce) => {
+                //TODO
+                log!("announce: {:?}", announce.proof);
+                // self.api.send(Command::GamePlay(GamePlayCommand::Announce(AnnounceCommand { announce })));
+            }
             Msg::Play(card) => {
                 self.is_waiting = true;
                 self.api.send(Command::GamePlay(GamePlayCommand::Play(PlayCommand { card })));
@@ -489,10 +526,20 @@ impl Component for GamePage {
                                 }
                             } else if player_action == Some(PlayerAction::Play) {
                                 html!{
-                                    <div class="yourturn"> {{ tr!("Your turn to play!") }} </div>
-                            }} else {
-                                html!{}
-                            }}
+                                    <div>
+                                        <div class="yourturn"> {{ tr!("Your turn to play!") }} </div>
+                                        { if self.is_first_trick() {
+                                            html!{
+                                            <Announces
+                                                nb_players=self.game_state.players.len()
+                                                hand=self.hand.clone()
+                                                on_announce=self.link.callback(|announce| Msg::Announce(announce))
+                                                />
+                                            }
+                                        } else { html!{} }}
+                                    </div>
+                                }
+                            } else { html!{} }}
                         </div>
                     }
              }}

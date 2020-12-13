@@ -10,7 +10,7 @@ use crate::{ ProtocolError };
 use crate::turn::Turn;
 use crate::deal::{Deal, DealSnapshot};
 use crate::player::{PlayerRole, GamePlayerState};
-use crate::message::TarotVariant;
+use crate::message::{TarotVariant, DebugOperation};
 
 pub struct TarotGameState {
     nb_players: u8,
@@ -34,33 +34,14 @@ impl Default for TarotGameState {
     }
 }
 
-/*
- * the trait bound `webtarot_protocol::game::TarotGameState: 
- * webgame_protocol::game::GameState<
- *        webtarot_protocol::player::GamePlayerState,
- *        webtarot_protocol::game::GameStateSnapshot,
- *        webgame_protocol::game::Variant<
- *          webtarot_protocol::game::VariantSettings
- *          >
- *  >` is not satisfied
-  --> webtarot_server/src/main.rs:19:5
-   |
-  ::: /home/henri/travaux/programmes/webgame/webgame_server/src/launcher.rs:11:20
-   |
-11 |     GameStateType: GameState<GamePlayerStateT, GameStateSnapshotT, VariantParameters>+'static,
-   |                    ------------------------------------------------------------------ required by this bound in `webgame_server::launcher::launch`
-   |
-   = help: the following implementations were found:
-    webgame_protocol::game::GameState<
-        webtarot_protocol::player::GamePlayerState,
-        webtarot_protocol::game::GameStateSnapshot,
-        webtarot_protocol::game::VariantSettings>>
-
- */
-
-impl GameState<GamePlayerState, GameStateSnapshot, VariantSettings> for TarotGameState {
+impl GameState for TarotGameState {
     type PlayerPos = pos::PlayerPos;
     type PlayerRole = PlayerRole;
+
+    type GamePlayerState = GamePlayerState;
+    type Snapshot = GameStateSnapshot;
+    type Operation = DebugOperation;
+    type VariantParameters = VariantSettings;
 
     fn set_variant(&mut self, variant: TarotVariant) {
         self.nb_players = variant.parameters.nb_players;
@@ -143,7 +124,6 @@ impl GameState<GamePlayerState, GameStateSnapshot, VariantSettings> for TarotGam
                 } else {
                     state.current_trick().clone()
                 };
-                // log::debug!("trick {:?}", last_trick.cards);
                 let initial_dog = if self.turn == Turn::MakingDog {
                     state.dog()
                 } else { cards::Hand::new() };
@@ -233,6 +213,17 @@ impl GameState<GamePlayerState, GameStateSnapshot, VariantSettings> for TarotGam
     fn update_init_state(&mut self) -> bool {
         // self.next();
         false
+    }
+
+    fn manage_operation(&mut self, operation: Self::Operation) {
+        match operation {
+            Self::Operation::SetSeed(seed) => {
+                let (hands, dog) = tarotgame::deal_seeded_hands(seed, self.nb_players as usize);
+                let auction = self.deal.deal_auction_mut().unwrap();
+                auction.set_hands(hands, dog);
+            }
+        }
+        
     }
 
 }
@@ -419,9 +410,7 @@ pub struct GameStateSnapshot {
     pub scores: Vec<Vec<f32>>,
 }
 
-impl webgame_protocol::GameStateSnapshot for GameStateSnapshot {
-
-}
+impl webgame_protocol::GameStateSnapshot for GameStateSnapshot { }
 
 impl GameStateSnapshot {
     // pub fn get_current_player(self) -> Option<PlayerInfo> {
@@ -562,7 +551,7 @@ mod tests {
 
         let _hands_deal1 = game.deal.hands();
 
-        game.set_bid(id0, bid::Target::GardeContre).unwrap();
+        game.set_bid(id0, bid::Target::GardeContre, false).unwrap();
         assert_eq!(game.get_turn(), Turn::CallingKing);
         assert_eq!(game.player_by_pos(pos0).unwrap().role, PlayerRole::Taker);
         game.call_king(id0, cards::Card::new(cards::Suit::Club, cards::Rank::RankK));
@@ -613,7 +602,7 @@ mod tests {
         let auction = game.deal.deal_auction_mut().unwrap();
         auction.set_hands(hands, dog);
 
-        game.set_bid(id0, bid::Target::Garde).unwrap();
+        game.set_bid(id0, bid::Target::Garde, false).unwrap();
         game.set_pass(id1).unwrap();
         game.set_pass(id2).unwrap();
         game.set_pass(id3).unwrap();
@@ -626,7 +615,7 @@ mod tests {
         dog.add(cards::Card::new(cards::Suit::Heart, cards::Rank::RankC));
         dog.add(cards::Card::new(cards::Suit::Spade, cards::Rank::Rank2));
         dog.add(cards::Card::new(cards::Suit::Spade, cards::Rank::RankQ));
-        game.make_dog(id0, dog);
+        game.make_dog(id0, dog, false);
         assert_eq!(true, game.players_ready());
         assert_eq!(game.get_turn(), Turn::Playing(pos0));
 
@@ -939,7 +928,7 @@ mod tests {
         let pos0 = pos::PlayerPos::from_n(0, variant as u8);
         let pos1 = pos::PlayerPos::from_n(1, variant as u8);
         let id0 = game.player_by_pos(pos0).unwrap().player.id;
-        game.set_bid(id0, bid::Target::Garde).unwrap();
+        game.set_bid(id0, bid::Target::Garde, false).unwrap();
         for v in 1..variant {
             let pos = pos::PlayerPos::from_n(v, variant as u8);
             game.set_pass(game.player_by_pos(pos).unwrap().player.id).unwrap();
@@ -949,7 +938,7 @@ mod tests {
             game.call_king(id0, cards::Card::new(cards::Suit::Club, cards::Rank::RankK));
         }
         assert_eq!(game.get_turn(), Turn::MakingDog);
-        game.make_dog(id0, dog);// keep initial dog
+        game.make_dog(id0, dog, false);// keep initial dog
         assert_eq!(true, game.players_ready());
         assert_eq!(game.get_turn(), Turn::Playing(pos0));
 
@@ -1017,7 +1006,7 @@ mod tests {
 
         let pos0 = pos::PlayerPos::from_n(0, variant as u8);
         let id0 = game.player_by_pos(pos0).unwrap().player.id;
-        game.set_bid(id0, bid::Target::GardeContre).unwrap();
+        game.set_bid(id0, bid::Target::GardeContre, false).unwrap();
 
         assert_eq!(game.get_turn(), Turn::Playing(pos0));
 

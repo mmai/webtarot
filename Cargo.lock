@@ -2064,6 +2064,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "webtarot_bot"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "futures 0.3.5",
+ "lazy_static",
+ "log 0.4.8",
+ "rand 0.7.3",
+ "serde_json",
+ "tarotgame",
+ "uuid 0.8.1",
+ "webtarot_protocol",
+]
+
+[[package]]
 name = "webtarot_client"
 version = "0.5.4"
 dependencies = [

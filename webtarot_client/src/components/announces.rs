@@ -5,6 +5,7 @@ use tarotgame::{Announce, AnnounceType, cards};
 
 pub enum Msg {
     InitAnnounce(AnnounceType),
+    CancelAnnounce,
     MoveCard(cards::Card),
     Announce,
 }
@@ -54,6 +55,10 @@ impl Component for Announces {
             Msg::InitAnnounce(ann_type) => {
                 self.announce_type = Some(ann_type);
             },
+            Msg::CancelAnnounce => {
+                self.announce_type = None;
+                self.done = true;
+            },
             Msg::MoveCard(card) => {
                 if self.proof.has(card) {
                     self.proof.remove(card);
@@ -87,19 +92,9 @@ impl Component for Announces {
                <div style="width: 90vh; text-align: center;">
                    <div class="hand">
                     {
-                        for self.proof.list().iter().map(|card| {
-                            let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
-                            let clicked = card.clone();
-                            html! {
-                                <div class="card" style={style} onclick=self.link.callback(move |_| Msg::MoveCard(clicked))></div>
-                            }
-                        })
-                    }
-                    </div>
-                   <div class="hand">
-                    {
-                        for self.keep.list().iter().map(|card| {
-                            let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                        for self.hand.trumps().list().iter().map(|card| {
+                            let style_select = if self.proof.has(*card) { "; transform: translate(0,50%)" } else { "" };
+                            let style =format!("--bg-image: url('cards/{}-{}.svg'){}", &card.rank().to_string(), &card.suit().to_safe_string(), style_select.to_string());
                             let clicked = card.clone();
                             html! {
                                 <div class="card" style={style} onclick=self.link.callback(move |_| Msg::MoveCard(clicked))></div>
@@ -116,6 +111,7 @@ impl Component for Announces {
             else {
                 html! {
                   <div>
+                    <input type="button" onclick=self.link.callback(move |_| Msg::CancelAnnounce) value={ tr!("No announce") } />
                   { for a_eligibles.into_iter().map(|ann_type| { html! {
                     <input type="button" onclick=self.link.callback(move |_| Msg::InitAnnounce(ann_type)) value={ tr!("{}", ann_type) } />
                   } }) }

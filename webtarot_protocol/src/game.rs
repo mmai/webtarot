@@ -219,8 +219,7 @@ impl GameState for TarotGameState {
         match operation {
             Self::Operation::SetSeed(seed) => {
                 let (hands, dog) = tarotgame::deal_seeded_hands(seed, self.nb_players as usize);
-                let auction = self.deal.deal_auction_mut().unwrap();
-                auction.set_hands(hands, dog);
+                self.deal.deal_auction_mut().map(|auction| auction.set_hands(hands, dog));
             }
         }
         

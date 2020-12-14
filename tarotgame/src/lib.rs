@@ -35,7 +35,6 @@
 //!     // ...
 //! }
 //! ```
-#[macro_use]
 
 use std::fmt::Display;
 
@@ -264,6 +263,7 @@ fn test_deals_tarot3() {
 
 }
 
+#[cfg(test)]
 fn idx_from_id(id: u32) -> u32 {
     if id < 66 {
         id

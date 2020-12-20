@@ -95,9 +95,13 @@ impl Component for Announces {
                         for self.hand.trumps().list().iter().map(|card| {
                             let style_select = if self.proof.has(*card) { "; transform: translate(0,50%)" } else { "" };
                             let style =format!("--bg-image: url('cards/{}-{}.svg'){}", &card.rank().to_string(), &card.suit().to_safe_string(), style_select.to_string());
+                            let mut card_classes = vec!["card"];
+                            if self.proof.has(*card)  {
+                                card_classes.push("card-sel");
+                            }
                             let clicked = card.clone();
                             html! {
-                                <div class="card" style={style} onclick=self.link.callback(move |_| Msg::MoveCard(clicked))></div>
+                                <div class=card_classes style={style} onclick=self.link.callback(move |_| Msg::MoveCard(clicked))></div>
                             }
                         })
                     }

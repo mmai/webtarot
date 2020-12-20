@@ -343,6 +343,17 @@ section.hand {
   box-shadow: 5px 6px 15px -5px rgba(0, 0, 0, 0.75);
 }
 
+.card > div {
+  width: $card_width;
+  height: 28vh;
+  background-size: $card_width 28vh;
+  cursor: pointer;
+}
+
+.card-sel > div {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
 .hand > .card:hover{
   transform: scale(1.3);
 }

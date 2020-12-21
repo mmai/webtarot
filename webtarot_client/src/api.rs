@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use weblog::*;
 use yew::agent::{Agent, AgentLink, Context, HandlerId};
 use yew::format::Json;
 use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
@@ -65,11 +66,11 @@ impl Agent for Api {
     type Output = Message;
 
     fn create(link: AgentLink<Api>) -> Api {
-        log::info!("Connecting to server");
+        console_log!("Connecting to server");
         let on_message = link.callback(|Json(data)| match data {
             Ok(message) => Msg::ServerMessage(message),
             Err(err) => {
-                log::error!("websocket error: {:?}", err);
+                console_error!(format!("websocket error: {:?}", err));
                 Msg::Ignore
             }
         });
@@ -89,27 +90,27 @@ impl Agent for Api {
     }
 
     fn handle_input(&mut self, input: Self::Input, _: HandlerId) {
-        log::debug!("Sending command: {:?}", &input);
+        console_debug!(format!("Sending command: {:?}", &input));
         self.ws.send(Json(&input));
     }
 
     fn update(&mut self, msg: Self::Message) {
         match msg {
             Msg::ServerMessage(msg) => {
-                log::debug!("Server message: {:?}", msg);
+                console_debug!(format!("Server message: {:?}", msg));
                 for sub in self.subscribers.iter() {
                     self.link.respond(*sub, msg.clone());
                 }
             }
             Msg::Connected => {
-                log::info!("Connected web socket!");
+                console_log!("Connected web socket!");
                 self.state = ApiState::Connected;
                 for sub in self.subscribers.iter() {
                     self.link.respond(*sub, Message::Connected);
                 }
             }
             Msg::ConnectionLost => {
-                log::info!("Lost connection on web socket!");
+                console_log!("Lost connection on web socket!");
                 self.state = ApiState::Disconnected;
             }
             Msg::Ignore => {}
@@ -125,6 +126,6 @@ impl Agent for Api {
     }
 
     fn destroy(&mut self) {
-        log::info!("destroying API service");
+        console_log!("destroying API service");
     }
 }

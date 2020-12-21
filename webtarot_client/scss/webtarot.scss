@@ -348,9 +348,10 @@ section.hand {
   height: 28vh;
   background-size: $card_width 28vh;
   cursor: pointer;
+  border-radius: 8px;
 }
 
-.card-sel > div {
+.card-unselected > div {
   background-color: rgba(0, 0, 0, 0.5);
 }
 

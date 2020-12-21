@@ -10,6 +10,7 @@ use yew::{
     ShouldRender,
 };
 use tr::tr;
+use weblog::*;
 
 use crate::api::Api;
 use crate::components::chat_box::{ChatBox, ChatLine, ChatLineData};
@@ -259,7 +260,7 @@ impl Component for GamePage {
             },
             Msg::Announce(announce) => {
                 //TODO
-                log!("announce: {:?}", announce.proof);
+                console_log!(format!("announce: {:?}", announce.proof));
                 // self.api.send(Command::GamePlay(GamePlayCommand::Announce(AnnounceCommand { announce })));
             }
             Msg::Play(card) => {

@@ -5,6 +5,7 @@ use yew::{
 };
 
 use tr::tr;
+use weblog::*;
 
 use crate::api::Api;
 use crate::protocol::{Command, Message, TarotVariant, VariantSettings};
@@ -70,11 +71,11 @@ impl Component for MenuPage {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             Msg::NewGame(variant) => {
-                log::info!("New Game");
+                console_log!("New Game");
                 self.api.send(Command::NewGame(variant));
             }
             Msg::JoinGame => {
-                log::info!("Join Game");
+                console_log!("Join Game");
                 self.api.send(Command::JoinGame(JoinGameCommand {
                     join_code: self.join_code.replace("-", ""),
                 }));

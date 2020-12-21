@@ -1,5 +1,6 @@
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender, Callback};
 use tr::tr;
+use weblog::*;
 
 use tarotgame::{Announce, AnnounceType, cards};
 
@@ -71,6 +72,7 @@ impl Component for Announces {
             Msg::Announce => {
                 if let Some(announce_type) = &self.announce_type {
                     if self.proof.size() == announce_type.poignee_size(self.nb_players) {
+                        console_error!("going to emit announce");
                         self.on_announce.emit(Announce { atype: announce_type.clone(), proof: Some(self.proof) });
                         self.announce_type = None;
                         self.done = true;
@@ -79,6 +81,7 @@ impl Component for Announces {
 
                 if !self.done {
                     //TODO message bad number of cards
+                    console_error!("bad number of cards");
                 }
 
             },
@@ -93,20 +96,21 @@ impl Component for Announces {
                    <div class="hand">
                     {
                         for self.hand.trumps().list().iter().map(|card| {
-                            let style_select = if self.proof.has(*card) { "; transform: translate(0,50%)" } else { "" };
+                            let style_select =  "";
+                            // let style_select = if self.proof.has(*card) { "; transform: translate(0,-50%)" } else { "" };
                             let style =format!("--bg-image: url('cards/{}-{}.svg'){}", &card.rank().to_string(), &card.suit().to_safe_string(), style_select.to_string());
                             let mut card_classes = vec!["card"];
-                            if self.proof.has(*card)  {
-                                card_classes.push("card-sel");
+                            if !self.proof.has(*card)  {
+                                card_classes.push("card-unselected");
                             }
                             let clicked = card.clone();
                             html! {
-                                <div class=card_classes style={style} onclick=self.link.callback(move |_| Msg::MoveCard(clicked))></div>
+                                <div class=card_classes style={style} onclick=self.link.callback(move |_| Msg::MoveCard(clicked))><div></div></div>
                             }
                         })
                     }
                     </div>
-                    <input type="button" onclick=self.link.callback(move |_| Msg::Announce) value={ tr!("Announce") } />
+                    <button onclick=self.link.callback(move |_| Msg::Announce) value={ tr!("Announce") } />
               </div>
             }
         } else if self.done { html! {} } else {
@@ -115,9 +119,9 @@ impl Component for Announces {
             else {
                 html! {
                   <div>
-                    <input type="button" onclick=self.link.callback(move |_| Msg::CancelAnnounce) value={ tr!("No announce") } />
+                    <button onclick=self.link.callback(move |_| Msg::CancelAnnounce) value={ tr!("No announce") } />
                   { for a_eligibles.into_iter().map(|ann_type| { html! {
-                    <input type="button" onclick=self.link.callback(move |_| Msg::InitAnnounce(ann_type)) value={ tr!("{}", ann_type) } />
+                    <button onclick=self.link.callback(move |_| Msg::InitAnnounce(ann_type)) value={ tr!("{}", ann_type) } />
                   } }) }
                   </div>
                 }

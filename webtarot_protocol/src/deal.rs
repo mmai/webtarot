@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use tarotgame::{bid, cards, pos, deal, trick};
+use tarotgame::{bid, cards, pos, deal, trick, AnnounceType};
 
 /// Describe a single deal.
 pub enum Deal {
@@ -75,10 +75,12 @@ pub struct DealSnapshot {
     pub king: Option<cards::Card>,
     pub scores: Vec<f32>,
     pub last_trick: trick::Trick,
+    pub trick_count: usize,
     pub initial_dog: cards::Hand,
     pub dog: cards::Hand, // set to empty hand until the deal is over
     pub taker_diff: f32,
     // pub tricks: Vec<trick::Trick>,
+    pub announces: Vec<Vec<AnnounceType>>
 }
 
 impl DealSnapshot {

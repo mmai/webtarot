@@ -24,7 +24,7 @@ use crate::gprotocol::{GameInfo, PlayerInfo, SendTextCommand};
 use crate::protocol::{
     Command, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
     GamePlayCommand,
-    BidCommand, PlayCommand, CallKingCommand, MakeDogCommand,
+    BidCommand, PlayCommand, CallKingCommand, MakeDogCommand, AnnounceCommand,
     Turn,
     PlayEvent,
 };
@@ -106,6 +106,7 @@ impl GamePage {
         self.game_state = Rc::new(snapshot);
         self.dog = self.game_state.deal.initial_dog;
         self.hand = self.game_state.deal.hand;
+        let _announce = self.announce_to_show();
         // self.update_needs_confirm = match &self.game_state.status {
         //     Status::Twilight(_, _) => true,
         //     _ => false
@@ -113,7 +114,16 @@ impl GamePage {
     }
 
     fn is_first_trick(&self) -> bool {
-        self.hand.size() == deal_size(self.game_state.players.len())
+        self.game_state.deal.trick_count == 1
+    }
+
+    fn announce_to_show(&self) -> Option<cards::Hand> {
+        if let Some(pos) = self.game_state.get_playing_pos() {
+            if self.is_first_trick() && self.game_state.deal.announces[pos.pos as usize].len() > 0 {
+                console_log!("une annonce à montrer !!");
+            }
+        }
+        None
     }
 }
 
@@ -261,7 +271,7 @@ impl Component for GamePage {
             Msg::Announce(announce) => {
                 //TODO
                 console_log!(format!("announce: {:?}", announce.proof));
-                // self.api.send(Command::GamePlay(GamePlayCommand::Announce(AnnounceCommand { announce })));
+                self.api.send(Command::GamePlay(GamePlayCommand::Announce(AnnounceCommand { announce })));
             }
             Msg::Play(card) => {
                 self.is_waiting = true;

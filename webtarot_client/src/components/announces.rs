@@ -72,7 +72,6 @@ impl Component for Announces {
             Msg::Announce => {
                 if let Some(announce_type) = &self.announce_type {
                     if self.proof.size() == announce_type.poignee_size(self.nb_players) {
-                        console_error!("going to emit announce");
                         self.on_announce.emit(Announce { atype: announce_type.clone(), proof: Some(self.proof) });
                         self.announce_type = None;
                         self.done = true;
@@ -110,7 +109,7 @@ impl Component for Announces {
                         })
                     }
                     </div>
-                    <button onclick=self.link.callback(move |_| Msg::Announce) value={ tr!("Announce") } />
+                    <button onclick=self.link.callback(move |_| Msg::Announce)>{ tr!("Announce") }</button>
               </div>
             }
         } else if self.done { html! {} } else {
@@ -119,9 +118,9 @@ impl Component for Announces {
             else {
                 html! {
                   <div>
-                    <button onclick=self.link.callback(move |_| Msg::CancelAnnounce) value={ tr!("No announce") } />
+                    <button onclick=self.link.callback(move |_| Msg::CancelAnnounce)>{ tr!("No announce") }</button>
                   { for a_eligibles.into_iter().map(|ann_type| { html! {
-                    <button onclick=self.link.callback(move |_| Msg::InitAnnounce(ann_type)) value={ tr!("{}", ann_type) } />
+                    <button onclick=self.link.callback(move |_| Msg::InitAnnounce(ann_type))> { tr!("{}", ann_type) }</button>
                   } }) }
                   </div>
                 }

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use tarotgame::{bid, cards, pos, deal, trick};
+use tarotgame::{bid, cards, pos, deal, trick, Announce};
 use webgame_protocol::{GameState, PlayerInfo, ProtocolErrorKind};
 use crate::{ ProtocolError };
 
@@ -111,8 +111,12 @@ impl GameState for TarotGameState {
         let mut scores = vec![0.0; self.nb_players as usize];
         let mut dog = cards::Hand::new();
         let mut taker_diff = 0.0;
+        let mut announces = vec![vec![]; self.nb_players as usize];
+        let mut trick_count = 0;
         let deal = match self.deal.deal_state() {
             Some(state) => { // In Playing phase
+                announces = state.announces.clone();
+                trick_count = state.get_tricks_count();
                 if let deal::DealResult::GameOver {points: _, taker_diff: diff, scores: lscores } = state.get_deal_result() {
                      scores = lscores;
                      taker_diff = diff;
@@ -148,9 +152,11 @@ impl GameState for TarotGameState {
                     scores,
                     // last_trick: state.tricks.last().unwrap_or(trick::Trick::default()),
                     last_trick,
+                    trick_count,
                     initial_dog,
                     dog,
                     taker_diff,
+                    announces,
                 }
             },
             None => DealSnapshot { // In bidding phase
@@ -160,9 +166,11 @@ impl GameState for TarotGameState {
                 king: None,
                 scores: vec![0.0;self.nb_players as usize],
                 last_trick: trick::Trick::default(),
+                trick_count,
                 initial_dog: cards::Hand::new(),
                 dog,
                 taker_diff,
+                announces,
             }
         };
         GameStateSnapshot {
@@ -309,6 +317,15 @@ impl TarotGameState {
         let pos = self.players.get(&pid).map(|p| p.pos).unwrap();
         self.deal.deal_state_mut().unwrap().make_dog(pos, cards, slam)?;
         self.turn = Turn::from_deal(&self.deal);
+        Ok(())
+    }
+
+    pub fn set_announce(&mut self, pid: Uuid, announce: Announce) -> Result<(), ProtocolError>{
+        let pos = self.players.get(&pid).map(|p| p.pos).unwrap();
+        let state = self.deal.deal_state_mut().ok_or(
+            ProtocolError::new(ProtocolErrorKind::InternalError, "Unknown deal state")
+        )?;
+        state.announce(pos, announce)?;
         Ok(())
     }
 
@@ -473,9 +490,11 @@ impl Default for GameStateSnapshot {
                 king: None,
                 scores: vec![],
                 last_trick: trick::Trick::new(pos),
+                trick_count: 0,
                 initial_dog: cards::Hand::new(),
                 dog: cards::Hand::new(),
                 taker_diff: 0.0,
+                announces: vec![],
             }
         }
     }

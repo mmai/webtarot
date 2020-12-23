@@ -13,7 +13,7 @@ use crate::protocol::{
 use crate::tarot_protocol::{ 
     GamePlayCommand, 
     SetPlayerRoleCommand, 
-    BidCommand, PlayCommand, CallKingCommand, MakeDogCommand,
+    BidCommand, AnnounceCommand, PlayCommand, CallKingCommand, MakeDogCommand,
     PlayEvent,
     TarotGameState,
 };
@@ -31,6 +31,7 @@ pub fn on_gameplay(
 
             match cmd {
                 GamePlayCommand::Bid(cmd) => on_player_bid(game, user_id, cmd).await,
+                GamePlayCommand::Announce(cmd) => on_player_announce(game, user_id, cmd).await,
                 GamePlayCommand::Play(cmd) => on_player_play(game, user_id, cmd).await,
                 GamePlayCommand::CallKing(cmd) => on_player_call_king(game, user_id, cmd).await,
                 GamePlayCommand::MakeDog(cmd) => on_player_make_dog(game, user_id, cmd).await,
@@ -97,6 +98,24 @@ pub async fn on_player_bid(
 
         Ok(())
 }
+
+pub async fn on_player_announce(
+    game: Arc<Game<TarotGameState, PlayEvent>>,
+    player_id: Uuid,
+    cmd: AnnounceCommand,
+) -> Result<(), ProtocolError> {
+        let game_state = game.state_handle();
+        let mut game_state = game_state.lock().await;
+        if let Err(e) = game_state.set_announce(player_id, cmd.announce) {
+            drop(game_state);
+            game.send(player_id, &Message::Error(e.into())).await;
+        } else {
+            drop(game_state);
+            game.broadcast_state().await;
+        }
+        Ok(())
+}
+
 
 pub async fn on_player_play(
     game: Arc<Game<TarotGameState, PlayEvent>>,

@@ -36,6 +36,7 @@
 //! }
 //! ```
 
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[cfg(feature = "use_bench")]
@@ -48,7 +49,7 @@ pub mod points;
 pub mod pos;
 pub mod trick;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub enum AnnounceType {
     Poignee,
     DoublePoignee,
@@ -80,6 +81,13 @@ impl AnnounceType {
         self.poignee_size(pcount) <= hand.trumps_count()
     }
 
+    pub fn check(&self, hand: cards::Hand, proof: cards::Hand) -> bool {
+        // TODO check that proof cards are from the player hand
+        // check the number of trumps
+        let pcount = players_count(hand.size());
+        self.poignee_size(pcount) <= proof.trumps_count()
+    }
+
     pub fn eligibles(hand: cards::Hand) -> Vec<AnnounceType> {
         vec![Self::Poignee, Self::DoublePoignee, Self::TriplePoignee].into_iter()
             .filter(|atype| atype.is_eligible(hand))
@@ -87,6 +95,7 @@ impl AnnounceType {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Announce {
     pub atype: AnnounceType, 
     pub proof: Option<cards::Hand> 

@@ -181,8 +181,10 @@ impl Component for GamePage {
                 }
                 Message::PlayEvent(evt) => {
                     self.sound_player.play("card".into());
-                    let PlayEvent::Play(uuid, card) = evt;
-                    self.add_chat_message(uuid, ChatLineData::Text(format!("play: {}", card.to_string())));
+                    match evt {
+                      PlayEvent::Play(uuid, card) => self.add_chat_message(uuid, ChatLineData::Text(format!("play: {}", card.to_string()))),
+                      PlayEvent::Announce(uuid, announce) => self.add_chat_message(uuid, ChatLineData::Text(format!("announce: {:?}", announce.proof.map(|h| h.to_string())))),
+                    }
                 }
                 Message::Error(e) => {
                     self.is_waiting = false;

@@ -410,7 +410,8 @@ impl TarotGameState {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum PlayEvent {
-    Play( Uuid, cards::Card)
+    Play( Uuid, cards::Card),
+    Announce( Uuid, Announce )
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

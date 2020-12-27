@@ -95,7 +95,7 @@ impl AnnounceType {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Announce {
     pub atype: AnnounceType, 
     pub proof: Option<cards::Hand> 

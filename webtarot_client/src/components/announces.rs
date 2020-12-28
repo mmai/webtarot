@@ -89,9 +89,14 @@ impl Component for Announces {
     }
 
     fn view(&self) -> Html {
-        if self.announce_type.is_some() {
+        if let Some(announce_type) = &self.announce_type {
+            let proof_size = self.proof.size();
+            let required_size = announce_type.poignee_size(self.nb_players);
+            let is_valid_size = proof_size == required_size;
+            let indications_classes = if is_valid_size { vec!["indication-valid"] } else { vec!["indication-invalid"] };
             html! {
                <div style="width: 90vh; text-align: center;">
+                   <div>{ tr!("Select cards to show") }<span class=indications_classes>( {{proof_size}} / {{required_size}} )</span></div>
                    <div class="hand">
                     {
                         for self.hand.trumps().list().iter().map(|card| {
@@ -109,7 +114,12 @@ impl Component for Announces {
                         })
                     }
                     </div>
+                    { if is_valid_size {
+                        html!{
                     <button onclick=self.link.callback(move |_| Msg::Announce)>{ tr!("Announce") }</button>
+                        }
+                    } else { html!{} }
+                    }
               </div>
             }
         } else if self.done { html! {} } else {

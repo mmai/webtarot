@@ -96,7 +96,7 @@ impl Component for Announces {
             let indications_classes = if is_valid_size { vec!["indication-valid"] } else { vec!["indication-invalid"] };
             html! {
                <div style="width: 90vh; text-align: center;">
-                   <div>{ tr!("Select cards to show") }<span class=indications_classes>( {{proof_size}} / {{required_size}} )</span></div>
+                   <div>{ tr!("Select cards to show") }<span class=indications_classes> { format!("({}/{})", proof_size, required_size)} </span></div>
                    <div class="hand">
                     {
                         for self.hand.trumps().list().iter().map(|card| {

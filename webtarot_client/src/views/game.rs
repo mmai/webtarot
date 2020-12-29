@@ -1,6 +1,7 @@
 use std::rc::Rc;
 use std::time::Duration;
 use std::f32;
+use std::mem::take;
 use im_rc::Vector;
 use uuid::Uuid;
 use yew::agent::Bridged;
@@ -174,13 +175,10 @@ impl GamePage {
         }
     }
 
-    fn display_overlay_box(&self) -> Html {
-        //TODO : remplacer self.overlay_box par none pour pouvoir récupérer valeur..
-        // if let Some(message) = &self.overlay_box  { message } else { html!{} }
-        let output;
-        if let Some(message) = &self.overlay_box  { 
-            output = message.clone();
-            output
+    fn display_overlay_box(&mut self) -> Html {
+        //This consume overlay_box and reset it to None
+        if let Some(message) = take(&mut self.overlay_box)  { 
+            message
         } else { html!{} }
     }
 }
@@ -479,7 +477,6 @@ impl Component for GamePage {
           <div class="notify-wrapper">
             <div class="notify wrapper">
                 { self.display_overlay_box() }
-
                 <div class="toolbar">
                     <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
                 </div>

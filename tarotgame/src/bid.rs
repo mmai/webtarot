@@ -329,17 +329,17 @@ mod tests {
 
         // Someone bids.
         assert_eq!(
-            auction.bid(pos::PlayerPos::from_n(3, 5), Target::Garde),
+            auction.bid(pos::PlayerPos::from_n(3, 5), Target::Garde, false),
             Ok(AuctionState::Bidding)
         );
 
         assert_eq!(
-            auction.bid(pos::PlayerPos::from_n(4, 5), Target::Garde).err(),
+            auction.bid(pos::PlayerPos::from_n(4, 5), Target::Garde, false).err(),
             Some(BidError::NonRaisedTarget)
         );
         // Surbid
         assert_eq!(
-            auction.bid(pos::PlayerPos::from_n(4, 5), Target::GardeSans),
+            auction.bid(pos::PlayerPos::from_n(4, 5), Target::GardeSans, false),
             Ok(AuctionState::Bidding)
         );
 

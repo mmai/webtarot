@@ -123,62 +123,26 @@ impl GamePage {
         self.game_state.deal.trick_count == 1
     }
 
-    // fn announce_to_show(&self) -> Option<cards::Hand> {
-    //     if let Some(pos) = self.game_state.get_playing_pos() {
-    //         if self.is_first_trick() && self.game_state.deal.announces[pos.pos as usize].len() > 0 {
-    //             console_log!("une annonce à montrer !!");
-    //         }
+    // fn refresh_overlay_box(&mut self) {
+    //     // XXX only calculate content of overlay box for cases not covered directly in _update_ function
+    //     if self.overlay_box.is_none() {
+    //         self.overlay_box = match self.game_state.turn {
+    //             _ => None
+    //         };
     //     }
-    //     None
     // }
 
-    fn refresh_overlay_box(&mut self) {
-        // XXX only calculate content of overlay box for cases not covered directly in _update_ function
-        if self.overlay_box.is_none() {
-            self.overlay_box = match self.game_state.turn {
-                Turn::Intertrick => 
-                    if !self.my_state().ready  { 
-                        let winner_pos = self.game_state.deal.last_trick.winner;
-                        let winner_name = self.game_state.pos_player_name(winner_pos);
-                        Some(html! { 
-                            <div class="results">
-                            { tr!("trick for ") }
-                            <strong>{ winner_name }</strong>
-                                </div>
-
-                        })
-                    } else { None },
-                Turn::Interdeal => 
-                    if !self.my_state().ready  { 
-                        let scores: Vec<Vec<f32>> = self.game_state.scores.iter().map(|score| score.to_vec()).collect();
-                        let players: Vec<String> = self.game_state.players.iter().map(|pl| pl.player.nickname.clone()).collect();
-
-                        let taker_won = self.game_state.deal.taker_diff >= 0.0;
-                        let diff_abs = f32::abs(self.game_state.deal.taker_diff);
-                        let contract_message = if taker_won {
-                            tr!("Contract succeded by {0} points", diff_abs)
-                        } else {
-                            tr!("Contract failed by {0} points", diff_abs)
-                        };
-
-                        let dog_message = tr!("Dog : {0}", self.game_state.deal.dog.to_string());
-
-                        Some(html! {
-                            <div>
-                                <div> {{ contract_message }} </div>
-                                <div> {{ dog_message }} </div>
-                                <Scores players=players scores=scores />
-                                </div>
-                        })} else { None },
-                        _ => None
-            };
-        }
-    }
-
-    fn display_overlay_box(&mut self) -> Html {
-        //This consume overlay_box and reset it to None
-        if let Some(message) = take(&mut self.overlay_box)  { 
-            message
+    // fn display_overlay_box(&mut self) -> Html {
+    //     //This consume overlay_box and reset it to None
+    //     if let Some(message) = take(&mut self.overlay_box)  { 
+    //         message
+    //     } else { html!{} }
+    // }
+    fn display_overlay_box(&self) -> Html {
+        let output;
+        if let Some(message) = &self.overlay_box  { 
+            output = message.clone();
+            output
         } else { html!{} }
     }
 }
@@ -240,6 +204,39 @@ impl Component for GamePage {
                     self.sound_player.play("card".into());
                     match evt {
                       PlayEvent::Play(uuid, card) => self.add_chat_message(uuid, ChatLineData::Text(format!("play: {}", card.to_string()))),
+                      PlayEvent::EndTrick => {
+                        let winner_pos = self.game_state.deal.last_trick.winner;
+                        let winner_name = self.game_state.pos_player_name(winner_pos);
+                        self.overlay_box = Some(html! {
+                            <div class="results">
+                            { tr!("trick for ") }
+                            <strong>{ winner_name }</strong>
+                                </div>
+                        });
+                        self.update_needs_confirm = true;
+                      },
+                      PlayEvent::EndDeal => {
+                        let scores: Vec<Vec<f32>> = self.game_state.scores.iter().map(|score| score.to_vec()).collect();
+                        let players: Vec<String> = self.game_state.players.iter().map(|pl| pl.player.nickname.clone()).collect();
+
+                        let taker_won = self.game_state.deal.taker_diff >= 0.0;
+                        let diff_abs = f32::abs(self.game_state.deal.taker_diff);
+                        let contract_message = if taker_won {
+                            tr!("Contract succeded by {0} points", diff_abs)
+                        } else {
+                            tr!("Contract failed by {0} points", diff_abs)
+                        };
+
+                        let dog_message = tr!("Dog : {0}", self.game_state.deal.dog.to_string());
+                        self.overlay_box = Some(html! {
+                            <div>
+                                <div> {{ contract_message }} </div>
+                                <div> {{ dog_message }} </div>
+                                <Scores players=players scores=scores />
+                                </div>
+                        });
+                        self.update_needs_confirm = true;
+                      },
                       PlayEvent::Announce(uuid, announce) => {
                           self.add_chat_message(uuid, ChatLineData::Text(format!("announce: {:?}", announce.proof.map(|h| h.to_string()))));
                           let nickname = self.get_nickname(uuid);
@@ -261,7 +258,13 @@ impl Component for GamePage {
                                   { proof_html }
                                </div>
                           });
-                          // self.update_needs_confirm = true;
+                          self.update_needs_confirm = true;
+                      },
+                      _ => {
+                          self.overlay_box = Some(html! {
+                                  <div> { "Unknown event" } </div>
+                          });
+
                       }
                     }
                 }
@@ -357,7 +360,7 @@ impl Component for GamePage {
                 self.api.send(Command::GamePlay(GamePlayCommand::Play(PlayCommand { card })));
             }
         }
-        self.refresh_overlay_box();
+        // self.refresh_overlay_box();
         true
     }
 
@@ -478,7 +481,7 @@ impl Component for GamePage {
             <div class="notify wrapper">
                 { self.display_overlay_box() }
                 <div class="toolbar">
-                    <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
+                    <button class="primary" onclick=self.link.callback(|_| Msg::ContinueSnapshot)>{"Ok"}</button>
                 </div>
             </div>
         </div>

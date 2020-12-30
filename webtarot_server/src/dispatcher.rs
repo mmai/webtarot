@@ -123,16 +123,35 @@ pub async fn on_player_play(
     player_id: Uuid,
     cmd: PlayCommand,
 ) -> Result<(), ProtocolError> {
-        let game_state = game.state_handle();
-        let mut game_state = game_state.lock().await;
-        if let Err(e) = game_state.set_play(player_id, cmd.card) {
-            drop(game_state);
-            game.send(player_id, &Message::Error(e.into())).await;
-        } else {
-            drop(game_state);
+        let game_state_handle = game.state_handle();
+        let mut game_state = game_state_handle.lock().await;
+        match game_state.set_play(player_id, cmd.card) {
+            Err(e) => {
+                drop(game_state);
+                game.send(player_id, &Message::Error(e.into())).await;
+            },
+            Ok(Some(play_event)) => {
+                drop(game_state);
+                game.broadcast_state().await;
+                let is_end_deal = play_event ==  PlayEvent::EndDeal;
+                game.broadcast(&Message::PlayEvent(play_event)).await;
+
+                let mut game_state = game_state_handle.lock().await;
+                if is_end_deal { 
+                    game_state.next_deal();
+                }
+
+                game_state.update_turn();
+                drop(game_state);
+                game.broadcast_state().await;
+            },
+            _ =>  {
+                game_state.update_turn();
+                drop(game_state);
             // We don't show played cards anymore in the chat box
             // game.broadcast(&Message::PlayEvent(PlayEvent::Play ( player_id, cmd.card ))).await;
-            game.broadcast_state().await;
+                game.broadcast_state().await;
+            }, 
         }
         Ok(())
 }

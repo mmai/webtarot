@@ -15,7 +15,7 @@ use crate::tarot_protocol::{
     SetPlayerRoleCommand, 
     BidCommand, AnnounceCommand, PlayCommand, CallKingCommand, MakeDogCommand,
     PlayEvent,
-    TarotGameState,
+    TarotGameState, TarotGameManager,
 };
 
 //see https://users.rust-lang.org/t/how-to-store-async-function-pointer/38343/4
@@ -117,6 +117,27 @@ pub async fn on_player_announce(
         Ok(())
 }
 
+#[derive(PartialEq)]
+struct TarotEventsListener {
+    game: Arc<Game<TarotGameState, PlayEvent>>,
+}
+
+impl GameEventsListener<PlayEvent> for TarotEventsListener {
+    fn notify(&self, event: &PlayEvent) {
+        println!("Listener received event {:?}!", event);
+        // drop(game_state);
+        self.game.broadcast_state().await;
+        self.game.broadcast(&Message::PlayEvent(event)).await;
+        // match event {
+        //     PlayEvent::EndTrick => {
+        //
+        //     },
+        //     PlayEvent::EndDeal => {
+        //     },
+        //     _ => ()
+        // }
+    }
+}
 
 pub async fn on_player_play(
     game: Arc<Game<TarotGameState, PlayEvent>>,
@@ -125,11 +146,18 @@ pub async fn on_player_play(
 ) -> Result<(), ProtocolError> {
         let game_state_handle = game.state_handle();
         let mut game_state = game_state_handle.lock().await;
-        match game_state.set_play(player_id, cmd.card) {
-            Err(e) => {
-                drop(game_state);
-                game.send(player_id, &Message::Error(e.into())).await;
-            },
+        let mut game_manager = TarotGameManager::new(game_state);
+        let listener = TarotEventsListener { game };
+        game_manager.register_listener(listener);
+        if let Err(e) = game_manager.set_play(player_id, cmd.card) {
+        // if let Err(e) = game_state.set_play(player_id, cmd.card) {
+            drop(game_state);
+            game.send(player_id, &Message::Error(e.into())).await;
+        } else {
+            drop(game_state);
+            game.broadcast_state().await;
+        }
+        game_manager.unregister_listener(listener);
             Ok(Some(play_event)) => {
                 drop(game_state);
                 game.broadcast_state().await;

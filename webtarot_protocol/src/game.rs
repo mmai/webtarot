@@ -1,10 +1,12 @@
 use std::collections::BTreeMap;
+use std::rc::Weak;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use tarotgame::{bid, cards, pos, deal, trick, Announce};
-use webgame_protocol::{GameState, PlayerInfo, ProtocolErrorKind};
+use webgame_protocol::{GameState, PlayerInfo, ProtocolErrorKind, GameManager};
+pub use webgame_protocol::GameEventsListener;
 use crate::{ ProtocolError };
 
 use crate::turn::Turn;
@@ -19,6 +21,70 @@ pub struct TarotGameState {
     deal: Deal,
     first: pos::PlayerPos,
     scores: Vec<Vec<f32>>,
+}
+//
+// pub struct TarotGameManager {
+//     state: TarotGameState,
+// }
+//
+// impl GameEventsListener<PlayEvent> for TarotGameManager {
+//     fn notify(&mut self, event: &PlayEvent) {
+//         println!("Notify called with {:?}", event);
+//     }
+// }
+
+pub struct TarotGameManager<'a, Listener: GameEventsListener<PlayEvent>> {
+    state: TarotGameState,
+    listeners: Vec<&'a Listener>,
+}
+
+impl<'a, Listener: GameEventsListener<PlayEvent> + PartialEq> TarotGameManager<'a, Listener>  {
+    fn new(state: TarotGameState) -> TarotGameManager<'a, Listener> {
+        TarotGameManager {
+            state,
+            listeners: Vec::new(),
+        }
+    }
+
+    pub fn set_play(&mut self, pid: Uuid, card: cards::Card) -> Result<(), ProtocolError> {
+        let pos = self.state.players.get(&pid).map(|p| p.pos).unwrap();
+        let state = self.state.deal.deal_state_mut().ok_or(
+            ProtocolError::new(ProtocolErrorKind::InternalError, "Unknown deal state")
+        )?;
+        let result = match state.play_card(pos, card)? {
+            deal::TrickResult::Nothing => None,
+            deal::TrickResult::TrickOver(_winner, deal::DealResult::Nothing) => Some(PlayEvent::EndTrick),
+            deal::TrickResult::TrickOver(_winner, deal::DealResult::GameOver{points: _, taker_diff: _, scores}) => {
+                self.scores.push(scores);
+                self.end_last_trick();
+                // self.next_deal();
+                Some(PlayEvent::EndDeal)
+            }
+        };
+        // self.update_turn();
+        Ok(result)
+    }
+}
+
+impl<'a, Listener: GameEventsListener<PlayEvent> + PartialEq> GameManager<'a, Listener> for TarotGameManager<'a, Listener>  
+{
+    type Event = PlayEvent;
+
+    fn register_listener(&mut self, listener: &'a Listener){
+        self.listeners.push(listener);
+    }
+
+    fn unregister_listener(&mut self, listener: &'a Listener){
+        if let Some(idx) = self.listeners.iter().position(|x| *x == listener){
+            self.listeners.remove(idx);
+        }
+    }
+
+    fn emit(&self, event: Self::Event) {
+        for listener in self.listeners.iter() {
+            listener.notify(&event);
+        }
+    }
 }
 
 impl Default for TarotGameState {
@@ -221,7 +287,6 @@ impl GameState for TarotGameState {
         }
         
     }
-
 }
 
 impl TarotGameState {

@@ -14,6 +14,7 @@ use crate::deal::{Deal, DealSnapshot};
 use crate::player::{PlayerRole, GamePlayerState};
 use crate::message::{TarotVariant, DebugOperation};
 
+#[derive(Clone)]
 pub struct TarotGameState {
     nb_players: u8,
     players: BTreeMap<Uuid, GamePlayerState>,
@@ -33,13 +34,13 @@ pub struct TarotGameState {
 //     }
 // }
 
-pub struct TarotGameManager<'a, Listener: GameEventsListener<PlayEvent>> {
+pub struct TarotGameManager<'a, Listener: GameEventsListener<(PlayEvent, TarotGameState)>> {
     state: TarotGameState,
     listeners: Vec<&'a Listener>,
 }
 
-impl<'a, Listener: GameEventsListener<PlayEvent> + PartialEq> TarotGameManager<'a, Listener>  {
-    fn new(state: TarotGameState) -> TarotGameManager<'a, Listener> {
+impl<'a, Listener: GameEventsListener<(PlayEvent, TarotGameState)> + PartialEq> TarotGameManager<'a, Listener>  {
+    pub fn new(state: TarotGameState) -> TarotGameManager<'a, Listener> {
         TarotGameManager {
             state,
             listeners: Vec::new(),
@@ -51,24 +52,28 @@ impl<'a, Listener: GameEventsListener<PlayEvent> + PartialEq> TarotGameManager<'
         let state = self.state.deal.deal_state_mut().ok_or(
             ProtocolError::new(ProtocolErrorKind::InternalError, "Unknown deal state")
         )?;
-        let result = match state.play_card(pos, card)? {
-            deal::TrickResult::Nothing => None,
-            deal::TrickResult::TrickOver(_winner, deal::DealResult::Nothing) => Some(PlayEvent::EndTrick),
+        match state.play_card(pos, card)? {
+            deal::TrickResult::Nothing => {},
+            deal::TrickResult::TrickOver(_winner, deal::DealResult::Nothing) => {
+                let state_snapshot = self.state.clone();
+                self.emit((PlayEvent::EndTrick, state_snapshot));
+            },
             deal::TrickResult::TrickOver(_winner, deal::DealResult::GameOver{points: _, taker_diff: _, scores}) => {
-                self.scores.push(scores);
-                self.end_last_trick();
-                // self.next_deal();
-                Some(PlayEvent::EndDeal)
+                self.state.scores.push(scores);
+                let state_snapshot = self.state.clone();
+                self.state.end_last_trick();
+                self.emit((PlayEvent::EndDeal, state_snapshot));
+                self.state.next_deal();
             }
         };
-        // self.update_turn();
-        Ok(result)
+        self.state.update_turn();
+        Ok(())
     }
 }
 
-impl<'a, Listener: GameEventsListener<PlayEvent> + PartialEq> GameManager<'a, Listener> for TarotGameManager<'a, Listener>  
+impl<'a, Listener: GameEventsListener<(PlayEvent, TarotGameState)> + PartialEq> GameManager<'a, Listener> for TarotGameManager<'a, Listener>  
 {
-    type Event = PlayEvent;
+    type Event = (PlayEvent, TarotGameState);
 
     fn register_listener(&mut self, listener: &'a Listener){
         self.listeners.push(listener);

@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::webgame_server::universe::Universe;
 use crate::webgame_server::game::Game;
+use webgame_protocol::GameManager;
 use crate::protocol::GameState;
 
 use crate::protocol::{ 
@@ -15,7 +16,7 @@ use crate::tarot_protocol::{
     SetPlayerRoleCommand, 
     BidCommand, AnnounceCommand, PlayCommand, CallKingCommand, MakeDogCommand,
     PlayEvent,
-    TarotGameState, TarotGameManager,
+    TarotGameState, TarotGameManager, GameEventsListener,
 };
 
 //see https://users.rust-lang.org/t/how-to-store-async-function-pointer/38343/4
@@ -117,25 +118,22 @@ pub async fn on_player_announce(
         Ok(())
 }
 
-#[derive(PartialEq)]
 struct TarotEventsListener {
     game: Arc<Game<TarotGameState, PlayEvent>>,
+    events_states : Vec<(PlayEvent, TarotGameState)>
 }
 
-impl GameEventsListener<PlayEvent> for TarotEventsListener {
-    fn notify(&self, event: &PlayEvent) {
-        println!("Listener received event {:?}!", event);
-        // drop(game_state);
-        self.game.broadcast_state().await;
-        self.game.broadcast(&Message::PlayEvent(event)).await;
-        // match event {
-        //     PlayEvent::EndTrick => {
-        //
-        //     },
-        //     PlayEvent::EndDeal => {
-        //     },
-        //     _ => ()
-        // }
+impl PartialEq for TarotEventsListener {
+    fn eq(&self, other: &Self) -> bool {
+        self.game.id == other.game.id
+    }
+}
+
+
+impl GameEventsListener<(PlayEvent, TarotGameState)> for TarotEventsListener {
+    fn notify(&self, event: &(PlayEvent, TarotGameState)) {
+        println!("Listener received event {:?}!", event.0);
+        self.events_states.push(*event);
     }
 }
 
@@ -147,40 +145,23 @@ pub async fn on_player_play(
         let game_state_handle = game.state_handle();
         let mut game_state = game_state_handle.lock().await;
         let mut game_manager = TarotGameManager::new(game_state);
-        let listener = TarotEventsListener { game };
-        game_manager.register_listener(listener);
+        let listener = TarotEventsListener { game, events_states: vec![] };
+        game_manager.register_listener(&listener);
         if let Err(e) = game_manager.set_play(player_id, cmd.card) {
         // if let Err(e) = game_state.set_play(player_id, cmd.card) {
             drop(game_state);
             game.send(player_id, &Message::Error(e.into())).await;
         } else {
             drop(game_state);
-            game.broadcast_state().await;
-        }
-        game_manager.unregister_listener(listener);
-            Ok(Some(play_event)) => {
-                drop(game_state);
-                game.broadcast_state().await;
-                let is_end_deal = play_event ==  PlayEvent::EndDeal;
-                game.broadcast(&Message::PlayEvent(play_event)).await;
-
-                let mut game_state = game_state_handle.lock().await;
-                if is_end_deal { 
-                    game_state.next_deal();
-                }
-
-                game_state.update_turn();
-                drop(game_state);
-                game.broadcast_state().await;
-            },
-            _ =>  {
-                game_state.update_turn();
-                drop(game_state);
             // We don't show played cards anymore in the chat box
             // game.broadcast(&Message::PlayEvent(PlayEvent::Play ( player_id, cmd.card ))).await;
-                game.broadcast_state().await;
-            }, 
+            for (event, state) in listener.events_states {
+                println!("new state event {:?}!", event);
+                game.broadcast_old_state(state).await;
+            }
+            game.broadcast_state().await;
         }
+        game_manager.unregister_listener(&listener);
         Ok(())
 }
 

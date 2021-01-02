@@ -35,12 +35,12 @@ pub struct TarotGameState {
 // }
 
 pub struct TarotGameManager<'a, Listener: GameEventsListener<(PlayEvent, TarotGameState)>> {
-    state: TarotGameState,
-    listeners: Vec<&'a Listener>,
+    state: &'a mut TarotGameState,
+    listeners: Vec<&'a mut Listener>,
 }
 
 impl<'a, Listener: GameEventsListener<(PlayEvent, TarotGameState)> + PartialEq> TarotGameManager<'a, Listener>  {
-    pub fn new(state: TarotGameState) -> TarotGameManager<'a, Listener> {
+    pub fn new(state: &'a mut TarotGameState) -> TarotGameManager<'a, Listener> {
         TarotGameManager {
             state,
             listeners: Vec::new(),
@@ -75,7 +75,7 @@ impl<'a, Listener: GameEventsListener<(PlayEvent, TarotGameState)> + PartialEq> 
 {
     type Event = (PlayEvent, TarotGameState);
 
-    fn register_listener(&mut self, listener: &'a Listener){
+    fn register_listener(&mut self, listener: &'a mut Listener){
         self.listeners.push(listener);
     }
 
@@ -85,10 +85,10 @@ impl<'a, Listener: GameEventsListener<(PlayEvent, TarotGameState)> + PartialEq> 
         }
     }
 
-    fn emit(&self, event: Self::Event) {
-        for listener in self.listeners.iter() {
-            listener.notify(&event);
-        }
+    fn emit(&mut self, event: Self::Event) {
+        self.listeners.iter_mut().for_each(|listener| { 
+            listener.notify(&event)
+        });
     }
 }
 
@@ -373,6 +373,7 @@ impl TarotGameState {
         Ok(())
     }
 
+    // XXX obsolete ? (cf. manager set_play)
     pub fn set_play(&mut self, pid: Uuid, card: cards::Card) -> Result<Option<PlayEvent>, ProtocolError> {
         let pos = self.players.get(&pid).map(|p| p.pos).unwrap();
         let state = self.deal.deal_state_mut().ok_or(

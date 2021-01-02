@@ -68,7 +68,7 @@ pub fn on_player_set_role(
             }
             game.set_player_not_ready(user_id).await;
 
-            game.broadcast_state().await;
+            game.broadcast_current_state().await;
             Ok(())
         } else {
             Err(ProtocolError::new(
@@ -95,7 +95,7 @@ pub async fn on_player_bid(
             let mut game_state = game_state.lock().await;
             game_state.set_bid(player_id, cmd.target, cmd.slam)?;
         }
-        game.broadcast_state().await;
+        game.broadcast_current_state().await;
 
         Ok(())
 }
@@ -119,21 +119,22 @@ pub async fn on_player_announce(
 }
 
 struct TarotEventsListener {
-    game: Arc<Game<TarotGameState, PlayEvent>>,
+    game_id: Uuid,
+    // game: Arc<Game<TarotGameState, PlayEvent>>,
     events_states : Vec<(PlayEvent, TarotGameState)>
 }
 
 impl PartialEq for TarotEventsListener {
     fn eq(&self, other: &Self) -> bool {
-        self.game.id == other.game.id
+        self.game_id == other.game_id
     }
 }
 
 
 impl GameEventsListener<(PlayEvent, TarotGameState)> for TarotEventsListener {
-    fn notify(&self, event: &(PlayEvent, TarotGameState)) {
+    fn notify(&mut self, event: &(PlayEvent, TarotGameState)) {
         println!("Listener received event {:?}!", event.0);
-        self.events_states.push(*event);
+        self.events_states.push((*event).clone());
     }
 }
 
@@ -143,25 +144,30 @@ pub async fn on_player_play(
     cmd: PlayCommand,
 ) -> Result<(), ProtocolError> {
         let game_state_handle = game.state_handle();
-        let mut game_state = game_state_handle.lock().await;
+        let game_state = &mut game_state_handle.lock().await;
         let mut game_manager = TarotGameManager::new(game_state);
-        let listener = TarotEventsListener { game, events_states: vec![] };
-        game_manager.register_listener(&listener);
-        if let Err(e) = game_manager.set_play(player_id, cmd.card) {
-        // if let Err(e) = game_state.set_play(player_id, cmd.card) {
-            drop(game_state);
+        let mut listener = TarotEventsListener { game_id: game.id, events_states: vec![] };
+        game_manager.register_listener(&mut listener);
+        let play_result = game_manager.set_play(player_id, cmd.card);
+        drop(game_manager); 
+        drop(game_state);
+        drop(game_state_handle);
+        if let Err(e) = play_result {
+            println!("dispatcher: set_play error");
+            // if let Err(e) = game_state.set_play(player_id, cmd.card) {
             game.send(player_id, &Message::Error(e.into())).await;
         } else {
-            drop(game_state);
+            println!("dispatcher: set_play ok");
             // We don't show played cards anymore in the chat box
             // game.broadcast(&Message::PlayEvent(PlayEvent::Play ( player_id, cmd.card ))).await;
             for (event, state) in listener.events_states {
                 println!("new state event {:?}!", event);
-                game.broadcast_old_state(state).await;
+                game.broadcast_state(&state).await;
             }
-            game.broadcast_state().await;
+            println!("no more events to manage");
+            game.broadcast_current_state().await;
+            println!("current state broacasted");
         }
-        game_manager.unregister_listener(&listener);
         Ok(())
 }
 
@@ -180,7 +186,7 @@ pub async fn on_player_pass(
             text: format!("pass"),
         }))
         .await;
-        game.broadcast_state().await;
+        game.broadcast_current_state().await;
         Ok(())
 }
 
@@ -200,7 +206,7 @@ pub async fn on_player_call_king(
             let mut game_state = game_state.lock().await;
             game_state.call_king(player_id, cmd.card);
         }
-        game.broadcast_state().await;
+        game.broadcast_current_state().await;
         Ok(())
 }
 
@@ -216,7 +222,7 @@ pub async fn on_player_make_dog(
         game.send(player_id, &Message::Error(e.into())).await;
     } else {
         drop(game_state);
-        game.broadcast_state().await;
+        game.broadcast_current_state().await;
     }
     Ok(())
 }

@@ -1943,15 +1943,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "webgame_protocol"
-version = "0.5.0"
-source = "git+https://github.com/mmai/webgame?tag=v0.6.0#7650845b0ff1e47cfe7b1597d6e00ad0e237c8fa"
-dependencies = [
- "serde",
- "uuid 0.8.1",
-]
-
-[[package]]
 name = "webgame_server"
 version = "0.6.0"
 dependencies = [
@@ -1969,7 +1960,7 @@ dependencies = [
  "tokio-timer",
  "uuid 0.8.1",
  "warp",
- "webgame_protocol 0.5.0",
+ "webgame_protocol",
 ]
 
 [[package]]
@@ -2027,7 +2018,7 @@ dependencies = [
  "uuid 0.8.1",
  "wasm-bindgen",
  "web-sys",
- "webgame_protocol 0.5.0 (git+https://github.com/mmai/webgame?tag=v0.6.0)",
+ "webgame_protocol",
  "weblog",
  "webtarot_protocol",
  "wee_alloc",
@@ -2041,7 +2032,7 @@ dependencies = [
  "serde",
  "tarotgame",
  "uuid 0.8.1",
- "webgame_protocol 0.5.0",
+ "webgame_protocol",
 ]
 
 [[package]]
@@ -2061,7 +2052,7 @@ dependencies = [
  "tokio-timer",
  "uuid 0.8.1",
  "warp",
- "webgame_protocol 0.5.0",
+ "webgame_protocol",
  "webgame_server",
  "webtarot_protocol",
 ]

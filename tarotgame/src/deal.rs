@@ -487,6 +487,13 @@ impl DealState {
         let i = self.tricks.len() - 1;
         &mut self.tricks[i]
     }
+
+    // XXX ugly hack to get the correct played cards for event dispatch after play_card (when the
+    // new trick has already been initiated)
+    // XXX only use this fuction on cloned states for dispatch !
+    pub fn revert_trick(&mut self) {
+        self.tricks.pop();
+    }
 }
 
 /// Returns `true` if the move appear legal.

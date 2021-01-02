@@ -55,7 +55,13 @@ impl<'a, Listener: GameEventsListener<(PlayEvent, TarotGameState)> + PartialEq> 
         match state.play_card(pos, card)? {
             deal::TrickResult::Nothing => {},
             deal::TrickResult::TrickOver(_winner, deal::DealResult::Nothing) => {
-                let state_snapshot = self.state.clone();
+                // XXX ugly hack to get the correct played cards as the new trick has already
+                // been initiated in the play_card() function 
+                let mut state_snapshot = self.state.clone();
+                state_snapshot
+                    .get_deal_mut()
+                    .deal_state_mut().unwrap()
+                    .revert_trick();
                 self.emit((PlayEvent::EndTrick, state_snapshot));
             },
             deal::TrickResult::TrickOver(_winner, deal::DealResult::GameOver{points: _, taker_diff: _, scores}) => {
@@ -433,6 +439,13 @@ impl TarotGameState {
         self.first = self.first.next();
         let auction = bid::Auction::new(self.first);
         self.deal = Deal::Bidding(auction);
+    }
+
+    pub fn get_deal(&self) -> &Deal {
+        &self.deal
+    }
+    pub fn get_deal_mut(&mut self) -> &mut Deal {
+        &mut self.deal
     }
 
 }

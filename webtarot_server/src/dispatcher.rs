@@ -144,29 +144,25 @@ pub async fn on_player_play(
     cmd: PlayCommand,
 ) -> Result<(), ProtocolError> {
         let game_state_handle = game.state_handle();
-        let game_state = &mut game_state_handle.lock().await;
-        let mut game_manager = TarotGameManager::new(game_state);
         let mut listener = TarotEventsListener { game_id: game.id, events_states: vec![] };
+        let mut game_state = game_state_handle.lock().await;
+        let mut game_manager = TarotGameManager::new(& mut game_state);
         game_manager.register_listener(&mut listener);
         let play_result = game_manager.set_play(player_id, cmd.card);
-        drop(game_manager); 
+        drop(game_manager);
         drop(game_state);
         drop(game_state_handle);
         if let Err(e) = play_result {
-            println!("dispatcher: set_play error");
-            // if let Err(e) = game_state.set_play(player_id, cmd.card) {
-            game.send(player_id, &Message::Error(e.into())).await;
+            game.send(player_id, &Message::Error(e.into())).await;//1
         } else {
-            println!("dispatcher: set_play ok");
             // We don't show played cards anymore in the chat box
             // game.broadcast(&Message::PlayEvent(PlayEvent::Play ( player_id, cmd.card ))).await;
             for (event, state) in listener.events_states {
-                println!("new state event {:?}!", event);
+                // println!("new state event {:?}!", event);
                 game.broadcast_state(&state).await;
+                game.broadcast(&Message::PlayEvent(event)).await;
             }
-            println!("no more events to manage");
             game.broadcast_current_state().await;
-            println!("current state broacasted");
         }
         Ok(())
 }

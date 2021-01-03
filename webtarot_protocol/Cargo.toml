@@ -1,6 +1,6 @@
 [package]
 name = "webtarot_protocol"
-version = "0.5.3"
+version = "0.5.4"
 authors = ["Henri Bourcereau <henri@bourcereau.fr>"]
 edition = "2018"
 
@@ -9,4 +9,4 @@ serde = { version = "1.0.105", features = ["derive", "rc"] }
 uuid = { version = "0.8.1", features = ["serde"] }
 tarotgame = { path = "../tarotgame" }
 # webgame_protocol = { path = "../../webgame/webgame_protocol" }
-webgame_protocol = { git = "https://github.com/mmai/webgame"}
+webgame_protocol = { git = "https://github.com/mmai/webgame", tag = "v0.6.1" }

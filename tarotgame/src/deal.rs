@@ -6,6 +6,8 @@ use super::cards;
 use super::points;
 use super::pos;
 use super::trick;
+use super::Announce;
+use super::AnnounceType;
 
 /// Describes the state of a coinche deal, ready to play a card.
 #[derive(Clone)]
@@ -20,6 +22,7 @@ pub struct DealState {
     oudlers_count: u8,
     petit_au_bout: Option<pos::PlayerPos>,
     tricks: Vec<trick::Trick>,
+    pub announces: Vec<Vec<AnnounceType>>,
 }
 
 /// Result of a deal.
@@ -71,6 +74,7 @@ pub enum PlayError {
     DogOudler(cards::Card),
     DogKing(cards::Card),
     DogTrump(cards::Card),
+    InvalidAnnounce,
 }
 
 impl fmt::Display for PlayError {
@@ -90,6 +94,7 @@ impl fmt::Display for PlayError {
             PlayError::DogOudler(_card) => write!(f, "Can't put an oudler in the dog"),
             PlayError::DogKing(_card) => write!(f, "Can't put a king in the dog"),
             PlayError::DogTrump(_card) => write!(f, "Can't put a trump in the dog"),
+            PlayError::InvalidAnnounce => write!(f, "Invalid announce"),
             // PlayError::DogWrongNumberOfCards(wrong, right) => write!(f, "Wrong number of cards: {} instead of {}", wrong, right),
             // PlayError::DogSameCardTwice(card) => write!(f, "Can't put the same card ({}) twice in the dog", card.to_string()),
             // PlayError::DogCardNotFound(card) => write!(f, "{} is neither in the taker's hand nor in the dog", card.to_string()),
@@ -121,7 +126,12 @@ impl DealState {
             oudlers_count: 0,
             petit_au_bout: None,
             points: vec![0.0;count],
+            announces: vec![vec![];count],
         }
+    }
+
+    pub fn get_tricks_count(&self) -> usize {
+        self.tricks.len()
     }
 
     // Set the first player at the beginning of a deal
@@ -233,6 +243,25 @@ impl DealState {
         self.players[pos.pos as usize] = taker_cards;
         Ok(())
     } 
+
+    /// Try to declare an announce
+    pub fn announce(
+        &mut self,
+        player: pos::PlayerPos,
+        announce: Announce,
+    ) -> Result<(), PlayError> {
+        if self.current != player {
+            return Err(PlayError::TurnError);
+        }
+        if let Some(proof) = announce.proof {
+            let hand = self.players[player.pos as usize];
+            if announce.atype.check(hand, proof) {
+                self.announces[player.pos as usize].push(announce.atype);
+                return Ok(());
+            }
+        }
+        Err(PlayError::InvalidAnnounce)
+    }
 
     /// Try to play a card
     pub fn play_card(
@@ -458,6 +487,13 @@ impl DealState {
         let i = self.tricks.len() - 1;
         &mut self.tricks[i]
     }
+
+    // XXX ugly hack to get the correct played cards for event dispatch after play_card (when the
+    // new trick has already been initiated)
+    // XXX only use this fuction on cloned states for dispatch !
+    pub fn revert_trick(&mut self) {
+        self.tricks.pop();
+    }
 }
 
 /// Returns `true` if the move appear legal.
@@ -633,6 +669,7 @@ mod tests {
         let contract = bid::Contract {
             author: pos::PlayerPos::from_n(0, 5),
             target: bid::Target::Prise,
+            slam: false
         };
 
         let mut deal = DealState::new(pos::PlayerPos::from_n(0, 5), hands.to_vec(), dog, contract, pos::PlayerPos::from_n(2, 5));

@@ -343,6 +343,18 @@ section.hand {
   box-shadow: 5px 6px 15px -5px rgba(0, 0, 0, 0.75);
 }
 
+.card > div {
+  width: $card_width;
+  height: 28vh;
+  background-size: $card_width 28vh;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.card-unselected > div {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
 .hand > .card:hover{
   transform: scale(1.3);
 }
@@ -424,6 +436,14 @@ table.scores {
   input[type="checkbox"]:checked + label::before {
     color: black;
   }
+}
+
+.indication-invalid {
+  color: red;
+}
+
+.indication-valid {
+  color: green;
 }
 
 

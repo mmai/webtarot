@@ -69,20 +69,24 @@ pub struct Contract {
     pub author: pos::PlayerPos,
     /// Target for the contract.
     pub target: Target,
+    /// Slam asked ?
+    pub slam: bool,
 }
 
 impl Contract {
-    fn new(author: pos::PlayerPos, target: Target) -> Self {
+    fn new(author: pos::PlayerPos, target: Target, slam: bool) -> Self {
         Contract {
             author,
             target,
+            slam,
         }
     }
 }
 
 impl ToString for Contract {
     fn to_string(&self) -> String {
-        format!("{}", self.target.to_str())
+        let str_slam = if self.slam { " SLAM" } else { "" };
+        format!("{}{}", self.target.to_str(), str_slam)
     }
 }
 
@@ -108,6 +112,7 @@ pub enum BidStatus {
 
 
 /// Represents the entire auction process.
+#[derive(Debug, Clone)]
 pub struct Auction {
     contract: Option<Contract>,
     players_status: Vec<BidStatus>, 
@@ -220,6 +225,7 @@ impl Auction {
         &mut self,
         pos: pos::PlayerPos,
         target: Target,
+        slam: bool,
     ) -> Result<AuctionState, BidError> {
         if pos != self.next_player() {
             return Err(BidError::TurnError);
@@ -232,7 +238,7 @@ impl Auction {
             self.set_player_status(contract.author, BidStatus::Todo);
         }
 
-        let contract = Contract::new(pos, target);
+        let contract = Contract::new(pos, target, slam);
         self.contract = Some(contract);
         self.set_player_status(pos, BidStatus::Bid);
 
@@ -324,17 +330,17 @@ mod tests {
 
         // Someone bids.
         assert_eq!(
-            auction.bid(pos::PlayerPos::from_n(3, 5), Target::Garde),
+            auction.bid(pos::PlayerPos::from_n(3, 5), Target::Garde, false),
             Ok(AuctionState::Bidding)
         );
 
         assert_eq!(
-            auction.bid(pos::PlayerPos::from_n(4, 5), Target::Garde).err(),
+            auction.bid(pos::PlayerPos::from_n(4, 5), Target::Garde, false).err(),
             Some(BidError::NonRaisedTarget)
         );
         // Surbid
         assert_eq!(
-            auction.bid(pos::PlayerPos::from_n(4, 5), Target::GardeSans),
+            auction.bid(pos::PlayerPos::from_n(4, 5), Target::GardeSans, false),
             Ok(AuctionState::Bidding)
         );
 

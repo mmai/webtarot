@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::message::ProtocolError;
 use webgame_protocol::ProtocolErrorKind;
-use tarotgame::{cards, bid, deal};
+use tarotgame::{cards, bid, deal, Announce};
 
 impl From<deal::PlayError> for ProtocolError {
     fn from(error: deal::PlayError) -> Self {
@@ -26,6 +26,7 @@ impl From<bid::BidError> for ProtocolError {
 #[serde(tag = "gcmd", rename_all = "snake_case")]
 pub enum GamePlayCommand {
     Bid(BidCommand),
+    Announce(AnnounceCommand),
     Play(PlayCommand),
     Pass,
     CallKing(CallKingCommand),
@@ -35,6 +36,12 @@ pub enum GamePlayCommand {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BidCommand {
     pub target: bid::Target,
+    pub slam: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AnnounceCommand {
+    pub announce: Announce,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -50,4 +57,5 @@ pub struct CallKingCommand {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MakeDogCommand {
     pub cards: cards::Hand,
+    pub slam: bool,
 }

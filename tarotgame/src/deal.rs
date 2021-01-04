@@ -1,11 +1,15 @@
 //! Module for the card deal, after auctions are complete.
 use std::fmt;
 
+use serde::{Deserialize, Serialize};
+
 use super::bid;
 use super::cards;
 use super::points;
 use super::pos;
 use super::trick;
+use super::Announce;
+use super::AnnounceType;
 
 /// Describes the state of a coinche deal, ready to play a card.
 #[derive(Clone)]
@@ -20,10 +24,11 @@ pub struct DealState {
     oudlers_count: u8,
     petit_au_bout: Option<pos::PlayerPos>,
     tricks: Vec<trick::Trick>,
+    pub announces: Vec<Vec<AnnounceType>>,
 }
 
 /// Result of a deal.
-#[derive(PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub enum DealResult {
     /// The deal is still playing
     Nothing,
@@ -34,6 +39,11 @@ pub enum DealResult {
         points: Vec<f32>,
         /// Winning team
         taker_diff: f32,
+        oudlers_count: u8,
+        petit_bonus: f32,
+        multiplier: i32, 
+        slam_bonus: f32,
+        poignees_bonus: f32,
         /// Score for this deal
         scores: Vec<f32>,
     },
@@ -71,6 +81,7 @@ pub enum PlayError {
     DogOudler(cards::Card),
     DogKing(cards::Card),
     DogTrump(cards::Card),
+    InvalidAnnounce,
 }
 
 impl fmt::Display for PlayError {
@@ -90,6 +101,7 @@ impl fmt::Display for PlayError {
             PlayError::DogOudler(_card) => write!(f, "Can't put an oudler in the dog"),
             PlayError::DogKing(_card) => write!(f, "Can't put a king in the dog"),
             PlayError::DogTrump(_card) => write!(f, "Can't put a trump in the dog"),
+            PlayError::InvalidAnnounce => write!(f, "Invalid announce"),
             // PlayError::DogWrongNumberOfCards(wrong, right) => write!(f, "Wrong number of cards: {} instead of {}", wrong, right),
             // PlayError::DogSameCardTwice(card) => write!(f, "Can't put the same card ({}) twice in the dog", card.to_string()),
             // PlayError::DogCardNotFound(card) => write!(f, "{} is neither in the taker's hand nor in the dog", card.to_string()),
@@ -102,8 +114,14 @@ impl fmt::Display for PlayError {
 
 impl DealState {
     /// Creates a new DealState, with the given cards, first player and contract.
-    pub fn new(first: pos::PlayerPos, hands: Vec<cards::Hand>, dog: cards::Hand, contract: bid::Contract, partner: pos::PlayerPos) -> Self {
+    pub fn new(deal_first: pos::PlayerPos, hands: Vec<cards::Hand>, dog: cards::Hand, contract: bid::Contract, partner: pos::PlayerPos) -> Self {
         let count = hands.len();
+        let first = if contract.slam && (contract.target == bid::Target::GardeContre || contract.target == bid::Target::GardeSans ){
+            contract.author
+        } else { 
+            deal_first  // if contract with dog, the slam is checked later and updates the first player with the set_first_player function  
+        };
+        
         DealState {
             players: hands,
             partner,
@@ -115,7 +133,19 @@ impl DealState {
             oudlers_count: 0,
             petit_au_bout: None,
             points: vec![0.0;count],
+            announces: vec![vec![];count],
         }
+    }
+
+    pub fn get_tricks_count(&self) -> usize {
+        self.tricks.len()
+    }
+
+    // Set the first player at the beginning of a deal
+    // only used when a slam is announced to override default
+    pub fn set_first_player(&mut self, first: pos::PlayerPos){
+        self.current = first;
+        self.tricks = vec![trick::Trick::new(first)];
     }
 
     /// Returns the contract used for this deal
@@ -173,7 +203,7 @@ impl DealState {
     }
 
     /// Make the dog
-    pub fn make_dog(&mut self, pos: pos::PlayerPos, cards: cards::Hand) -> Result<(), PlayError> {
+    pub fn make_dog(&mut self, pos: pos::PlayerPos, cards: cards::Hand, slam: bool) -> Result<(), PlayError> {
         if pos != self.contract.author {
             return Err(PlayError::DogNotTaker);
         } 
@@ -211,10 +241,34 @@ impl DealState {
             new_dog.add(card);
         }
         //Dog successfully made
+        self.contract.slam = slam;
+        if slam {
+            // The taker is the first to play if he asked a slam
+            self.set_first_player(self.contract().author);
+        }
         self.dog = new_dog;
         self.players[pos.pos as usize] = taker_cards;
         Ok(())
     } 
+
+    /// Try to declare an announce
+    pub fn announce(
+        &mut self,
+        player: pos::PlayerPos,
+        announce: Announce,
+    ) -> Result<(), PlayError> {
+        if self.current != player {
+            return Err(PlayError::TurnError);
+        }
+        if let Some(proof) = announce.proof {
+            let hand = self.players[player.pos as usize];
+            if announce.atype.check(hand, proof) {
+                self.announces[player.pos as usize].push(announce.atype);
+                return Ok(());
+            }
+        }
+        Err(PlayError::InvalidAnnounce)
+    }
 
     /// Try to play a card
     pub fn play_card(
@@ -245,8 +299,26 @@ impl DealState {
         // Remove card from player hand
         self.players[player.pos as usize].remove(card);
 
-        // Is the trick over?
-        let result = if trick_over {
+        let result = if !trick_over {
+            //Continue trick
+            self.current = self.current.next();
+            TrickResult::Nothing
+        } else { // Trick finished
+            let is_last_trick = self.tricks.len() == deal_size;
+
+            let excuse = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank22);
+            // Special case : this is a slam and the taker played the excuse at the last trick
+            let is_excuse_slam = if is_last_trick {
+                let won_until_last = self.tricks.split_last().unwrap() // We can unwrap because tricks have been played (last trick)
+                        .1.iter() // get all tricks but the last
+                        .filter(|trick| self.in_taker_team(trick.winner))
+                        .count();
+                won_until_last == deal_size - 1 && self.current_trick().player_played(excuse) == Some(self.contract.author.pos)
+            } else { false };
+            if is_excuse_slam {
+                self.current_trick_mut().winner = self.contract.author;
+            }
+
             let winner = self.current_trick().winner;
 
             let points = self.current_trick().points();
@@ -254,14 +326,13 @@ impl DealState {
 
             let (has_petit, has_21, has_excuse) = self.current_trick().clone().has_oudlers();
             if self.in_taker_team(winner) && (has_petit || has_21) {
-                    self.oudlers_count += 1;
+                self.oudlers_count += 1;
             }
 
             if has_excuse {
-                let excuse = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank22);
                 let count = self.players.len() as u8;
                 let excuse_player = pos::PlayerPos::from_n(self.current_trick().player_played(excuse).unwrap() as usize, count);
-                if self.tricks.len() == deal_size && !self.is_slam() {
+                if is_last_trick && !is_excuse_slam {
                     //Excuse played in the last trick when not a slam : goes to the other team
                     let excuse_points = points::points(excuse);
                     if self.in_taker_team(excuse_player) {
@@ -277,7 +348,7 @@ impl DealState {
                 } else {
                     //player of the excuse keeps it
                       // points
-                    let diff_points = points::points(excuse) - 0.5; 
+                    let diff_points = points::points(excuse) - 0.5; // half a point for the pip exchange card
                     self.points[winner.pos as usize] -= diff_points;
                     self.points[excuse_player.pos as usize] += diff_points;
                       // oudlers count
@@ -287,7 +358,7 @@ impl DealState {
                 }
             }
 
-            if self.tricks.len() == deal_size {
+            if is_last_trick {
                 if has_petit {
                     self.petit_au_bout = Some(winner);
                 }
@@ -296,9 +367,6 @@ impl DealState {
             }
             self.current = winner;
             TrickResult::TrickOver(winner, self.get_deal_result())
-        } else {
-            self.current = self.current.next();
-            TrickResult::Nothing
         };
 
         Ok(result)
@@ -329,8 +397,6 @@ impl DealState {
             return DealResult::Nothing;
         }
 
-        let _slam = self.is_slam();
-
         let mut taking_points = self.points[self.contract.author.pos as usize];
         if self.players.len() == 5 && self.partner != self.contract.author {
             taking_points += self.points[self.partner.pos as usize];
@@ -338,11 +404,16 @@ impl DealState {
         if self.contract.target != bid::Target::GardeContre {
             taking_points += points::hand_points(self.dog);
         }
+        //Score : taker_diff +- 25
         let (taker_diff, score) = points::score(taking_points, self.oudlers_count);
-        let bonus = self.petit_au_bout_bonus();
-        let base_points = self.contract.target.multiplier() as f32 * (score + bonus);
+        let taker_won = taker_diff > 0.0;
+        let petit_bonus = self.petit_au_bout_bonus();
+        let multiplier = self.contract.target.multiplier();
+        let mut base_points = multiplier as f32 * (score + petit_bonus);
         // other bonuses not multiplied by the contract level
-        // poignees
+        let slam_bonus = self.slam_bonus();
+        let poignees_bonus = self.poignees_bonus(taker_won);
+        base_points = base_points + slam_bonus + poignees_bonus;
 
         let count = self.players.len() as u8;
         let mut scores = vec![0.0; count as usize];
@@ -357,15 +428,39 @@ impl DealState {
         }
 
         DealResult::GameOver {
+            oudlers_count: self.oudlers_count,
             points: self.points.clone(),
             taker_diff,
+            petit_bonus,
+            multiplier, 
+            slam_bonus,
+            poignees_bonus,
             scores,
         }
     }
 
+    fn slam_bonus(&self) -> f32 {
+        if self.contract.slam { // Slam announced
+            if self.is_slam() { 400.0 } else { -200.0 }
+        } else if self.is_slam() {
+            200.0 // Slam not announced
+        } else {
+            0.0
+        }
+    }
+
+    fn poignees_bonus(&self, taker_won: bool) -> f32 {
+        // All announces points go to the deal winner 
+        let points = self.announces.iter()
+            .flatten()
+            .map(|ann| ann.points())
+            .sum();
+        if taker_won { points } else { 0.0 - points }
+    }
+
     fn petit_au_bout_bonus(&self) -> f32 {
-        if let Some(winner) = self.petit_au_bout {
-            if self.in_taker_team(winner) {
+        if let Some(petit_player) = self.petit_au_bout {
+            if self.in_taker_team(petit_player) {
                 10.0
             } else {
                 -10.0
@@ -375,13 +470,15 @@ impl DealState {
         }
     }
 
+    fn taker_team_won_count(&self) -> usize {
+        self.tricks.iter()
+            .filter(|trick| self.in_taker_team(trick.winner))
+            .count()
+    }
+
     fn is_slam(&self) -> bool {
-        for trick in &self.tricks {
-            if !self.in_taker_team(trick.winner) {
-                return false;
-            }
-        }
-        true
+        let deal_size = super::deal_size(self.players.len());
+        self.taker_team_won_count() == deal_size
     }
 
     /// Returns the cards of all players
@@ -414,6 +511,13 @@ impl DealState {
     fn current_trick_mut(&mut self) -> &mut trick::Trick {
         let i = self.tricks.len() - 1;
         &mut self.tricks[i]
+    }
+
+    // XXX ugly hack to get the correct played cards for event dispatch after play_card (when the
+    // new trick has already been initiated)
+    // XXX only use this fuction on cloned states for dispatch !
+    pub fn revert_trick(&mut self) {
+        self.tricks.pop();
     }
 }
 
@@ -590,6 +694,7 @@ mod tests {
         let contract = bid::Contract {
             author: pos::PlayerPos::from_n(0, 5),
             target: bid::Target::Prise,
+            slam: false
         };
 
         let mut deal = DealState::new(pos::PlayerPos::from_n(0, 5), hands.to_vec(), dog, contract, pos::PlayerPos::from_n(2, 5));

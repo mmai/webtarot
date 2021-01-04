@@ -4,7 +4,7 @@ use tr::tr;
 
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender};
 
-use crate::protocol::{GameStateSnapshot, PlayerRole, GamePlayerState, Turn};
+use crate::protocol::{GameStateSnapshot, DealSnapshot, PlayerRole, GamePlayerState, Turn};
 
 #[derive(Clone, Properties)]
 pub struct Props {
@@ -15,6 +15,20 @@ pub struct Props {
 pub struct PlayerList {
     players: Vec<GamePlayerState>,
     game_state: Rc<GameStateSnapshot>,
+    contract_info: String,
+}
+
+impl PlayerList {
+    fn update_contract_info(&mut self) {
+        self.contract_info = if let Some(contract) = &self.game_state.deal.contract {
+             let king_info = if let Some(king) = self.game_state.deal.king {
+                format!(" ({})", king.to_string())
+             } else { "".into() };
+             format!("{}{}", contract.to_string(), king_info)
+        } else {
+            "".into()
+        }
+    }
 }
 
 impl Component for PlayerList {
@@ -25,6 +39,7 @@ impl Component for PlayerList {
         PlayerList {
             players: props.players,
             game_state: props.game_state,
+            contract_info: "".into(),
         }
     }
 
@@ -35,6 +50,7 @@ impl Component for PlayerList {
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
         self.players = props.players;
         self.game_state = props.game_state;
+        self.update_contract_info();
         true
     }
 
@@ -68,17 +84,24 @@ impl Component for PlayerList {
                         html! {
 
                         <div class=player_classes>
+                        {
+                            if state.role == PlayerRole::Taker {
+                                html!{<div class="contract">{{ &self.contract_info }}</div>}
+                            } else { html!{} }
+                        }
                         <div class="nickname withtooltip">
                         {&state.player.nickname}
-                        {
-                            if self.game_state.turn == Turn::Pregame &&
-                                state.ready {
-                                html! { tr!(" — ready") }
-                            } else {
-                                html!{}
+                        <span class="card-info">
+                            {
+                                if self.game_state.turn == Turn::Pregame &&
+                                    state.ready {
+                                    html! { tr!(" — ready") }
+                                } else {
+                                    html!{}
+                                }
                             }
-                        }
-                        {str_card}
+                            {str_card}
+                        </span>
                         // {
                         //     if self.game_state.turn != Turn::Pregame {
                         //         html! {

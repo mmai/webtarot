@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+
+- added slam
+- added announces (poignées)
+- upgraded confirmation handling to an events system
+
 ## 0.5.3
 
 - removed cards played in chat

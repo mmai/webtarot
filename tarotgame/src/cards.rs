@@ -412,7 +412,7 @@ impl Hand {
                 // We just need to shift it back.
                 Card(n.0 >> 1, 0)
             }
-        } else { //Trumps XXX not tested and possibly wrong
+        } else { //Trumps
             let n = Wrapping(t ^ (t - 1)) + Wrapping(1);
             if n.0 == 0 {
                 // We got an overflow. This means the desired bit it the leftmost one.
@@ -461,17 +461,30 @@ impl Hand {
     }
 }
 
+impl IntoIterator for Hand {
+    type Item = Card;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.list().into_iter()
+    }
+}
+
 impl ToString for Hand {
     /// Returns a string representation of `self`.
     fn to_string(&self) -> String {
-        let mut s = "[".to_owned();
-
-        for c in &(*self).list() {
-            s += &c.to_string();
-            s += ",";
-        }
-
-        s + "]"
+        let str_cards: Vec<String> = self.list().iter()
+            .map(|c| c.to_string())
+            .collect();
+        str_cards.join(", ")
+        // let mut s = "[".to_owned();
+        //
+        // for c in &(*self).list() {
+        //     s += &c.to_string();
+        //     s += ",";
+        // }
+        //
+        // s + "]"
     }
 }
 

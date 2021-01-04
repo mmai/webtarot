@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::rc::Weak;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -10,7 +9,8 @@ pub use webgame_protocol::GameEventsListener;
 use crate::{ ProtocolError };
 
 use crate::turn::Turn;
-use crate::deal::{Deal, DealSnapshot};
+use crate::deal::Deal;
+pub use crate::deal::DealSnapshot;
 use crate::player::{PlayerRole, GamePlayerState};
 use crate::message::{TarotVariant, DebugOperation};
 
@@ -64,17 +64,20 @@ impl<'a, Listener: GameEventsListener<(PlayEvent, TarotGameState)> + PartialEq> 
                     .revert_trick();
                 self.emit((PlayEvent::EndTrick, state_snapshot));
             },
-            deal::TrickResult::TrickOver(_winner, deal::DealResult::GameOver{points: _, taker_diff: _, scores}) => {
-                self.state.scores.push(scores);
-                let mut state_snapshot = self.state.clone();
-                state_snapshot
-                    .get_deal_mut()
-                    .deal_state_mut().unwrap()
-                    .revert_trick();
-                self.emit((PlayEvent::EndTrick, state_snapshot));
-                self.state.end_last_trick();
-                self.emit((PlayEvent::EndDeal, self.state.clone()));
-                self.state.next_deal();
+            // deal::TrickResult::TrickOver(_winner, deal::DealResult::GameOver{points: _, taker_diff: _, scores}) => {
+            deal::TrickResult::TrickOver(_winner, result) => {
+                if let deal::DealResult::GameOver{scores, ..} = &result {
+                    self.state.scores.push(scores.clone());
+                    let mut state_snapshot = self.state.clone();
+                    state_snapshot
+                        .get_deal_mut()
+                        .deal_state_mut().unwrap()
+                        .revert_trick();
+                    self.emit((PlayEvent::EndTrick, state_snapshot));
+                    self.state.end_last_trick();
+                    self.emit((PlayEvent::EndDeal(result), self.state.clone()));
+                    self.state.next_deal();
+                }
             }
         };
         self.state.update_turn();
@@ -203,7 +206,7 @@ impl GameState for TarotGameState {
             Some(state) => { // In Playing phase
                 announces = state.announces.clone();
                 trick_count = state.get_tricks_count();
-                if let deal::DealResult::GameOver {points: _, taker_diff: diff, scores: lscores } = state.get_deal_result() {
+                if let deal::DealResult::GameOver {taker_diff: diff, scores: lscores, .. } = state.get_deal_result() {
                      scores = lscores;
                      taker_diff = diff;
                      dog = state.dog();
@@ -264,25 +267,22 @@ impl GameState for TarotGameState {
     }
 
     fn set_player_ready(&mut self, player_id: Uuid) -> bool {
-        let turn = self.turn.clone();
         if let Some(player_state) = self.players.get_mut(&player_id) {
             player_state.ready = true;
-            // println!("set_player_ready, turn = {}", turn.to_string());
-                player_state.role = PlayerRole::PreDeal;
+            player_state.role = PlayerRole::PreDeal;
 
-                // Check if we start the next deal
-                let mut count = 0;
-                for player in self.players.values() {
-                    if player.role == PlayerRole::PreDeal {
-                        count = count + 1;
-                    }
+            // Check if we start the next deal
+            let mut count = 0;
+            for player in self.players.values() {
+                if player.role == PlayerRole::PreDeal {
+                    count = count + 1;
                 }
-                // println!("set_player_ready, count = {} ; nb_players = {}", count, self.nb_players);
-                if count == self.nb_players {
-                    self.turn = Turn::Bidding((bid::AuctionState::Bidding, pos::PlayerPos::from_n(0, count)));
-                    return true
-                }
-            // }
+            }
+            // println!("set_player_ready, count = {} ; nb_players = {}", count, self.nb_players);
+            if count == self.nb_players {
+                self.turn = Turn::Bidding((bid::AuctionState::Bidding, pos::PlayerPos::from_n(0, count)));
+                return true
+            }
         }
         false
     }
@@ -444,7 +444,7 @@ pub enum PlayEvent {
     Play( Uuid, cards::Card),
     Announce( Uuid, Announce ),
     EndTrick,
-    EndDeal,
+    EndDeal(deal::DealResult),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

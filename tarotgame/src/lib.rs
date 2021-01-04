@@ -93,6 +93,14 @@ impl AnnounceType {
             .filter(|atype| atype.is_eligible(hand))
             .collect()
     }
+
+    pub fn points(&self) -> f32 {
+        match self {
+            Self::Poignee => 20.0,
+            Self::DoublePoignee => 30.0,
+            Self::TriplePoignee => 40.0,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

@@ -1434,9 +1434,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.55"
+version = "1.0.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a571a711dddd09019ccc628e1b17fe87c59b09d513c06c026877aa708334f37a"
+checksum = "4211ce9909eb971f111059df92c45640aad50a619cf55cd76476be803c4c68e6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1885,9 +1885,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-futures"
-version = "0.4.13"
+version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64487204d863f109eb77e8462189d111f27cb5712cc9fdb3461297a76963a2f6"
+checksum = "8a369c5e1dfb7569e14d62af4da642a3cbc2f9a3652fe586e26ac22222aa4b04"
 dependencies = [
  "cfg-if",
  "js-sys",
@@ -1936,7 +1936,8 @@ dependencies = [
 
 [[package]]
 name = "webgame_protocol"
-version = "0.5.0"
+version = "0.6.1"
+source = "git+https://github.com/mmai/webgame?tag=v0.6.1#18bef9d91e73bb5b4471c791a3242fb4ab9dcfff"
 dependencies = [
  "serde",
  "uuid 0.8.1",
@@ -1944,7 +1945,8 @@ dependencies = [
 
 [[package]]
 name = "webgame_server"
-version = "0.6.0"
+version = "0.6.1"
+source = "git+https://github.com/mmai/webgame?tag=v0.6.1#18bef9d91e73bb5b4471c791a3242fb4ab9dcfff"
 dependencies = [
  "clap",
  "futures 0.3.5",
@@ -2002,7 +2004,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_client"
-version = "0.5.4"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
@@ -2027,7 +2029,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_protocol"
-version = "0.5.4"
+version = "0.6.0"
 dependencies = [
  "serde",
  "tarotgame",
@@ -2037,7 +2039,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_server"
-version = "0.5.4"
+version = "0.6.0"
 dependencies = [
  "clap",
  "futures 0.3.5",

@@ -88,12 +88,14 @@ impl Component for BiddingActions {
                     })
 
                 }
+                <div class="toggle-wrapper">
                 <div class=slam_classes>
                     <input type="checkbox" id="slam" name="slam"
                         checked=self.slam_selected
                         onclick=self.link.callback(move |_| Msg::ToggleSlam)
                     />
                     <label for="slam">{ tr!("Slam") }</label>
+                </div>
                 </div>
             </section>
         }

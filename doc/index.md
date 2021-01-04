@@ -19,22 +19,13 @@ Tarot en ligne
 
 ## Backlog
 
-- bug ? affichage enchères en pleine partie
-- position du bouton finish dog
+- **UX** indiquer joueur appelé quand il est connu
+- scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
+- vérifier cache chargement images 
+- **UX** chien : interdire de finir si le chien ne contient pas trois cartes
 - déconnexion partie
 - **UX** voulez-vous vraiment vous déconnecter ?
-- scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
-- **rules**
-  - [x] petit au bout
-  - chelem (non multiplié par le contrat)
-     - [x] annonce éventuelle après écart
-     - [x] le preneur commence
-     - [x] excuse doit être jouée en dernier, et remporte le plis
-     - [x] comptabiliser -> 400 si réussi, -200 si échoué (200 si réussi sans être annoncé)
-  - [ ] poignées (non multiplié par le contrat) -> gain au vainqueur de la donne !!
-    - la simple poignée : dix atouts (treize atouts à trois joueurs, huit à cinq joueurs) ; la prime est de 20 points ;
-    - la double poignée : treize atouts (quinze à trois joueurs, dix à cinq joueurs) ; la prime est de 30 points ;
-    - la triple poignée : quinze atouts (dix-huit à trois joueurs, treize à cinq joueurs) ; la prime est de 40 points.
+- **server** store accounts
 - **rules** optionnelles
   - roi au chien autorisé (montré ensuite) (strictement interdit dans les règles officielles)
   - enchères strictes (pas possibilité de surenchérir après avoir parlé une fois, règles officielles)
@@ -45,14 +36,12 @@ Tarot en ligne
     - pas d'honneur 10 points,
     - pas d'atout 10 points, 
   - parole
-- **UX** indiquer joueur appelé quand il est connu
 - **UX** pre-game : nb joueurs connectés
 - **server** sécuriser commandes de debug (server_status, debug_ui, etc.)
-- **server** store accounts
 - **UX** communication -> jitsi
 - **UX** annuler dernière carte jouée
-- **UX** chien : interdire de finir si le chien ne contient pas trois cartes
 - arrêt automatique parties inactives depuis 30mn (sauf si sur pause ?) => sérialisation..
+- bug ? affichage enchères en pleine partie
 
 
 DDD : schema bounded contexts

@@ -1,6 +1,8 @@
 //! Module for the card deal, after auctions are complete.
 use std::fmt;
 
+use serde::{Deserialize, Serialize};
+
 use super::bid;
 use super::cards;
 use super::points;
@@ -26,7 +28,7 @@ pub struct DealState {
 }
 
 /// Result of a deal.
-#[derive(PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub enum DealResult {
     /// The deal is still playing
     Nothing,
@@ -37,6 +39,11 @@ pub enum DealResult {
         points: Vec<f32>,
         /// Winning team
         taker_diff: f32,
+        oudlers_count: u8,
+        petit_bonus: f32,
+        multiplier: i32, 
+        slam_bonus: f32,
+        poignees_bonus: f32,
         /// Score for this deal
         scores: Vec<f32>,
     },
@@ -397,12 +404,16 @@ impl DealState {
         if self.contract.target != bid::Target::GardeContre {
             taking_points += points::hand_points(self.dog);
         }
+        //Score : taker_diff +- 25
         let (taker_diff, score) = points::score(taking_points, self.oudlers_count);
-        let bonus = self.petit_au_bout_bonus();
-        let mut base_points = self.contract.target.multiplier() as f32 * (score + bonus);
+        let taker_won = taker_diff > 0.0;
+        let petit_bonus = self.petit_au_bout_bonus();
+        let multiplier = self.contract.target.multiplier();
+        let mut base_points = multiplier as f32 * (score + petit_bonus);
         // other bonuses not multiplied by the contract level
-        base_points = base_points + self.slam_bonus();
-        // poignees
+        let slam_bonus = self.slam_bonus();
+        let poignees_bonus = self.poignees_bonus(taker_won);
+        base_points = base_points + slam_bonus + poignees_bonus;
 
         let count = self.players.len() as u8;
         let mut scores = vec![0.0; count as usize];
@@ -417,8 +428,13 @@ impl DealState {
         }
 
         DealResult::GameOver {
+            oudlers_count: self.oudlers_count,
             points: self.points.clone(),
             taker_diff,
+            petit_bonus,
+            multiplier, 
+            slam_bonus,
+            poignees_bonus,
             scores,
         }
     }
@@ -433,9 +449,18 @@ impl DealState {
         }
     }
 
+    fn poignees_bonus(&self, taker_won: bool) -> f32 {
+        // All announces points go to the deal winner 
+        let points = self.announces.iter()
+            .flatten()
+            .map(|ann| ann.points())
+            .sum();
+        if taker_won { points } else { 0.0 - points }
+    }
+
     fn petit_au_bout_bonus(&self) -> f32 {
-        if let Some(winner) = self.petit_au_bout {
-            if self.in_taker_team(winner) {
+        if let Some(petit_player) = self.petit_au_bout {
+            if self.in_taker_team(petit_player) {
                 10.0
             } else {
                 -10.0

@@ -28,7 +28,7 @@ use crate::protocol::{
     Turn,
     PlayEvent,
 };
-use tarotgame::{bid, cards, deal_size, Announce};
+use tarotgame::{bid, deal, cards, deal_size, Announce};
 use crate::utils::format_join_code;
 use crate::sound_player::SoundPlayer;
 
@@ -126,10 +126,6 @@ impl GamePage {
 
     fn manage_game_message(&mut self, msg: Message){
         if self.update_needs_confirm {
-            let msg_test = msg.clone();
-            if let Message::GameStateSnapshot(snapshot) = msg_test {
-            }
-
             self.next_game_messages.push_front(msg);
         } else {
             match msg {
@@ -154,27 +150,38 @@ impl GamePage {
                             });
                             self.update_needs_confirm = true;
                         },
-                        PlayEvent::EndDeal => {
-                            let scores: Vec<Vec<f32>> = self.game_state.scores.iter().map(|score| score.to_vec()).collect();
-                            let players: Vec<String> = self.game_state.players.iter().map(|pl| pl.player.nickname.clone()).collect();
+                        PlayEvent::EndDeal(result) => {
+                            if let deal::DealResult::GameOver{oudlers_count, petit_bonus, slam_bonus, poignees_bonus, ..} = result {
+                                let scores: Vec<Vec<f32>> = self.game_state.scores.iter().map(|score| score.to_vec()).collect();
+                                let players: Vec<String> = self.game_state.players.iter().map(|pl| pl.player.nickname.clone()).collect();
 
-                            let taker_won = self.game_state.deal.taker_diff >= 0.0;
-                            let diff_abs = f32::abs(self.game_state.deal.taker_diff);
-                            let contract_message = if taker_won {
-                                tr!("Contract succeded by {0} points", diff_abs)
+                                let taker_won = self.game_state.deal.taker_diff >= 0.0;
+                                let diff_abs = f32::abs(self.game_state.deal.taker_diff);
+                                let contract_message = if taker_won {
+                                    tr!("Contract succeded by {0} points ({1} oudlers)", diff_abs, oudlers_count)
+                                } else {
+                                    tr!("Contract failed by {0} points ({1} oudlers)", diff_abs, oudlers_count)
+                                };
+
+                                let petit_message = tr!("Petit au bout bonus: {}", petit_bonus);
+                                let poignees_message = tr!("Poignees bonus: {}", poignees_bonus);
+                                let slam_message = tr!("Slam bonus: {}", slam_bonus);
+
+                                let dog_message = tr!("Dog : {0}", self.game_state.deal.dog.to_string());
+                                self.overlay_box = Some(html! {
+                                    <div>
+                                        <div> {{ contract_message }} </div>
+                                        <div> {{ dog_message }} </div>
+                                        <div> {{ petit_message }} </div>
+                                        <div> {{ poignees_message }} </div>
+                                        <div> {{ slam_message }} </div>
+                                        <Scores players=players scores=scores />
+                                        </div>
+                                });
+                                self.update_needs_confirm = true;
                             } else {
-                                tr!("Contract failed by {0} points", diff_abs)
-                            };
-
-                            let dog_message = tr!("Dog : {0}", self.game_state.deal.dog.to_string());
-                            self.overlay_box = Some(html! {
-                                <div>
-                                    <div> {{ contract_message }} </div>
-                                    <div> {{ dog_message }} </div>
-                                    <Scores players=players scores=scores />
-                                    </div>
-                            });
-                            self.update_needs_confirm = true;
+                                console_log!(format!("result : {:?}", result));
+                            }
                         },
                         PlayEvent::Announce(uuid, announce) => {
                             self.add_chat_message(uuid, ChatLineData::Text(format!("announce: {:?}", announce.proof.map(|h| h.to_string()))));
@@ -195,16 +202,11 @@ impl GamePage {
                                 <div>
                                     <div> { tr!("{} announced a {}", nickname, announce.atype) } </div>
                                     { proof_html }
+                                <br />
                                 </div>
                             });
                             self.update_needs_confirm = true;
                         },
-                        _ => {
-                            self.overlay_box = Some(html! {
-                                <div> { "Unknown event" } </div>
-                            });
-
-                        }
                     }
                 }
                 _ => { } // unknown server messages
@@ -409,20 +411,6 @@ impl Component for GamePage {
         html! {
     <div class=game_classes>
       <header>
-        <p class="turn-info">{turn_info}</p>
-        {if let Some(contract) = &self.game_state.deal.contract {
-             let dog_info = if self.game_state.deal.dog.is_empty() {
-                 "".to_string()
-             } else {
-                 self.game_state.deal.dog.to_string()
-             };
-             let king_info = if let Some(king) = &self.game_state.deal.king {
-                format!(" ({})", king.to_string())
-             } else { "".into() };
-             html! {<p class="deal-info">{format!("{} {} {}", contract.to_string(), king_info, dog_info)}</p>}
-        } else {
-             html! {}
-        }}
       </header>
 
       <PlayerList game_state=self.game_state.clone() players=others/>
@@ -534,6 +522,7 @@ impl Component for GamePage {
                                     slam_classes.push("toggle-selected");
                                 }
                                html! {
+                            <div class="toggle-wrapper">
                             <div class=slam_classes>
                                <button onclick=self.link.callback(move |_| Msg::MakeDog)>
                                {{ tr!("finish") }}
@@ -543,6 +532,7 @@ impl Component for GamePage {
                                     onclick=self.link.callback(move |_| Msg::ToggleSlam)
                                 />
                                 <label for="slam">{tr!("Slam") }</label>
+                            </div>
                             </div>
                              }} else {
                                  html!{}

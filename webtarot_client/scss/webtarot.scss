@@ -157,6 +157,8 @@ div.wrapper {
   overflow: visible;
   margin: 30px 20px auto 20px;
   box-shadow: 11px 10px 35px -14px rgba(0, 0, 0, 0.75);
+  width: 45em;
+  z-index: 500;
 }
 
 /* div.game,                                                    */
@@ -277,22 +279,48 @@ p.turn-info {
     padding: 6px;
     margin: 6px 0;
 
-    // background: black;
-    background: linear-gradient(to right, black, rgba(0,0,0,0));
-    color: white;
+    // background: linear-gradient(to right, black, rgba(0,0,0,0));
+    // color: white;
+    color: #123712;
+    font-weight: bold;
+    font-size: 1.2em;
+  }
+}
 
+.card-info {
+  font-weight: normal;
+  font-size: initial;
+}
+
+.role-taker {
+  position: relative;
+  top: -1.8em;
+
+  .contract {
+    position: relative;
+    background-color: black;
+    color: white;
+    text-align: center;
+    padding: 0.2em 0 0.3em;
+    border-radius: 10px;
+  }
+
+  .contract::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border: 10px solid transparent;
+    border-top-color: black;
+    border-bottom: 0;
+    margin-left: -10px;
+    margin-bottom: -10px;
   }
 }
 
 /*
-.role-taker {
-    .nickname {
-      border: 2px solid red;
-      background: red;
-      color: white;
-    }
-}
-
 .role-partner {
     .nickname {
       border: 2px solid pink;
@@ -304,7 +332,9 @@ p.turn-info {
 
 .current-player {
     .nickname {
-      border: 2px solid yellow;
+      background-color: #90ee9073;
+      border-radius: 30px;
+      text-align: center;
     }
 }
 
@@ -328,6 +358,7 @@ section.hand {
   justify-content: center;
   width: 90%;
   height: 27vh;
+  left: -3vh;
   margin-left: auto;
   margin-right: auto;
   min-width: 0;
@@ -397,11 +428,13 @@ table.scores {
 
 .yourturn {
   font-weight: bold;
-    padding: 8px;
-    background-color: black; 
-    color: white;
+  padding: 8px;
+  background-color: black; 
+  color: white;
+  border-radius: 7px;
+  position: relative;
+  z-index: 1000;
 }
-
 
 .chat-messages {
   flex: 1;
@@ -411,14 +444,27 @@ table.scores {
   flex-direction: column-reverse;
 }
 
+.toggle-wrapper {
+  text-align: center;
+}
+
 .toggle {
-  background: lightgreen;
+  display:inline-block;
+  background: white;
   color: black;
   margin-top: 0.6em;
   padding: 0.3em;
-  width: 10em;
   border: 1px solid black;
   border-radius: 4px;
+
+  .label {
+    display: inline-block;
+    width: 100%;
+  }
+
+  button {
+    margin-right: 1em;
+  }
 
   input[type="checkbox"] {
     display: none;

@@ -1,6 +1,7 @@
 use clap::{Arg, App};
 
 mod explorer;
+mod player;
 
 pub fn main() {
     let version = format!("{}.{}.{}{}",
@@ -26,10 +27,11 @@ pub fn main() {
         ;
     let matches = app.get_matches();
 
-    let str_command = matches.value_of("command").unwrap_or("find_decks"); 
+    let str_command = matches.value_of("command").unwrap_or("play"); 
 
     match str_command {
         "find_decks" => explorer::find_decks(),
+        "play" => player::play(),
         _ => println!("Nothing to do")
     }
 }

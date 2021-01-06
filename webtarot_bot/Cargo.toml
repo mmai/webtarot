@@ -1,6 +1,6 @@
 [package]
 name = "webtarot_bot"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Henri Bourcereau <henri@bourcereau.fr>"]
 edition = "2018"
 
@@ -16,3 +16,6 @@ log = "0.4.8"
 rand = "0.7.3"
 lazy_static = "1.4.0"
 clap = "2.33.0"
+tungstenite = "0.11.1"
+url = "2.2.0"
+env_logger = "0.8.2"

@@ -75,6 +75,8 @@
 
     defaultPackage = forAllSystems (system: self.packages.${system}.webtarot);
 
+    devShell = forAllSystems (system: (import ./shell.nix { pkgs = nixpkgs.legacyPackages.${system}; }));
+
     # webtarot service module
     nixosModule = (import ./module.nix);
 

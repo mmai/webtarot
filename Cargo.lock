@@ -2238,12 +2238,14 @@ dependencies = [
  "futures 0.3.5",
  "lazy_static",
  "log 0.4.8",
+ "native-tls",
  "rand 0.7.3",
  "serde_json",
  "tarotgame",
  "tungstenite 0.11.1",
  "url",
  "uuid 0.8.1",
+ "webgame_protocol",
  "webtarot_protocol",
 ]
 

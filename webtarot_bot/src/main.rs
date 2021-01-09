@@ -34,7 +34,7 @@ pub fn main() {
     let matches = app.get_matches();
 
     let str_command = matches.value_of("command").unwrap_or("play"); 
-    let str_joincode = matches.value_of("joincode").unwrap_or("xxx"); 
+    let str_joincode = matches.value_of("joincode").unwrap_or(""); 
 
     match str_command {
         "find_decks" => explorer::find_decks(),

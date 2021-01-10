@@ -21,7 +21,7 @@ use weblog::*;
 
 use crate::api::Api;
 use crate::protocol::{Message, Command};
-use crate::gprotocol::{GameInfo, PlayerInfo};
+use crate::gprotocol::{GameInfo, PlayerInfo, JoinGameCommand};
 use crate::views::game::GamePage;
 use crate::views::menu::MenuPage;
 use crate::views::start::StartPage;
@@ -130,6 +130,16 @@ impl Component for App {
                 self.state = AppState::Authenticated;
                 self.storage.store(KEY, Json(&player_info));
                 self.player_info = Some(player_info);
+
+                // Try to connect to a game if the url contains a gamecode
+                let str_url = yew::utils::document().url().unwrap();
+                let game_code: Option<String> = url::Url::parse(&str_url).unwrap()
+                    .query_pairs()
+                    .find(|(name, _)| name == "game")
+                    .map(|pair| pair.1.into());
+                if let Some(join_code) = game_code {
+                    self.api.send(Command::JoinGame(JoinGameCommand { join_code }));
+                }
             }
             Msg::GameJoined(game_info) => {
                 self.state = AppState::InGame;
@@ -168,10 +178,12 @@ impl Component for App {
                     <StartPage 
                         on_authenticate=self.link.callback(Msg::Authenticated) />
                 },
-                AppState::Authenticated => html! {
-                    <MenuPage
-                        player_info=self.player_info.as_ref().unwrap().clone(),
-                        on_game_joined=self.link.callback(Msg::GameJoined) />
+                AppState::Authenticated => {
+                    html! {
+                        <MenuPage
+                            player_info=self.player_info.as_ref().unwrap().clone(),
+                            on_game_joined=self.link.callback(Msg::GameJoined) />
+                    }
                 },
                 AppState::InGame => html! {
                     <GamePage
@@ -186,7 +198,7 @@ impl Component for App {
 
 #[wasm_bindgen]
 pub fn run_app() -> Result<(), JsValue> {
-    console_log!("run app");
+    // console_log!("run app");
     console_error_panic_hook::set_once();
     yew::start_app::<App>();
     Ok(())

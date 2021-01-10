@@ -2360,7 +2360,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_client"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
@@ -2373,6 +2373,7 @@ dependencies = [
  "strum",
  "tarotgame",
  "tr",
+ "url",
  "uuid 0.8.1",
  "wasm-bindgen",
  "web-sys",

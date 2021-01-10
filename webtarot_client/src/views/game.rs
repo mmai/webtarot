@@ -98,6 +98,16 @@ impl GamePage {
             .to_string()
     }
 
+    fn get_game_url(&self) -> url::Url {
+        let str_url = yew::utils::document().url().unwrap();
+
+        let mut game_url = url::Url::parse(&str_url).unwrap();
+        if game_url.query_pairs().find(|(name, _)| name == "game").is_none() {
+            game_url = url::Url::parse_with_params(&str_url, &[("game", &self.game_info.join_code)]).unwrap();
+        }
+        game_url
+    }
+
     pub fn my_state(&self) -> &GamePlayerState {
         self.game_state
             .players
@@ -477,7 +487,9 @@ impl Component for GamePage {
 
         <section class=actions_classes>
             {match self.game_state.turn {
-               Turn::Pregame => html! {
+               Turn::Pregame => {
+                   let url_game: String = self.get_game_url().as_str().into();
+                   html! {
                 <div class="wrapper">
                     <div class="toolbar">
                     {if !self.my_state().ready  {
@@ -487,15 +499,16 @@ impl Component for GamePage {
                     }}
                         <button class="cancel" onclick=self.link.callback(|_| Msg::Disconnect)>{ tr!("Disconnect") }</button>
                     </div>
-                    <h1>{{ tr!("join code:") }} <strong>{format!(" {}", format_join_code(&self.game_info.join_code))}</strong></h1>
+                    <div>{{ tr!("Share this link to invite players:") }} </div>
+                    <div><a href={{ url_game.clone() }}>{{ url_game }}</a></div>
                  </div>
-                },
+                }},
                Turn::CallingKing if player_action == Some(PlayerAction::CallKing) => {
                    // Choose a queen if player has all kings
-                   // Choose a jack if player has all kings and all queens
+                   // Choose a cavalier if player has all kings and all queens
                    let my_hand = self.game_state.deal.hand;
                    let rank = if my_hand.has_all_rank(cards::Rank::RankK) {
-                       if my_hand.has_all_rank(cards::Rank::RankQ) { cards::Rank::RankJ } else { cards::Rank::RankQ } 
+                       if my_hand.has_all_rank(cards::Rank::RankQ) { cards::Rank::RankC } else { cards::Rank::RankQ } 
                    } else {
                        cards::Rank::RankK
                    };

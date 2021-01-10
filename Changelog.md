@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1
+- invitation link
+- some french translations
+- basic command line bot player
+
 ## 0.6.0
 
 - added slam

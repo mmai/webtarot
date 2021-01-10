@@ -1,6 +1,6 @@
 [package]
 name = "webtarot_client"
-version = "0.6.0"
+version = "0.6.1"
 authors = ["Henri Bourcereau <henri@bourcereau.fr>"]
 edition = "2018"
 
@@ -39,6 +39,7 @@ rust-embed = { version = "5.5.1", features = ["debug-embed"] }
 i18n-embed = { version = "0.6", features = ["web-sys-requester"] }
 js-sys = "0.3.40"
 lazy_static = "1.4.0"
+url = "2.2.0"
 
 # [dev-dependencies]
 # wasm-bindgen-test = "0.3"

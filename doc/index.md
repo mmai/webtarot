@@ -19,15 +19,12 @@ Tarot en ligne
 
 ## Backlog
 
-- [x] bug : dernier pli affichage avant dernier ..
-- UX traductions manquantes 
-  - (score final: Contract succeded by 9.5 points (1 oudlers))
-  - annonces : select cards to show ; Announce
+- déconnexion partie
+- comptue utilisateur activitypub ?
 - **UX** indiquer joueur appelé quand il est connu
 - scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
 - vérifier cache chargement images 
 - **UX** chien : interdire de finir si le chien ne contient pas trois cartes
-- déconnexion partie
 - **UX** voulez-vous vraiment vous déconnecter ?
 - **server** store accounts
 - **rules** optionnelles

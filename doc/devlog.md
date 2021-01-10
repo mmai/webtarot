@@ -2,6 +2,8 @@
 
 ## Packaging
 
+* remove webtarot-bot from the root Cargo.toml file if necessary (error openssl / pkg-config)
+
 * edit the _Cargo.toml_ files : version number
 * compile release version : `make` 
 * edit _flake.nix_ : 

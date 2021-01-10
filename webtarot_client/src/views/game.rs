@@ -157,24 +157,37 @@ impl GamePage {
 
                                 let taker_won = self.game_state.deal.taker_diff >= 0.0;
                                 let diff_abs = f32::abs(self.game_state.deal.taker_diff);
-                                let contract_message = if taker_won {
-                                    tr!("Contract succeded by {0} points ({1} oudlers)", diff_abs, oudlers_count)
+                                //XXX Cargo i18n fails with plurals..
+                                let mut contract_message = if taker_won {
+                                    tr!( "Contract succeded by {} point", diff_abs )
+                                    // tr!( "Contract succeded by {n} point" | "Contract succeded by {n} points" % diff_abs )
                                 } else {
-                                    tr!("Contract failed by {0} points ({1} oudlers)", diff_abs, oudlers_count)
+                                    tr!( "Contract failed by {} point", diff_abs )
+                                    // tr!( "Contract failed by {n} point" | "Contract failed by {n} points" % diff_abs )
                                 };
+                                if diff_abs > 1.0 { contract_message.push('s'); }
 
-                                let petit_message = tr!("Petit au bout bonus: {}", petit_bonus);
-                                let poignees_message = tr!("Poignees bonus: {}", poignees_bonus);
-                                let slam_message = tr!("Slam bonus: {}", slam_bonus);
+                                let mut str_oudlers = tr!("{} oudler", oudlers_count);
+                                // let str_oudlers = tr!("({n} oudler)" | "({n} oudlers)" % oudlers_count);
+                                if oudlers_count > 1 { str_oudlers.push('s'); }
+
+                                contract_message.push_str(" ( ");
+                                contract_message.push_str(&str_oudlers);
+                                contract_message.push_str(" )");
+
+                                let petit_message = if petit_bonus != 0.0 { tr!("Petit au bout bonus: {}", petit_bonus)} else { "".into() };
+                                let poignees_message = if poignees_bonus != 0.0 { tr!("Poignees bonus: {}", poignees_bonus)} else { "".into() };
+                                let slam_message = if slam_bonus != 0.0 { tr!("Slam bonus: {}", slam_bonus)} else { "".into() };
 
                                 let dog_message = tr!("Dog : {0}", self.game_state.deal.dog.to_string());
                                 self.overlay_box = Some(html! {
                                     <div>
-                                        <div> {{ contract_message }} </div>
-                                        <div> {{ dog_message }} </div>
-                                        <div> {{ petit_message }} </div>
-                                        <div> {{ poignees_message }} </div>
-                                        <div> {{ slam_message }} </div>
+                                        <div>{{ contract_message }}</div>
+                                        <div>{{ dog_message }}</div>
+                                        <div>{{ petit_message }}</div>
+                                        <div>{{ poignees_message }}</div>
+                                        <div>{{ slam_message }}</div>
+                                        <br/><br/>
                                         <Scores players=players scores=scores />
                                         </div>
                                 });
@@ -199,8 +212,8 @@ impl GamePage {
                                 }
                             } else { html!() };
                             self.overlay_box = Some(html! {
-                                <div>
-                                    <div> { tr!("{} announced a {}", nickname, announce.atype) } </div>
+                                <div class="announce-proof">
+                                    <div> { tr!("{} announced a {}", nickname, announce.atype) }<br/><br/> </div>
                                     { proof_html }
                                 <br />
                                 </div>

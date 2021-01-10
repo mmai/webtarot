@@ -19,6 +19,10 @@ Tarot en ligne
 
 ## Backlog
 
+- [x] bug : dernier pli affichage avant dernier ..
+- UX traductions manquantes 
+  - (score final: Contract succeded by 9.5 points (1 oudlers))
+  - annonces : select cards to show ; Announce
 - **UX** indiquer joueur appelé quand il est connu
 - scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
 - vérifier cache chargement images 

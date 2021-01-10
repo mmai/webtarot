@@ -68,12 +68,12 @@ impl<'a, Listener: GameEventsListener<(PlayEvent, TarotGameState)> + PartialEq> 
             deal::TrickResult::TrickOver(_winner, result) => {
                 if let deal::DealResult::GameOver{scores, ..} = &result {
                     self.state.scores.push(scores.clone());
+                    self.emit((PlayEvent::EndTrick, self.state.clone()));
                     let mut state_snapshot = self.state.clone();
                     state_snapshot
                         .get_deal_mut()
                         .deal_state_mut().unwrap()
                         .revert_trick();
-                    self.emit((PlayEvent::EndTrick, state_snapshot));
                     self.state.end_last_trick();
                     self.emit((PlayEvent::EndDeal(result), self.state.clone()));
                     self.state.next_deal();

@@ -98,6 +98,16 @@ impl GamePage {
             .to_string()
     }
 
+    fn get_game_url(&self) -> url::Url {
+        let str_url = yew::utils::document().url().unwrap();
+
+        let mut game_url = url::Url::parse(&str_url).unwrap();
+        if game_url.query_pairs().find(|(name, _)| name == "game").is_none() {
+            game_url = url::Url::parse_with_params(&str_url, &[("game", &self.game_info.join_code)]).unwrap();
+        }
+        game_url
+    }
+
     pub fn my_state(&self) -> &GamePlayerState {
         self.game_state
             .players
@@ -157,24 +167,37 @@ impl GamePage {
 
                                 let taker_won = self.game_state.deal.taker_diff >= 0.0;
                                 let diff_abs = f32::abs(self.game_state.deal.taker_diff);
-                                let contract_message = if taker_won {
-                                    tr!("Contract succeded by {0} points ({1} oudlers)", diff_abs, oudlers_count)
+                                //XXX Cargo i18n fails with plurals..
+                                let mut contract_message = if taker_won {
+                                    tr!( "Contract succeded by {} point", diff_abs )
+                                    // tr!( "Contract succeded by {n} point" | "Contract succeded by {n} points" % diff_abs )
                                 } else {
-                                    tr!("Contract failed by {0} points ({1} oudlers)", diff_abs, oudlers_count)
+                                    tr!( "Contract failed by {} point", diff_abs )
+                                    // tr!( "Contract failed by {n} point" | "Contract failed by {n} points" % diff_abs )
                                 };
+                                if diff_abs > 1.0 { contract_message.push('s'); }
 
-                                let petit_message = tr!("Petit au bout bonus: {}", petit_bonus);
-                                let poignees_message = tr!("Poignees bonus: {}", poignees_bonus);
-                                let slam_message = tr!("Slam bonus: {}", slam_bonus);
+                                let mut str_oudlers = tr!("{} oudler", oudlers_count);
+                                // let str_oudlers = tr!("({n} oudler)" | "({n} oudlers)" % oudlers_count);
+                                if oudlers_count > 1 { str_oudlers.push('s'); }
+
+                                contract_message.push_str(" ( ");
+                                contract_message.push_str(&str_oudlers);
+                                contract_message.push_str(" )");
+
+                                let petit_message = if petit_bonus != 0.0 { tr!("Petit au bout bonus: {}", petit_bonus)} else { "".into() };
+                                let poignees_message = if poignees_bonus != 0.0 { tr!("Poignees bonus: {}", poignees_bonus)} else { "".into() };
+                                let slam_message = if slam_bonus != 0.0 { tr!("Slam bonus: {}", slam_bonus)} else { "".into() };
 
                                 let dog_message = tr!("Dog : {0}", self.game_state.deal.dog.to_string());
                                 self.overlay_box = Some(html! {
                                     <div>
-                                        <div> {{ contract_message }} </div>
-                                        <div> {{ dog_message }} </div>
-                                        <div> {{ petit_message }} </div>
-                                        <div> {{ poignees_message }} </div>
-                                        <div> {{ slam_message }} </div>
+                                        <div>{{ contract_message }}</div>
+                                        <div>{{ dog_message }}</div>
+                                        <div>{{ petit_message }}</div>
+                                        <div>{{ poignees_message }}</div>
+                                        <div>{{ slam_message }}</div>
+                                        <br/><br/>
                                         <Scores players=players scores=scores />
                                         </div>
                                 });
@@ -199,8 +222,8 @@ impl GamePage {
                                 }
                             } else { html!() };
                             self.overlay_box = Some(html! {
-                                <div>
-                                    <div> { tr!("{} announced a {}", nickname, announce.atype) } </div>
+                                <div class="announce-proof">
+                                    <div> { tr!("{} announced a {}", nickname, announce.atype) }<br/><br/> </div>
                                     { proof_html }
                                 <br />
                                 </div>
@@ -464,7 +487,9 @@ impl Component for GamePage {
 
         <section class=actions_classes>
             {match self.game_state.turn {
-               Turn::Pregame => html! {
+               Turn::Pregame => {
+                   let url_game: String = self.get_game_url().as_str().into();
+                   html! {
                 <div class="wrapper">
                     <div class="toolbar">
                     {if !self.my_state().ready  {
@@ -474,15 +499,16 @@ impl Component for GamePage {
                     }}
                         <button class="cancel" onclick=self.link.callback(|_| Msg::Disconnect)>{ tr!("Disconnect") }</button>
                     </div>
-                    <h1>{{ tr!("join code:") }} <strong>{format!(" {}", format_join_code(&self.game_info.join_code))}</strong></h1>
+                    <div>{{ tr!("Share this link to invite players:") }} </div>
+                    <div><a href={{ url_game.clone() }}>{{ url_game }}</a></div>
                  </div>
-                },
+                }},
                Turn::CallingKing if player_action == Some(PlayerAction::CallKing) => {
                    // Choose a queen if player has all kings
-                   // Choose a jack if player has all kings and all queens
+                   // Choose a cavalier if player has all kings and all queens
                    let my_hand = self.game_state.deal.hand;
                    let rank = if my_hand.has_all_rank(cards::Rank::RankK) {
-                       if my_hand.has_all_rank(cards::Rank::RankQ) { cards::Rank::RankJ } else { cards::Rank::RankQ } 
+                       if my_hand.has_all_rank(cards::Rank::RankQ) { cards::Rank::RankC } else { cards::Rank::RankQ } 
                    } else {
                        cards::Rank::RankK
                    };

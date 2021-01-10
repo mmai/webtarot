@@ -29,10 +29,10 @@
 
       webtarot = with final; ( rustPlatform.buildRustPackage rec {
           name = "webtarot";
-          version = "0.6.0";
+          version = "0.6.1";
           src = ./.;
 
-          cargoSha256 = "sha256-csD1bwrrlHnaAItlFiET+tX8bYTP/AsrtPIaKS/Qbyg=";
+          cargoSha256 = "sha256-QtOIQbaJM/CQf56M/8N0PdSxQ5bn9zv6+Kx0tjtKGas=";
 
           meta = with pkgs.stdenv.lib; {
             description = "A online game of french tarot";
@@ -55,7 +55,7 @@
         in 
           dockerTools.buildImage {
             name = "mmai/webtarot";
-            tag = "0.6.0";
+            tag = "0.6.1";
             contents = [ busybox ];
             config = {
               Entrypoint = [ entrypoint ];
@@ -74,6 +74,8 @@
     });
 
     defaultPackage = forAllSystems (system: self.packages.${system}.webtarot);
+
+    devShell = forAllSystems (system: (import ./shell.nix { pkgs = nixpkgs.legacyPackages.${system}; }));
 
     # webtarot service module
     nixosModule = (import ./module.nix);

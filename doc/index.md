@@ -19,11 +19,12 @@ Tarot en ligne
 
 ## Backlog
 
+- déconnexion partie
+- comptue utilisateur activitypub ?
 - **UX** indiquer joueur appelé quand il est connu
 - scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
 - vérifier cache chargement images 
 - **UX** chien : interdire de finir si le chien ne contient pas trois cartes
-- déconnexion partie
 - **UX** voulez-vous vraiment vous déconnecter ?
 - **server** store accounts
 - **rules** optionnelles

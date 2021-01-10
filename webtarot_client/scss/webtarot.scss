@@ -157,8 +157,13 @@ div.wrapper {
   overflow: visible;
   margin: 30px 20px auto 20px;
   box-shadow: 11px 10px 35px -14px rgba(0, 0, 0, 0.75);
-  width: 45em;
   z-index: 500;
+}
+
+div.announce-proof {
+  width: 50em;
+  left: -1em;
+  position: relative;
 }
 
 /* div.game,                                                    */

@@ -19,14 +19,12 @@ Tarot en ligne
 
 ## Backlog
 
-- déconnexion partie
-- comptue utilisateur activitypub ?
+- **server** enregistrement des parties
+- compte utilisateur activitypub ?
+- **server** store accounts
 - **UX** indiquer joueur appelé quand il est connu
 - scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
-- vérifier cache chargement images 
 - **UX** chien : interdire de finir si le chien ne contient pas trois cartes
-- **UX** voulez-vous vraiment vous déconnecter ?
-- **server** store accounts
 - **rules** optionnelles
   - roi au chien autorisé (montré ensuite) (strictement interdit dans les règles officielles)
   - enchères strictes (pas possibilité de surenchérir après avoir parlé une fois, règles officielles)
@@ -37,13 +35,10 @@ Tarot en ligne
     - pas d'honneur 10 points,
     - pas d'atout 10 points, 
   - parole
-- **UX** pre-game : nb joueurs connectés
 - **server** sécuriser commandes de debug (server_status, debug_ui, etc.)
 - **UX** communication -> jitsi
 - **UX** annuler dernière carte jouée
 - arrêt automatique parties inactives depuis 30mn (sauf si sur pause ?) => sérialisation..
-- bug ? affichage enchères en pleine partie
-
 
 DDD : schema bounded contexts
 Gestion Joueurs, parties, historique...

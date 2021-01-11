@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.6.3
+- UX : connexions / deconnexions
+
 ## 0.6.1
 - invitation link
 - some french translations

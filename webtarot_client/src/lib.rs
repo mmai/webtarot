@@ -155,7 +155,8 @@ impl Component for App {
                 // }
             }
             Msg::ServerMessage(Message::GameLeft) => {
-                self.state = AppState::Authenticated;
+                // self.state = AppState::Authenticated;
+                self.state = AppState::Start;
                 self.game_info = None;
             }
             Msg::Ping => {

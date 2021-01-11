@@ -66,7 +66,8 @@ pub fn on_player_set_role(
                 let mut game_state = game_state.lock().await;
                 game_state.set_player_role(user_id, cmd.role);
             }
-            game.set_player_not_ready(user_id).await;
+            game.mark_player_ready(user_id).await;
+            // game.set_player_not_ready(user_id).await;
 
             game.broadcast_current_state().await;
             Ok(())

@@ -20,7 +20,7 @@ Tarot en ligne
 ## Backlog
 
 - **server** enregistrement des parties
-- compte utilisateur activitypub ?
+- compte utilisateur activitypub https://socialhub.activitypub.rocks/t/single-sign-on-for-fediverse/712
 - **server** store accounts
 - **UX** indiquer joueur appelé quand il est connu
 - scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /

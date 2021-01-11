@@ -1,4 +1,4 @@
 [workspace]
-members = ["webtarot_server", "webtarot_protocol", "tarotgame"]
+members = ["webtarot_server", "webtarot_protocol", "webtarot_client", "tarotgame"]
 # members = ["webtarot_server", "webtarot_protocol", "webtarot_client", "tarotgame", "webtarot_bot"]
 exclude = ["bacasable"]

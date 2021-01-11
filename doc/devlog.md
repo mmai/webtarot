@@ -5,7 +5,7 @@
 
 * edit the _Cargo.toml_ files : version number
 * compile release version : `make` 
-* remove webtarot-bot and webtarot_client from the root Cargo.toml (not needed for nix packages and error openssl / pkg-config with webtarot-bot)
+* remove webtarot-bot from the root Cargo.toml (not needed for nix packages and error openssl / pkg-config with webtarot-bot)
 * edit _flake.nix_ : 
   * version number
   * fake cargoSha256
@@ -15,7 +15,7 @@
 * rerun `nix build .#webtarot`
 * `cachix push mmai ./result`
 * `nix copy  --to ssh://root@rhumbs.fr ./result`
-* `make docker`
+* `make docker` :  does not work ?
 
 ## Upgrading yew / webpack
 

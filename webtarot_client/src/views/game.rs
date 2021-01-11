@@ -4,7 +4,7 @@ use std::f32;
 use im_rc::Vector;
 use uuid::Uuid;
 use yew::agent::Bridged;
-use yew::services::{IntervalService, Task};
+use yew::services::{IntervalService, Task, dialog};
 use yew::{
     html, Bridge, Component, ComponentLink, Html, Properties,
     ShouldRender,
@@ -124,6 +124,32 @@ impl GamePage {
 
     fn is_first_trick(&self) -> bool {
         self.game_state.deal.trick_count == 1
+    }
+
+    fn translate_error(&self, error: &String) -> String {
+        match error.as_str() {
+            "game is currently not joinable" => tr!("game is currently not joinable"),
+            "bid: auctions are closed" => tr!("auctions are closed"),
+            "bid: invalid turn order" => tr!("invalid turn order"),
+            "bid: bid must be higher than current contract" => tr!("bid must be higher than current contract"),
+            "bid: the auction are still running" => tr!("the auction are still running"),
+            "bid: no contract was offered" => tr!("no contract was offered"),
+            "play: invalid turn order" => tr!("invalid turn order"),
+            "play: you can only play cards you have" => tr!("you can only play cards you have" ),
+            "play: wrong suit played" => tr!("wrong suit played" ),
+            "play: you must use trumps" => tr!("you must use trumps" ),
+            "play: too weak trump played" => tr!("too weak trump played" ),
+            "play: you cannot play the suit of the called king in the first trick" => tr!("you cannot play the suit of the called king in the first trick" ),
+            "play: no trick has been played yet" => tr!("no trick has been played yet" ),
+            "play: you are not the taker" => tr!("you are not the taker"),
+            "play: Wrong number of cards" => tr!("Wrong number of cards"),
+            "play: Can't put the same card twice in the dog" => tr!("Can't put the same card twice in the dog"),
+            "play: Card neither in the taker's hand nor in the dog" => tr!("Card neither in the taker's hand nor in the dog"),
+            "play: Can't put an oudler in the dog" => tr!("Can't put an oudler in the dog"),
+            "play: Can't put a king in the dog" => tr!("Can't put a king in the dog"),
+            "play: Can't put a trump in the dog" => tr!("Can't put a trump in the dog"),
+            _ => error.to_string()
+        }
     }
 
     fn display_overlay_box(&self) -> Html {
@@ -251,12 +277,15 @@ impl Component for GamePage {
             );
 
         let on_server_message = link.callback(Msg::ServerMessage);
-        let api = Api::bridge(on_server_message);
+        let mut api = Api::bridge(on_server_message);
         let sound_paths = vec![
             ("chat".into(), "sounds/misc_menu.ogg"),
             ("card".into(), "sounds/cardPlace4.ogg"),
             ("error".into(), "sounds/negative_2.ogg"),
         ].into_iter().collect();
+
+        //XXX automatically set player ready 
+        api.send(Command::MarkReady);
 
         GamePage {
             keepalive_job: Box::new(keepalive),
@@ -334,7 +363,9 @@ impl Component for GamePage {
                 self.api.send(Command::MarkReady);
             }
             Msg::Disconnect => {
-                self.api.send(Command::LeaveGame);
+                if dialog::DialogService::confirm(&tr!("Really disconnect ?")) {
+                    self.api.send(Command::LeaveGame);
+                }
             }
             Msg::Bid((target, slam)) => {
                 self.is_waiting = true;
@@ -404,6 +435,8 @@ impl Component for GamePage {
 
         // log!("others: {:?} others_before: {:?}", others, others_before);
         others.append(&mut others_before);
+        let players_joined_count = &others.len() + 1;
+        let players_left_count = self.game_state.nb_players as usize - players_joined_count;
 
         let mut game_classes = vec!["game"];
         if self.is_waiting {
@@ -433,34 +466,16 @@ impl Component for GamePage {
 
         html! {
     <div class=game_classes>
-      <header>
+      <header class="header">
+      <div class="nav-right">
+      <button class="btn-link" onclick=self.link.callback(|_| Msg::Disconnect)>{"\u{23FB} "} { tr!("disconnect") }</button>
+      </div>
       </header>
 
       <PlayerList game_state=self.game_state.clone() players=others/>
 
         { if let Some(error) = &self.error  { 
-            let error_str = match error.as_str() {
-            "bid: auctions are closed" => tr!("auctions are closed"),
-            "bid: invalid turn order" => tr!("invalid turn order"),
-            "bid: bid must be higher than current contract" => tr!("bid must be higher than current contract"),
-            "bid: the auction are still running" => tr!("the auction are still running"),
-            "bid: no contract was offered" => tr!("no contract was offered"),
-            "play: invalid turn order" => tr!("invalid turn order"),
-            "play: you can only play cards you have" => tr!("you can only play cards you have" ),
-            "play: wrong suit played" => tr!("wrong suit played" ),
-            "play: you must use trumps" => tr!("you must use trumps" ),
-            "play: too weak trump played" => tr!("too weak trump played" ),
-            "play: you cannot play the suit of the called king in the first trick" => tr!("you cannot play the suit of the called king in the first trick" ),
-            "play: no trick has been played yet" => tr!("no trick has been played yet" ),
-            "play: you are not the taker" => tr!("you are not the taker"),
-            "play: Wrong number of cards" => tr!("Wrong number of cards"),
-            "play: Can't put the same card twice in the dog" => tr!("Can't put the same card twice in the dog"),
-            "play: Card neither in the taker's hand nor in the dog" => tr!("Card neither in the taker's hand nor in the dog"),
-            "play: Can't put an oudler in the dog" => tr!("Can't put an oudler in the dog"),
-            "play: Can't put a king in the dog" => tr!("Can't put a king in the dog"),
-            "play: Can't put a trump in the dog" => tr!("Can't put a trump in the dog"),
-            _ => error.to_string()
-            };
+            let error_str = self.translate_error(&error);
             html! {
           <div class="notify-wrapper">
             <div class="error notify">
@@ -487,22 +502,32 @@ impl Component for GamePage {
 
         <section class=actions_classes>
             {match self.game_state.turn {
+
                Turn::Pregame => {
                    let url_game: String = self.get_game_url().as_str().into();
                    html! {
-                <div class="wrapper">
-                    <div class="toolbar">
-                    {if !self.my_state().ready  {
-                        html! {<button class="primary" onclick=self.link.callback(|_| Msg::MarkReady)>{ tr!("Ready!")}</button>}
-                    } else {
-                        html! {}
-                    }}
-                        <button class="cancel" onclick=self.link.callback(|_| Msg::Disconnect)>{ tr!("Disconnect") }</button>
+                       <div class="wrapper">
+                       { tr!("Waiting for") }
+                       <strong>{ " " } {{ players_left_count }}{ " " } </strong>
+                       { tr!("other player") }
+                       { if players_left_count > 1 { html! {"s"} } else { html! {}} }
+                       <br/><br/>
+                       { if mypos == 0 { html! {
+                               <div>
+                                   <div class="toolbar">
+                                   {if !self.my_state().ready  {
+                                       html! {<button class="primary" onclick=self.link.callback(|_| Msg::MarkReady)>{ tr!("Ready!")}</button>}
+                                   } else {
+                                       html! {}
+                                   }}
+                                   </div>
+                                   <div>{{ tr!("Share this link to invite players:") }} </div>
+                                   <div><a href={{ url_game.clone() }}>{{ url_game }}</a></div>
+                               </div>
+                           }} else { html! {} }}
                     </div>
-                    <div>{{ tr!("Share this link to invite players:") }} </div>
-                    <div><a href={{ url_game.clone() }}>{{ url_game }}</a></div>
-                 </div>
-                }},
+                   }
+               },
                Turn::CallingKing if player_action == Some(PlayerAction::CallKing) => {
                    // Choose a queen if player has all kings
                    // Choose a cavalier if player has all kings and all queens

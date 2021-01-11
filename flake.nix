@@ -29,10 +29,10 @@
 
       webtarot = with final; ( rustPlatform.buildRustPackage rec {
           name = "webtarot";
-          version = "0.6.2";
+          version = "0.6.3";
           src = ./.;
 
-          cargoSha256 = "sha256-QP/xwAcbBs8wCsumcL2SkNOm5cNsS/OXdWlVlkVFJiE=";
+          cargoSha256 = "sha256-KL1WTiO+SEDn5SGuSOMi4aBSv75puctkI/dPm/Iot68=";
 
           meta = with pkgs.stdenv.lib; {
             description = "A online game of french tarot";
@@ -55,7 +55,7 @@
         in 
           dockerTools.buildImage {
             name = "mmai/webtarot";
-            tag = "0.6.2";
+            tag = "0.6.3";
             contents = [ busybox ];
             config = {
               Entrypoint = [ entrypoint ];

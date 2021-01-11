@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: webtarot_client 0.2.6\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-10 18:30+0000\n"
+"POT-Creation-Date: 2021-01-11 17:22+0000\n"
 "PO-Revision-Date: 2020-07-11 18:47+0200\n"
 "Last-Translator:  <henri@henri-desktop>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -21,15 +21,11 @@ msgstr ""
 msgid "send some text"
 msgstr "envoyez un message"
 
-#: src/components/player_list.rs:98
-msgid " — ready"
-msgstr " - prêt"
-
 #: src/components/bidding_actions.rs:77
 msgid "Passe"
 msgstr "passe"
 
-#: src/components/bidding_actions.rs:97 src/views/game.rs:560
+#: src/components/bidding_actions.rs:97 src/views/game.rs:585
 msgid "Slam"
 msgstr "Grand chelem"
 
@@ -49,163 +45,179 @@ msgstr "Pas d'annonce"
 msgid "{}"
 msgstr "{}"
 
-#: src/views/game.rs:157
-msgid "trick for "
-msgstr "Pli remporté par "
+#: src/views/game.rs:131
+msgid "game is currently not joinable"
+msgstr "cette partie n'accepte plus de joueur"
 
-#: src/views/game.rs:172
-msgid "Contract succeded by {} point"
-msgstr "Contrat réussi de {} point"
-
-#: src/views/game.rs:175
-msgid "Contract failed by {} point"
-msgstr "Contrat chuté de {} point"
-
-#: src/views/game.rs:180
-msgid "{} oudler"
-msgstr "{} atout"
-
-#: src/views/game.rs:188
-msgid "Petit au bout bonus: {}"
-msgstr "Bonus petit au bout : {}"
-
-#: src/views/game.rs:189
-msgid "Poignees bonus: {}"
-msgstr "Bonus poignées : {}"
-
-#: src/views/game.rs:190
-msgid "Slam bonus: {}"
-msgstr "Bonus chelem : {}"
-
-#: src/views/game.rs:192
-msgid "Dog : {0}"
-msgstr "Chien : {0}"
-
-#: src/views/game.rs:226
-msgid "{} announced a {}"
-msgstr "{} a annoncé une {}"
-
-#: src/views/game.rs:424
-msgid "pre-game"
-msgstr "Préparation de la partie"
-
-#: src/views/game.rs:425
-msgid "inter trick"
-msgstr "fin du pli"
-
-#: src/views/game.rs:426
-msgid "inter deal"
-msgstr "nouvelle donne"
-
-#: src/views/game.rs:427
-msgid "{0} bidding"
-msgstr "à {0} de dire"
-
-#: src/views/game.rs:428
-msgid "{0} playing"
-msgstr "à {0} de jouer"
-
-#: src/views/game.rs:429
-msgid "end"
-msgstr "fin"
-
-#: src/views/game.rs:430
-msgid "calling king"
-msgstr "le preneur appelle un roi"
-
-#: src/views/game.rs:431
-msgid "making dog"
-msgstr "le preneur fait son chien"
-
-#: src/views/game.rs:443
+#: src/views/game.rs:132
 msgid "auctions are closed"
 msgstr "les enchères sont terminées"
 
-#: src/views/game.rs:444 src/views/game.rs:448
+#: src/views/game.rs:133 src/views/game.rs:137
 msgid "invalid turn order"
 msgstr "ce n'est pas votre tour"
 
-#: src/views/game.rs:445
+#: src/views/game.rs:134
 msgid "bid must be higher than current contract"
 msgstr "l'enchère doit être supérieure au contrat en cours"
 
-#: src/views/game.rs:446
+#: src/views/game.rs:135
 msgid "the auction are still running"
 msgstr "les enchères ne sont pas terminées"
 
-#: src/views/game.rs:447
+#: src/views/game.rs:136
 msgid "no contract was offered"
 msgstr "aucun contrat proposé"
 
-#: src/views/game.rs:449
+#: src/views/game.rs:138
 msgid "you can only play cards you have"
 msgstr "vous ne possédez pas cette carte"
 
-#: src/views/game.rs:450
+#: src/views/game.rs:139
 msgid "wrong suit played"
 msgstr "mauvaise couleur"
 
-#: src/views/game.rs:451
+#: src/views/game.rs:140
 msgid "you must use trumps"
 msgstr "vous devez jouer un atout"
 
-#: src/views/game.rs:452
+#: src/views/game.rs:141
 msgid "too weak trump played"
 msgstr "atout trop faible"
 
-#: src/views/game.rs:453
+#: src/views/game.rs:142
 msgid "you cannot play the suit of the called king in the first trick"
 msgstr "il est interdit de jouer de la couler du roi appelé au premier tour"
 
-#: src/views/game.rs:454
+#: src/views/game.rs:143
 msgid "no trick has been played yet"
 msgstr "aucun pli n'a encore été réalisé"
 
-#: src/views/game.rs:455
+#: src/views/game.rs:144
 msgid "you are not the taker"
 msgstr "Vous n'êtes pas le preneur"
 
-#: src/views/game.rs:456
+#: src/views/game.rs:145
 msgid "Wrong number of cards"
 msgstr "Nombre de cartes incorrect"
 
-#: src/views/game.rs:457
+#: src/views/game.rs:146
 msgid "Can't put the same card twice in the dog"
 msgstr "Carte en double dans le chien"
 
-#: src/views/game.rs:458
+#: src/views/game.rs:147
 msgid "Card neither in the taker's hand nor in the dog"
 msgstr "Carte n'appartenant ni au chien initial, ni à la main du preneur"
 
-#: src/views/game.rs:459
+#: src/views/game.rs:148
 msgid "Can't put an oudler in the dog"
 msgstr "Il est interdit de mettre un bout dans le chien"
 
-#: src/views/game.rs:460
+#: src/views/game.rs:149
 msgid "Can't put a king in the dog"
 msgstr "Il est interdit de mettre un roi dans le chien"
 
-#: src/views/game.rs:461
+#: src/views/game.rs:150
 msgid "Can't put a trump in the dog"
 msgstr "Il est interdit de mettre un atout dans le chien"
 
-#: src/views/game.rs:496
+#: src/views/game.rs:183
+msgid "trick for "
+msgstr "Pli remporté par "
+
+#: src/views/game.rs:198
+msgid "Contract succeded by {} point"
+msgstr "Contrat réussi de {} point"
+
+#: src/views/game.rs:201
+msgid "Contract failed by {} point"
+msgstr "Contrat chuté de {} point"
+
+#: src/views/game.rs:206
+msgid "{} oudler"
+msgstr "{} bout"
+
+#: src/views/game.rs:214
+msgid "Petit au bout bonus: {}"
+msgstr "Bonus petit au bout : {}"
+
+#: src/views/game.rs:215
+msgid "Poignees bonus: {}"
+msgstr "Bonus poignées : {}"
+
+#: src/views/game.rs:216
+msgid "Slam bonus: {}"
+msgstr "Bonus chelem : {}"
+
+#: src/views/game.rs:218
+msgid "Dog : {0}"
+msgstr "Chien : {0}"
+
+#: src/views/game.rs:252
+msgid "{} announced a {}"
+msgstr "{} a annoncé une {}"
+
+#: src/views/game.rs:366
+msgid "Really disconnect ?"
+msgstr "Voulez-vous vraiement vous déconnecter ?"
+
+#: src/views/game.rs:457
+msgid "pre-game"
+msgstr "Préparation de la partie"
+
+#: src/views/game.rs:458
+msgid "inter trick"
+msgstr "fin du pli"
+
+#: src/views/game.rs:459
+msgid "inter deal"
+msgstr "nouvelle donne"
+
+#: src/views/game.rs:460
+msgid "{0} bidding"
+msgstr "à {0} de dire"
+
+#: src/views/game.rs:461
+msgid "{0} playing"
+msgstr "à {0} de jouer"
+
+#: src/views/game.rs:462
+msgid "end"
+msgstr "fin"
+
+#: src/views/game.rs:463
+msgid "calling king"
+msgstr "le preneur appelle un roi"
+
+#: src/views/game.rs:464
+msgid "making dog"
+msgstr "le preneur fait son chien"
+
+#: src/views/game.rs:471
+msgid "disconnect"
+msgstr "déconnexion"
+
+#: src/views/game.rs:510
+msgid "Waiting for"
+msgstr "En attente de"
+
+#: src/views/game.rs:512
+msgid "other player"
+msgstr "joueur"
+
+#: src/views/game.rs:519
 msgid "Ready!"
 msgstr "Prêt!"
 
-#: src/views/game.rs:500
-msgid "Disconnect"
-msgstr "Se déconnecter"
-
-#: src/views/game.rs:502
+#: src/views/game.rs:524
 msgid "Share this link to invite players:"
 msgstr "Partagez ce lien pour inviter d'autres joueurs :"
 
-#: src/views/game.rs:554
+#: src/views/game.rs:579
 msgid "finish"
 msgstr "terminer"
 
-#: src/views/game.rs:589
+#: src/views/game.rs:614
 msgid "Your turn to play!"
 msgstr "C'est à vous de jouer!"
 
@@ -260,6 +272,15 @@ msgstr "Jouer"
 #: src/views/start.rs:104
 msgid "not good: {0}"
 msgstr "problème : {0}"
+
+#~ msgid " — ready"
+#~ msgstr " - prêt"
+
+#~ msgid "player(s) have joined. Waiting for"
+#~ msgstr "joueur(s) connecté(s). En attente de"
+
+#~ msgid "Disconnect"
+#~ msgstr "Déconnexion"
 
 #~ msgid "join code:"
 #~ msgstr "Code partie :"

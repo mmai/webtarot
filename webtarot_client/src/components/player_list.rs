@@ -90,18 +90,8 @@ impl Component for PlayerList {
                             } else { html!{} }
                         }
                         <div class="nickname withtooltip">
-                        {&state.player.nickname}
-                        <span class="card-info">
-                            {
-                                if self.game_state.turn == Turn::Pregame &&
-                                    state.ready {
-                                    html! { tr!(" — ready") }
-                                } else {
-                                    html!{}
-                                }
-                            }
-                            {str_card}
-                        </span>
+                            {&state.player.nickname}
+                            <span class="card-info"> {str_card} </span>
                         // {
                         //     if self.game_state.turn != Turn::Pregame {
                         //         html! {

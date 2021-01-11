@@ -253,6 +253,29 @@ p.turn-info {
 .header {
   grid-row-start: header;
   grid-column-start: game;
+  grid-column-end: end;
+}
+
+header {
+  display:flex;
+  flex-direction: row;
+  .nav-right {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: row-reverse;
+  }
+}
+
+.btn-link {
+    background: none!important;
+    border: none;
+    padding: 0!important;
+    font-family: arial, sans-serif;
+    color: white;
+    cursor: pointer;
+    &:hover {
+      text-decoration: underline;
+    }
 }
 
 .game-table {

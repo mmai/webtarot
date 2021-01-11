@@ -259,6 +259,7 @@ impl GameState for TarotGameState {
             }
         };
         GameStateSnapshot {
+            nb_players: self.nb_players,
             players,
             scores: self.scores.clone(),
             turn: self.turn,
@@ -454,6 +455,7 @@ pub struct VariantSettings {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct GameStateSnapshot {
+    pub nb_players: u8,
     pub players: Vec<GamePlayerState>,
     pub turn: Turn,
     pub deal: DealSnapshot,
@@ -514,6 +516,7 @@ impl Default for GameStateSnapshot {
     fn default() -> GameStateSnapshot {
         let pos = pos::PlayerPos::from_n(0, 5); // could be anything
         GameStateSnapshot {
+            nb_players: 4,
             players: vec![],
             scores: vec![],
             turn: Turn::Pregame,

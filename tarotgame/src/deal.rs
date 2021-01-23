@@ -12,7 +12,7 @@ use super::Announce;
 use super::AnnounceType;
 
 /// Describes the state of a coinche deal, ready to play a card.
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DealState {
     players: Vec<cards::Hand>,
     partner: pos::PlayerPos, 

@@ -112,7 +112,7 @@ pub enum BidStatus {
 
 
 /// Represents the entire auction process.
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Auction {
     contract: Option<Contract>,
     players_status: Vec<BidStatus>, 

@@ -14,7 +14,7 @@ pub use crate::deal::DealSnapshot;
 use crate::player::{PlayerRole, GamePlayerState};
 use crate::message::{TarotVariant, DebugOperation};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TarotGameState {
     nb_players: u8,
     players: BTreeMap<Uuid, GamePlayerState>,

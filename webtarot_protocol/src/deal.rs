@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use tarotgame::{bid, cards, pos, deal, trick, AnnounceType};
 
 /// Describe a single deal.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum Deal {
     /// The deal is still in the auction phase
     Bidding(bid::Auction),

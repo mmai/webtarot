@@ -43,14 +43,16 @@
           };
         });
 
-        webtarot-docker = with final;
+      webtarot-docker = with final;
         let
           port = "8080";
+          data_path = "8080";
+          db_uri = "${data_path}/webtarot_db";
           entrypoint = writeScript "entrypoint.sh" ''
             #!${stdenv.shell}
             IP=$(ip route get 1 | awk '{print $NF;exit}')
             echo "Starting server. Open your client on http://$IP:${port}"
-            ${webtarot}/bin/webtarot_server -d ${webtarot-front}/ -a $IP -p ${port}
+            ${webtarot}/bin/webtarot_server -d ${webtarot-front}/ -a $IP -p ${port} -u ${db_uri}
           '';
         in 
           dockerTools.buildImage {

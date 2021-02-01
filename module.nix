@@ -46,6 +46,14 @@ in
           '';
         };
 
+        dbUri = mkOption {
+          type = types.str;
+          default = "/tmp/webtarot_db";
+          description = ''
+            Webtarot database URI.
+          '';
+        };
+
       };
     };
 
@@ -108,7 +116,7 @@ in
 
           serviceConfig = serviceConfig // { 
             ExecStart = ''${pkgs.webtarot}/bin/webtarot_server -d ${pkgs.webtarot-front}/ \
-              -p ${toString cfg.apiPort}'';
+              -p ${toString cfg.apiPort} -u ${cfg.dbUri}'';
           };
 
           wantedBy = [ "multi-user.target" ];

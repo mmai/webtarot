@@ -19,9 +19,14 @@ Tarot en ligne
 
 ## Backlog
 
-- connexion : afficher directement bon écran
-- docker : étapes supplémentaires pour publier : exécuter localement ?
+- date game start
 - **server** enregistrement des parties
+  - listing
+  - archivage automatique updated > 24h
+  - permet interruption et reprise serveur ?
+  - remplacer completement btreemap par sled ?
+- docker : étapes supplémentaires pour publier : exécuter localement ?
+- **UX** connexion : afficher directement bon écran
 - **refacto** retirer la dépendence Universe de Game : possible ? cf. https://docs.google.com/presentation/d/1ov5957xmm8s9V2F32AgXbaaQL0nCPai58PavU6jn0jA/edit#slide=id.p 
 - compte utilisateur activitypub https://socialhub.activitypub.rocks/t/single-sign-on-for-fediverse/712
 - **server** store accounts

@@ -29,10 +29,10 @@
 
       webtarot = with final; ( rustPlatform.buildRustPackage rec {
           name = "webtarot";
-          version = "0.6.4";
+          version = "0.6.5";
           src = ./.;
 
-          cargoSha256 = "sha256-4HqDyhM0cAxfHsXFK/6n3mTKCSOywwrmqrA3HEM46Pk=";
+          cargoSha256 = "sha256-3HqDyhM0cAxfHsXFK/6n3mTKCSOywwrmqrA3HEM46Pk=";
 
           meta = with pkgs.stdenv.lib; {
             description = "A online game of french tarot";
@@ -46,18 +46,21 @@
       webtarot-docker = with final;
         let
           port = "8080";
-          data_path = "8080";
+          data_path = "/var/webtarot";
           db_uri = "${data_path}/webtarot_db";
+          runAsRoot = ''
+            mkdir -p ${data_path}/archives
+          '';
           entrypoint = writeScript "entrypoint.sh" ''
             #!${stdenv.shell}
             IP=$(ip route get 1 | awk '{print $NF;exit}')
             echo "Starting server. Open your client on http://$IP:${port}"
-            ${webtarot}/bin/webtarot_server -d ${webtarot-front}/ -a $IP -p ${port} -u ${db_uri}
+            ${webtarot}/bin/webtarot_server -d ${webtarot-front}/ -a $IP -p ${port} -u ${db_uri} --archives-directory ${data_path}/archives
           '';
         in 
           dockerTools.buildImage {
             name = "mmai/webtarot";
-            tag = "0.6.4";
+            tag = "0.6.5";
             contents = [ busybox ];
             config = {
               Entrypoint = [ entrypoint ];

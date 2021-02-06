@@ -2,6 +2,7 @@ use clap::{Arg, App};
 
 mod explorer;
 mod player;
+mod player_factory;
 
 pub fn main() {
     let version = format!("{}.{}.{}{}",
@@ -30,15 +31,29 @@ pub fn main() {
              .value_name("JOINCODE")
              .help("Game join code")
              .takes_value(true))
+        .arg(Arg::with_name("websocket")
+             .short("s")
+             .long("websocket")
+             .value_name("WEBSOCKET")
+             .help("Game websocket url")
+             .takes_value(true))
+        .arg(Arg::with_name("count")
+             .short("n")
+             .long("count")
+             .value_name("COUNT")
+             .help("Number of bots to start")
+             .takes_value(true))
         ;
     let matches = app.get_matches();
 
     let str_command = matches.value_of("command").unwrap_or("play"); 
-    let str_joincode = matches.value_of("joincode").unwrap_or(""); 
+    let joincode = matches.value_of("joincode").unwrap_or(""); 
+    let str_websocket = matches.value_of("websocket").unwrap_or("ws://127.0.0.1:8001/ws/"); 
+    let count = matches.value_of("count").and_then(|str_count| str_count.parse::<usize>().ok()).unwrap_or(4); 
 
     match str_command {
         "find_decks" => explorer::find_decks(),
-        "play" => player::play(str_joincode.to_string()),
+        "play" => player_factory::play(joincode, str_websocket, count),
         _ => println!("Nothing to do")
     }
 }

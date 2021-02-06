@@ -1,4 +1,4 @@
-use tungstenite::{connect, Message as TMessage};
+use tungstenite::Message as TMessage;
 use tungstenite::stream::Stream;
 use tungstenite::protocol::WebSocket;
 
@@ -15,29 +15,7 @@ use webgame_protocol::{AuthenticateCommand, JoinGameCommand, PlayerInfo};
 
 type TarotSocket = WebSocket<Stream<std::net::TcpStream, native_tls::TlsStream<std::net::TcpStream>>>;
 
-pub fn play(join_code: String) {
-    env_logger::init();
-
-    let sockets: Vec<TarotSocket> =[1,2,3,4].iter().map(|i| {
-        connect(Url::parse("ws://127.0.0.1:8001/ws/new_new")
-            .unwrap())
-            .expect("Can't connect")
-            .0
-    }).collect();
-
-    sockets.into_par_iter().enumerate().for_each(|(i, socket)| {
-        let mut player = SocketPlayer { 
-            socket,
-            join_code: join_code.clone(),
-            game_state: GameStateSnapshot::default(),
-            player_info: PlayerInfo { id: Uuid::default(), nickname: format!("TAROBOT-{}", i)} 
-        };
-        player.play();
-    });
-
-}
-
-struct SocketPlayer {
+pub struct SocketPlayer {
     socket: TarotSocket,
     join_code: String,
     game_state: GameStateSnapshot,
@@ -51,16 +29,25 @@ impl Drop for SocketPlayer {
 }
 
 impl SocketPlayer {
-    pub fn check_join_code(&mut self) -> bool {
-        if self.join_code == "" {
-            println!("Get available games codes");
-            let json = r#"{"cmd": "show_server_status"}"#.into();
-            self.socket.write_message(TMessage::Text(json)).unwrap();
-            return false;
+    pub fn new(socket: TarotSocket, join_code: String, nickname: String) -> Self {
+        SocketPlayer { 
+            socket,
+            join_code,
+            game_state: GameStateSnapshot::default(),
+            player_info: PlayerInfo { id: Uuid::default(), nickname } 
         }
-        true
     }
 
+    // pub fn check_join_code(&mut self) -> bool {
+    //     if self.join_code == "" {
+    //         println!("Get available games codes");
+    //         let json = r#"{"cmd": "show_server_status"}"#.into();
+    //         self.socket.write_message(TMessage::Text(json)).unwrap();
+    //         return false;
+    //     }
+    //     true
+    // }
+    //
     pub fn play(&mut self){
         self.send(&Command::Authenticate(AuthenticateCommand { nickname: self.player_info.nickname.clone() }));
         loop {
@@ -95,9 +82,9 @@ impl SocketPlayer {
             Message::Authenticated(player_info) => {
                 self.player_info = player_info;
                 println!("Authenticated with id {}", self.player_info.id);
-                if self.check_join_code() {
+                // if self.check_join_code() {
                     self.send(&Command::JoinGame(JoinGameCommand { join_code: self.join_code.clone(), }));
-                }
+                // }
             }
             Message::GameJoined(game_info) => {
                 println!("Game joined: {}", game_info.game_id);
@@ -156,4 +143,3 @@ impl SocketPlayer {
     }
 
 }
-

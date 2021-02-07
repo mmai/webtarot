@@ -106,9 +106,9 @@ impl SocketPlayer {
     }
 
     fn handle_new_state(&mut self){
-        let semi_second = time::Duration::from_millis(500);
-        let now = time::Instant::now();
-        thread::sleep(semi_second);
+        // let delay = time::Duration::from_millis(100);
+        // let now = time::Instant::now();
+        // thread::sleep(delay);
 
         let my_state = self.my_state();
         // let card_played = self.game_state.deal.last_trick.card_played(my_state.pos);
@@ -140,8 +140,10 @@ impl SocketPlayer {
     }
 
     fn guess_bid(&self) -> Option<Target>{
+        let curr_target = &self.game_state.deal.contract_target();
+
         let points = self.evaluate_hand();
-        if points < 40 {
+        let candidate = if points < 40 {
             None
         } else if points < 56 {
             Some(Target::Prise)
@@ -151,7 +153,8 @@ impl SocketPlayer {
             Some(Target::GardeSans)
         } else {
             Some(Target::GardeContre)
-        }
+        };
+        candidate.filter(|bidtarget| curr_target.lt(&Some(*bidtarget)))
     }
 
     // cf. https://www.le-tarot.fr/quel-contrat-choisir/
@@ -218,8 +221,12 @@ impl SocketPlayer {
         } else {
             Rank::RankK
         };
-        //dummy
-        Card::new(Suit::Heart, rank)
+
+        let mut candidates: Vec<Card> = [Suit::Club, Suit::Diamond, Suit::Spade, Suit::Heart].into_iter()
+            .filter( |suit| !hand.has(Card::new(**suit, rank)) )
+            .map(|suit| Card::new(*suit, rank))
+            .collect();
+        candidates.pop().unwrap()
     }
 
     fn make_dog(&self) -> Hand {

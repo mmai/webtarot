@@ -449,6 +449,11 @@ impl Hand {
         Self(0, self.1)
     }
 
+    /// Returns the non trumps in `self`.
+    pub fn no_trumps(self) -> Self {
+        Self(self.0, 1)
+    }
+
     /// Returns the number of trumps in `self`.
     pub fn trumps_count(self) -> usize {
         let only_trumps = Self(0, self.1);

@@ -19,10 +19,13 @@ Tarot en ligne
 
 ## Backlog
 
-- date game start
+- bug : son cartes jouées
+- vérifier random
+- jouer contre des bots
+- **UX** volet résultats
+- **UX** indiquer joueur appelé quand il est connu
 - **server** enregistrement des parties
   - listing
-  - archivage automatique updated > 24h
   - permet interruption et reprise serveur ?
   - remplacer completement btreemap par sled ?
 - docker : étapes supplémentaires pour publier : exécuter localement ?
@@ -30,7 +33,6 @@ Tarot en ligne
 - **refacto** retirer la dépendence Universe de Game : possible ? cf. https://docs.google.com/presentation/d/1ov5957xmm8s9V2F32AgXbaaQL0nCPai58PavU6jn0jA/edit#slide=id.p 
 - compte utilisateur activitypub https://socialhub.activitypub.rocks/t/single-sign-on-for-fediverse/712
 - **server** store accounts
-- **UX** indiquer joueur appelé quand il est connu
 - scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
 - **UX** chien : interdire de finir si le chien ne contient pas trois cartes
 - **rules** optionnelles

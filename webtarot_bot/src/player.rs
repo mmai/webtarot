@@ -2,15 +2,17 @@ use tungstenite::Message as TMessage;
 use tungstenite::stream::Stream;
 use tungstenite::protocol::WebSocket;
 
-// use std::thread;
+
+use std::{thread, time};
+
 use rayon::prelude::*;
 
 use uuid::Uuid;
 use url::Url;
 use serde_json::Result;
 
-use tarotgame::{deal_seeded_hands, cards::{Card, Hand}, deal::can_play} ;
-use webtarot_protocol::{Message, Command, GameStateSnapshot, PlayerAction, GamePlayCommand, PlayCommand, GamePlayerState};
+use tarotgame::{deal_seeded_hands, cards::{Card, Hand, Suit, Rank}, deal::can_play, bid::Target, points::strength} ;
+use webtarot_protocol::{Message, Command, GameStateSnapshot, PlayerAction, GamePlayCommand, PlayCommand, GamePlayerState, BidCommand, CallKingCommand, MakeDogCommand};
 use webgame_protocol::{AuthenticateCommand, JoinGameCommand, PlayerInfo};
 
 type TarotSocket = WebSocket<Stream<std::net::TcpStream, native_tls::TlsStream<std::net::TcpStream>>>;
@@ -38,16 +40,6 @@ impl SocketPlayer {
         }
     }
 
-    // pub fn check_join_code(&mut self) -> bool {
-    //     if self.join_code == "" {
-    //         println!("Get available games codes");
-    //         let json = r#"{"cmd": "show_server_status"}"#.into();
-    //         self.socket.write_message(TMessage::Text(json)).unwrap();
-    //         return false;
-    //     }
-    //     true
-    // }
-    //
     pub fn play(&mut self){
         self.send(&Command::Authenticate(AuthenticateCommand { nickname: self.player_info.nickname.clone() }));
         loop {
@@ -114,6 +106,10 @@ impl SocketPlayer {
     }
 
     fn handle_new_state(&mut self){
+        let semi_second = time::Duration::from_millis(500);
+        let now = time::Instant::now();
+        thread::sleep(semi_second);
+
         let my_state = self.my_state();
         // let card_played = self.game_state.deal.last_trick.card_played(my_state.pos);
         let player_action = my_state.get_turn_player_action(self.game_state.turn);
@@ -121,8 +117,17 @@ impl SocketPlayer {
         // let is_my_turn = self.game_state.get_playing_pos() == Some(self.my_state().pos);
         match player_action {
             Some(PlayerAction::Bid) => {
-                println!("I pass...");
-                self.send(&Command::GamePlay(GamePlayCommand::Pass));
+                if let Some(target) = self.guess_bid() {
+                    self.send(&Command::GamePlay(GamePlayCommand::Bid(BidCommand { target, slam: false })));
+                } else {
+                    self.send(&Command::GamePlay(GamePlayCommand::Pass));
+                }
+            }
+            Some(PlayerAction::CallKing) => {
+                self.send(&Command::GamePlay(GamePlayCommand::CallKing(CallKingCommand { card: self.call_king() })));
+            }
+            Some(PlayerAction::MakeDog) => {
+                self.send(&Command::GamePlay(GamePlayCommand::MakeDog(MakeDogCommand { cards: self.make_dog(), slam: false })));
             }
             Some(PlayerAction::Play) => {
                 self.choose_card().map(|card| {
@@ -132,6 +137,136 @@ impl SocketPlayer {
             }
             _ => {}
         }
+    }
+
+    fn guess_bid(&self) -> Option<Target>{
+        let points = self.evaluate_hand();
+        if points < 40 {
+            None
+        } else if points < 56 {
+            Some(Target::Prise)
+        } else if points < 71 {
+            Some(Target::Garde)
+        } else if points < 81 {
+            Some(Target::GardeSans)
+        } else {
+            Some(Target::GardeContre)
+        }
+    }
+
+    // cf. https://www.le-tarot.fr/quel-contrat-choisir/
+    fn evaluate_hand(&self) -> usize {
+        let mut points = 0;
+
+        let deal = &self.game_state.deal;
+        let hand = deal.hand;
+        let trumps = hand.trumps();
+        let trumps_count = trumps.size();
+
+        // oudlers
+        let t21 = Card::new(Suit::Trump, Rank::Rank21);
+        let excuse = Card::new(Suit::Trump, Rank::Rank22);
+        let petit = Card::new(Suit::Trump, Rank::Rank1);
+        if hand.has(t21) { points += 10 }
+        if hand.has(excuse) { points += 7 }
+        if hand.has(petit) { 
+            points += match trumps_count {
+                n if 7 < n => 8,
+                6 => 7,
+                5 => 6,
+                _ => 0
+            }
+        }
+        // trumps
+        points += trumps_count * 2;
+        let trump15 = Card::new(Suit::Trump, Rank::Rank15);
+        let big_trumps: Vec<Card>= trumps.into_iter().filter(|c| strength(*c) > strength(trump15) && c.rank() != Rank::Rank22).collect();
+        let big_trumps = big_trumps.len();
+        points += big_trumps * 2;
+        if big_trumps > 4 { points += big_trumps }
+        // Honours
+        for suit in &[Suit::Club, Suit::Diamond, Suit::Spade, Suit::Heart] {
+            let suit_cards: Vec<Card> = hand.into_iter().filter(|c| &c.suit() == suit).collect();
+            let suit_count = suit_cards.len();
+            let has_king = hand.has(Card::new(*suit, Rank::RankK));
+            let has_queen = hand.has(Card::new(*suit, Rank::RankQ));
+            let has_cavale = hand.has(Card::new(*suit, Rank::RankC));
+            let has_jack = hand.has(Card::new(*suit, Rank::RankJ));
+
+            if has_king { points += if has_queen { 7 } else { 6 } }
+            if has_queen { points += 3 }
+            if has_cavale { points += 2 }
+            if has_jack { points += 1 }
+
+            //Coupe
+            if suit_count == 0 { points += 5 }
+            //Singlette
+            if suit_count == 1 { points += 3 }
+            //Longue
+            if suit_count > 4 {
+                points += 5 + (suit_count - 5) * 2
+            }
+        }
+        points
+    }
+
+    fn call_king(&self) -> Card {
+        let deal = &self.game_state.deal;
+        let hand = deal.hand;
+        let rank = if hand.has_all_rank(Rank::RankK) {
+            if hand.has_all_rank(Rank::RankQ) { Rank::RankC } else { Rank::RankQ } 
+        } else {
+            Rank::RankK
+        };
+        //dummy
+        Card::new(Suit::Heart, rank)
+    }
+
+    fn make_dog(&self) -> Hand {
+        let mut dog = Hand::new();
+        let deal = &self.game_state.deal;
+        let dog_size = deal.initial_dog.size();
+        let mut hand_all = deal.hand.clone();
+        hand_all.merge(deal.initial_dog);
+        let mut hand = hand_all.no_trumps();
+        //Check if we can make a cut
+        for suit in &[Suit::Club, Suit::Diamond, Suit::Spade, Suit::Heart] {
+            let suit_cards: Vec<Card> = hand.into_iter().filter(|c| &c.suit() == suit).collect();
+            let king = Card::new(*suit, Rank::RankK);
+            let suit_count = suit_cards.len();
+            if suit_count <= (dog_size - dog.size()) && !hand.has(king) {
+                for card in suit_cards {
+                    dog.add(card);
+                    hand.remove(card);
+                } 
+            }
+            hand.remove(king); // kings not allowed in dog
+        }
+        //Put points 
+        let mut queens: Vec<Card> = hand.into_iter().filter(|c| c.rank() == Rank::RankQ).collect(); 
+        let mut cavales: Vec<Card> = hand.into_iter().filter(|c| c.rank() == Rank::RankC).collect(); 
+        let mut candidates: Vec<Card> = hand.into_iter().filter(|c| c.rank() == Rank::RankJ).collect(); 
+        candidates.append(& mut cavales);
+        candidates.append(& mut queens);
+        let mut candidate = candidates.pop();
+        while dog.size() < dog_size  && candidate.is_some() {
+            let card = candidate.unwrap();
+            dog.add(card);
+            hand.remove(card);
+            candidate = candidates.pop();
+        }
+        //other cards
+        let mut cards = hand.list();
+        let mut card = cards.pop();
+        while dog.size() < dog_size && card.is_some() {
+            dog.add(card.unwrap());
+            card = cards.pop();
+        }
+
+        assert!(dog.size() == dog_size);
+
+        //dummy
+        dog
     }
 
     fn choose_card(&self) -> Option<Card>{

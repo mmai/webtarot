@@ -20,6 +20,7 @@ Tarot en ligne
 ## Backlog
 
 - bug : son cartes jouées
+- bug : bot essaie de jouer dans un tour terminé (pb des dispatch du listener ?)
 - vérifier random
 - jouer contre des bots
 - **UX** volet résultats

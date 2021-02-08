@@ -451,7 +451,7 @@ impl Hand {
 
     /// Returns the non trumps in `self`.
     pub fn no_trumps(self) -> Self {
-        Self(self.0, 1)
+        Self(self.0, 0)
     }
 
     /// Returns the number of trumps in `self`.

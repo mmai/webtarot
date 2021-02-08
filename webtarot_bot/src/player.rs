@@ -4,7 +4,8 @@ use tungstenite::protocol::WebSocket;
 
 
 use std::{thread, time};
-
+use std::collections::HashMap;
+ 
 use rayon::prelude::*;
 
 use uuid::Uuid;
@@ -17,11 +18,51 @@ use webgame_protocol::{AuthenticateCommand, JoinGameCommand, PlayerInfo};
 
 type TarotSocket = WebSocket<Stream<std::net::TcpStream, native_tls::TlsStream<std::net::TcpStream>>>;
 
+struct DealStats {
+    pub players: Vec<PlayerStats>,
+    pub partners: Vec<usize>,
+}
+
+impl DealStats {
+    fn new() -> Self {
+        DealStats { players: vec![], partners: vec![] }
+    }
+
+    fn init_state(&mut self, nb_players: usize) {
+        self.players = vec![ PlayerStats::new() ; nb_players];
+    }
+}
+
+
+#[derive(Clone, Debug)]
+struct PlayerStats {
+    played: Hand,
+    has_heart: bool,
+    has_club: bool,
+    has_spade: bool,
+    has_diamond: bool,
+    has_trump: bool,
+}
+
+impl PlayerStats {
+    fn new() -> Self {
+        PlayerStats {
+            played: Hand::new(), 
+            has_heart: true,
+            has_club: true,
+            has_spade: true,
+            has_diamond: true,
+            has_trump: true,
+        } 
+    }
+}
+
 pub struct SocketPlayer {
     socket: TarotSocket,
     join_code: String,
     game_state: GameStateSnapshot,
     player_info: PlayerInfo,
+    stats: DealStats,
 }
 
 impl Drop for SocketPlayer {
@@ -36,10 +77,11 @@ impl SocketPlayer {
             socket,
             join_code,
             game_state: GameStateSnapshot::default(),
-            player_info: PlayerInfo { id: Uuid::default(), nickname } 
+            player_info: PlayerInfo { id: Uuid::default(), nickname } ,
+            stats: DealStats::new(),
         }
     }
-
+    
     pub fn play(&mut self){
         self.send(&Command::Authenticate(AuthenticateCommand { nickname: self.player_info.nickname.clone() }));
         loop {
@@ -53,6 +95,16 @@ impl SocketPlayer {
             self.handle_server_message(message);
         }
 
+    }
+
+    pub fn update_stats(&mut self) {
+        // let cards = self.game_state.deal.last_trick.cards.clone();
+        let cards = self.game_state.deal.last_trick.cards;
+        cards.iter().enumerate().for_each(|(pos, card)| {
+            card.map(|c| self.stats.players[pos].played.add(c));
+        });
+        println!("\n\n======================"); 
+        self.stats.players.iter().for_each(|p| println!("{:?}", p.played.to_string()));
     }
 
     pub fn my_state(&self) -> &GamePlayerState {
@@ -106,10 +158,7 @@ impl SocketPlayer {
     }
 
     fn handle_new_state(&mut self){
-        // let delay = time::Duration::from_millis(100);
-        // let now = time::Instant::now();
-        // thread::sleep(delay);
-
+        self.update_stats();
         let my_state = self.my_state();
         // let card_played = self.game_state.deal.last_trick.card_played(my_state.pos);
         let player_action = my_state.get_turn_player_action(self.game_state.turn);
@@ -117,6 +166,8 @@ impl SocketPlayer {
         // let is_my_turn = self.game_state.get_playing_pos() == Some(self.my_state().pos);
         match player_action {
             Some(PlayerAction::Bid) => {
+                //deal has started, we can init its state
+                self.stats.init_state(self.game_state.nb_players as usize);
                 if let Some(target) = self.guess_bid() {
                     self.send(&Command::GamePlay(GamePlayCommand::Bid(BidCommand { target, slam: false })));
                 } else {
@@ -222,7 +273,14 @@ impl SocketPlayer {
             Rank::RankK
         };
 
-        let mut candidates: Vec<Card> = [Suit::Club, Suit::Diamond, Suit::Spade, Suit::Heart].into_iter()
+        let mut suits = [Suit::Club, Suit::Diamond, Suit::Spade, Suit::Heart];
+        suits.sort_by(|a, b| {
+                let a_cards: Vec<Card> = hand.into_iter().filter(|c| &c.suit() == a).collect();
+                let b_cards: Vec<Card> = hand.into_iter().filter(|c| &c.suit() == b).collect();
+                a_cards.len().cmp(&b_cards.len())
+            } );
+
+        let mut candidates: Vec<Card> = suits.into_iter()
             .filter( |suit| !hand.has(Card::new(**suit, rank)) )
             .map(|suit| Card::new(*suit, rank))
             .collect();
@@ -230,6 +288,11 @@ impl SocketPlayer {
     }
 
     fn make_dog(&self) -> Hand {
+        //Let the players see the initial dog
+        let delay = time::Duration::from_millis(3000);
+        let now = time::Instant::now();
+        thread::sleep(delay);
+
         let mut dog = Hand::new();
         let deal = &self.game_state.deal;
         let dog_size = deal.initial_dog.size();
@@ -263,6 +326,8 @@ impl SocketPlayer {
             candidate = candidates.pop();
         }
         //other cards
+        //(we assume there is enough non trumps cards : 
+        //if not, the contract should have been "garde sans" or "garde contre")
         let mut cards = hand.list();
         let mut card = cards.pop();
         while dog.size() < dog_size && card.is_some() {
@@ -271,14 +336,21 @@ impl SocketPlayer {
         }
 
         assert!(dog.size() == dog_size);
-
-        //dummy
         dog
     }
 
     fn choose_card(&self) -> Option<Card>{
         let deal = &self.game_state.deal;
         let hand = deal.hand;
+        let excuse = Card::new(Suit::Trump, Rank::Rank22);
+
+        //Play the excuse before the last trick
+        if hand.size() == 2 && hand.has(excuse) {
+            return Some(excuse);
+        }
+        //Play the excuse if trumps and no points for me
+
+        //Random playable card
         hand.list().iter().find(|card| {
             can_play(self.my_state().pos, **card, hand, &deal.last_trick, deal.king, deal.trick_count == 1).is_ok()
         }).map(|c| *c)

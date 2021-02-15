@@ -10,7 +10,7 @@ use std::str::FromStr;
 use std::string::ToString;
 
 /// One of the four Suits: Heart, Spade, Diamond, Club.
-#[derive(PartialEq, Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Clone, Copy, Debug, Serialize, Deserialize, Eq, Hash)]
 #[repr(u64)]
 pub enum Suit {
     /// The suit of hearts.
@@ -320,11 +320,26 @@ impl Card {
     pub fn is_oudler(self) -> bool {
         self.suit() == Suit::Trump && [Rank::Rank1, Rank::Rank21, Rank::Rank22].contains(&self.rank())
     }
+
+    pub fn excuse() -> Card {
+        Card::new(Suit::Trump, Rank::Rank22)
+    }
+
 }
 
 /// Represents an unordered set of cards.
 #[derive(PartialEq, Clone, Copy, Debug, Serialize, Deserialize, Default)]
 pub struct Hand(u64, u32);
+
+impl From<Vec<Card>> for Hand {
+    fn from(cards: Vec<Card>) -> Hand {
+        let mut hand = Self::new();
+        for card in cards.into_iter() {
+            hand.add(card);
+        }
+        hand
+    }
+}
 
 impl Hand {
     /// Returns an empty hand.
@@ -424,6 +439,10 @@ impl Hand {
         }
     }
 
+    pub fn get_suit_cards(self, suit: &Suit) -> Vec<Card> {
+        self.into_iter().filter(|c| &c.suit() == suit).collect()
+    }
+
     /// Returns the cards contained in `self` as a `Vec`.
     pub fn list(self) -> Vec<Card> {
         let mut cards = Vec::new();
@@ -519,6 +538,10 @@ impl Deck {
         }
 
         d
+    }
+
+    pub fn get_suit_cards(&self, suit: Suit) -> Vec<Card> {
+        self.cards.clone().into_iter().filter(|c| c.suit() == suit).collect()
     }
 
     /// Shuffle this deck.

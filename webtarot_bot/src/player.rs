@@ -12,7 +12,7 @@ use uuid::Uuid;
 use url::Url;
 use serde_json::Result;
 
-use tarotgame::{deal_seeded_hands, cards::{Card, Hand, Suit, Rank}, deal::can_play, bid::Target, points::strength, pos::PlayerPos};
+use tarotgame::{deal_seeded_hands, cards::{Deck, Card, Hand, Suit, Rank}, deal::can_play, bid::Target, points::strength, pos::PlayerPos};
 use webtarot_protocol::{Message, Command, GameStateSnapshot, PlayerAction, GamePlayCommand, PlayCommand, GamePlayerState, BidCommand, CallKingCommand, MakeDogCommand, Turn, PlayerRole};
 use webgame_protocol::{AuthenticateCommand, JoinGameCommand, PlayerInfo};
 
@@ -20,16 +20,42 @@ type TarotSocket = WebSocket<Stream<std::net::TcpStream, native_tls::TlsStream<s
 
 struct DealStats {
     pub players: Vec<PlayerStats>,
+    pub suit_left: HashMap<Suit, Hand>,
     pub teams_known: bool,
 }
 
 impl DealStats {
     fn new() -> Self {
-        DealStats { players: vec![], teams_known: false }
+        DealStats { 
+            players: vec![],
+            suit_left: HashMap::default(),
+            teams_known: false
+        }
     }
 
-    fn init_state(&mut self, nb_players: usize) {
+    fn init_state(&mut self, nb_players: usize, hand: Hand) {
         self.players = vec![ PlayerStats::new() ; nb_players];
+        //reset cards left
+        let deck = Deck::new();
+        let hearts = deck.get_suit_cards(Suit::Heart).into();
+        let clubs = deck.get_suit_cards(Suit::Club).into();
+        let spades = deck.get_suit_cards(Suit::Spade).into();
+        let diamonds = deck.get_suit_cards(Suit::Diamond).into();
+        let trumps = deck.get_suit_cards(Suit::Trump).into();
+        self.suit_left = [
+                (Suit::Heart, hearts),
+                (Suit::Spade, spades),
+                (Suit::Diamond, diamonds),
+                (Suit::Club, clubs),
+                (Suit::Trump, trumps)
+            ].iter().cloned().collect();
+
+        //remove own cards
+        for suit in &[Suit::Club, Suit::Diamond, Suit::Spade, Suit::Heart, Suit::Trump] {
+            for card in hand.get_suit_cards(suit) {
+                (*self.suit_left.get_mut(suit).unwrap()).remove(card);
+            }
+        }
     }
 }
 
@@ -39,11 +65,7 @@ struct PlayerStats {
     played: Hand,
     is_taker: bool,
     in_taker_team: Option<bool>,
-    has_heart: bool,
-    has_club: bool,
-    has_spade: bool,
-    has_diamond: bool,
-    has_trump: bool,
+    suits_available: HashMap<Suit, Option<bool>>,
 }
 
 impl PlayerStats {
@@ -52,11 +74,13 @@ impl PlayerStats {
             played: Hand::new(), 
             is_taker: false,
             in_taker_team: None,
-            has_heart: true,
-            has_club: true,
-            has_spade: true,
-            has_diamond: true,
-            has_trump: true,
+            suits_available: [
+                (Suit::Heart, None),
+                (Suit::Spade, None),
+                (Suit::Diamond, None),
+                (Suit::Club, None),
+                (Suit::Trump, None)
+            ].iter().cloned().collect(),
         } 
     }
 }
@@ -102,16 +126,33 @@ impl SocketPlayer {
     }
 
     fn update_stats(&mut self) {
-        // let cards = self.game_state.deal.last_trick.cards.clone();
-        let cards = self.game_state.deal.last_trick.cards;
-        cards.iter().enumerate().for_each(|(pos, card)| {
-            card.map(|c| self.stats.players[pos].played.add(c));
-        });
+        let deal = &self.game_state.deal;
+        //My stats
+        let my_idx = self.my_state().pos.to_n();
+        if self.stats.players.len() > 0 {
+            for suit in &[Suit::Club, Suit::Diamond, Suit::Spade, Suit::Heart] {
+                *self.stats.players[my_idx].suits_available.get_mut(suit).unwrap() = Some(deal.hand.get_suit_cards(suit).len() > 0);
+            }
 
-        if let Turn::Playing(_) = self.game_state.turn {
-            self.update_partners();
+            let trick_suit = deal.last_trick.suit();
+            let cards = deal.last_trick.cards;
+            cards.iter().enumerate().for_each(|(pos, card)| {
+                card.map(|c| {
+                    self.stats.players[pos].played.add(c);
+                    (*self.stats.suit_left.get_mut(&c.suit()).unwrap()).remove(c);
+                    if Some(c.suit()) != trick_suit && c != Card::excuse() {
+                        *self.stats.players[pos].suits_available.get_mut(&trick_suit.unwrap()).unwrap() = Some(false);
+                    }
+                });
+            });
+
+            if let Turn::Playing(_) = self.game_state.turn {
+                self.update_partners();
+            }
+            self.stats.players.iter().for_each(|p| println!("{:?} {:?}", p.played.to_string(), p.in_taker_team));
+            println!("suits cards not played for {}:", self.player_info.nickname);
+            self.stats.suit_left.iter().for_each(|(s, h)| println!("{:?} {}", s, h.to_string()));
         }
-        self.stats.players.iter().for_each(|p| println!("{:?} {:?}", p.played.to_string(), p.in_taker_team));
     }
 
     fn update_partners(&mut self) {
@@ -126,24 +167,30 @@ impl SocketPlayer {
 
         if let Some(king) = deal.king {
             let partner_pos: Option<usize> = if deal.hand.has(king) {
-                println!("i have king ({})", king.to_string());
-                Some(self.my_state().pos.to_n())
-            } else {
-                println!("searching king in played cards");
-                self.stats.players.iter()
-                    .enumerate()
-                    .find(|(idx, pstat)| pstat.played.has(king))
-                    .map(|(idx, pstat)| idx)
-            };
-
+                    // I have king
+                    Some(self.my_state().pos.to_n())
+                } else {
+                    // searching king in players played cards
+                    self.stats.players.iter()
+                        .enumerate()
+                        .find(|(idx, pstat)| pstat.played.has(king))
+                        .map(|(idx, pstat)| idx)
+                };
             if let Some(pos) = partner_pos {
                 for (idx, pstat) in  self.stats.players.iter_mut().enumerate() {
                     pstat.in_taker_team = Some(pstat.is_taker || idx == pos);
-                    println!("taker {:?}, p{} <> id{}",pstat.is_taker, pos, idx);
                 }
                 self.stats.teams_known = true;
+            } else { // King not played
+                //Check players who don't have cards of the king's suit
+                for pstat in  self.stats.players.iter_mut() {
+                    if Some(false) == pstat.suits_available[&king.suit()] {
+                        pstat.in_taker_team = Some(false);
+                    }
+                }
             }
-        } else {
+
+        } else { // Aucun roi appelé : le preneur est seul 
             self.stats.players.iter_mut().map(|pstat|
                 pstat.in_taker_team = Some(pstat.is_taker)
             );
@@ -211,7 +258,7 @@ impl SocketPlayer {
         match player_action {
             Some(PlayerAction::Bid) => {
                 //deal has started, we can init its state
-                self.stats.init_state(self.game_state.nb_players as usize);
+                self.stats.init_state(self.game_state.nb_players as usize, self.game_state.deal.hand);
                 if let Some(target) = self.guess_bid() {
                     self.send(&Command::GamePlay(GamePlayCommand::Bid(BidCommand { target, slam: false })));
                 } else {

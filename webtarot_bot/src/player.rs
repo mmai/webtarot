@@ -269,7 +269,11 @@ impl SocketPlayer {
                 self.send(&Command::GamePlay(GamePlayCommand::CallKing(CallKingCommand { card: self.call_king() })));
             }
             Some(PlayerAction::MakeDog) => {
-                self.send(&Command::GamePlay(GamePlayCommand::MakeDog(MakeDogCommand { cards: self.make_dog(), slam: false })));
+                let dog  = self.make_dog();
+                for card in dog.list() {
+                    (*self.stats.suit_left.get_mut(&card.suit()).unwrap()).remove(card);
+                }
+                self.send(&Command::GamePlay(GamePlayCommand::MakeDog(MakeDogCommand { cards: dog, slam: false })));
             }
             Some(PlayerAction::Play) => {
                 self.choose_card().map(|card| {
@@ -432,6 +436,7 @@ impl SocketPlayer {
 
     fn choose_card(&self) -> Option<Card>{
         let deal = &self.game_state.deal;
+        let trick = &deal.last_trick;
         let hand = deal.hand;
         let excuse = Card::new(Suit::Trump, Rank::Rank22);
 
@@ -439,8 +444,25 @@ impl SocketPlayer {
         if hand.size() == 2 && hand.has(excuse) {
             return Some(excuse);
         }
-        //Play the excuse if trumps and no points for me
+        // TODO Play the excuse if trumps and no points for me
 
+        if let Some(starting_suit) = trick.suit() { // Not the first to play
+            let winner_card = trick.cards[trick.winner.pos as usize].unwrap();
+            if let Some(highest) = hand.suit_highest(starting_suit) {
+                if let Some(highest_left) = self.stats.suit_left.get(&starting_suit).unwrap().suit_highest(starting_suit) {
+                    if highest > winner_card && highest > highest_left {
+                        return Some(highest);
+                    }
+                } else {
+                    return Some(highest);
+                }
+            }
+        } else if (deal.trick_count == 1){ //First to play and first trick 
+
+        } else { //First to play and not first trick
+
+        }
+        
         //Random playable card
         hand.list().iter().find(|card| {
             can_play(self.my_state().pos, **card, hand, &deal.last_trick, deal.king, deal.trick_count == 1).is_ok()

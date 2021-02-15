@@ -3,6 +3,7 @@
 use rand::{thread_rng, SeedableRng};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
+use std::cmp::Ordering;
 
 use serde::{Deserialize, Serialize};
 use std::num::Wrapping;
@@ -87,7 +88,7 @@ impl FromStr for Suit {
 }
 
 /// Rank of a card in a suit.
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug, PartialOrd, Eq, Ord)]
 #[repr(u64)]
 pub enum Rank {
     Rank1 = 1,
@@ -232,8 +233,21 @@ impl Rank {
 }
 
 /// Represents a single card.
-#[derive(PartialEq, Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Card(u64, u32); // (pips & courts , trumps)
+
+
+impl PartialOrd for Card {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.rank().partial_cmp(&other.rank())
+    }
+}
+
+impl Ord for Card {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.rank().cmp(&other.rank())
+    }
+}
 
 impl Card {
     /// Returns the card id (from 0 to 77).
@@ -455,6 +469,18 @@ impl Hand {
         }
 
         cards
+    }
+
+    pub fn suit_highest(self, suit: Suit) -> Option<Card>{
+        let mut suit_cards = self.get_suit_cards(&suit);
+        suit_cards.sort();
+        suit_cards.last().map(|c| *c)
+    }
+
+    pub fn suit_lowest(self, suit: Suit) -> Option<Card>{
+        let mut suit_cards = self.get_suit_cards(&suit);
+        suit_cards.sort();
+        suit_cards.first().map(|c| *c)
     }
 
     /// Check if the hand has the "petit sec" (one of trump with no other trump nor the excuse)

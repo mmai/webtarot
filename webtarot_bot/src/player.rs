@@ -12,20 +12,20 @@ use uuid::Uuid;
 use url::Url;
 use serde_json::Result;
 
-use tarotgame::{deal_seeded_hands, cards::{Card, Hand, Suit, Rank}, deal::can_play, bid::Target, points::strength} ;
-use webtarot_protocol::{Message, Command, GameStateSnapshot, PlayerAction, GamePlayCommand, PlayCommand, GamePlayerState, BidCommand, CallKingCommand, MakeDogCommand};
+use tarotgame::{deal_seeded_hands, cards::{Card, Hand, Suit, Rank}, deal::can_play, bid::Target, points::strength, pos::PlayerPos};
+use webtarot_protocol::{Message, Command, GameStateSnapshot, PlayerAction, GamePlayCommand, PlayCommand, GamePlayerState, BidCommand, CallKingCommand, MakeDogCommand, Turn, PlayerRole};
 use webgame_protocol::{AuthenticateCommand, JoinGameCommand, PlayerInfo};
 
 type TarotSocket = WebSocket<Stream<std::net::TcpStream, native_tls::TlsStream<std::net::TcpStream>>>;
 
 struct DealStats {
     pub players: Vec<PlayerStats>,
-    pub partners: Vec<usize>,
+    pub teams_known: bool,
 }
 
 impl DealStats {
     fn new() -> Self {
-        DealStats { players: vec![], partners: vec![] }
+        DealStats { players: vec![], teams_known: false }
     }
 
     fn init_state(&mut self, nb_players: usize) {
@@ -37,6 +37,8 @@ impl DealStats {
 #[derive(Clone, Debug)]
 struct PlayerStats {
     played: Hand,
+    is_taker: bool,
+    in_taker_team: Option<bool>,
     has_heart: bool,
     has_club: bool,
     has_spade: bool,
@@ -48,6 +50,8 @@ impl PlayerStats {
     fn new() -> Self {
         PlayerStats {
             played: Hand::new(), 
+            is_taker: false,
+            in_taker_team: None,
             has_heart: true,
             has_club: true,
             has_spade: true,
@@ -97,17 +101,57 @@ impl SocketPlayer {
 
     }
 
-    pub fn update_stats(&mut self) {
+    fn update_stats(&mut self) {
         // let cards = self.game_state.deal.last_trick.cards.clone();
         let cards = self.game_state.deal.last_trick.cards;
         cards.iter().enumerate().for_each(|(pos, card)| {
             card.map(|c| self.stats.players[pos].played.add(c));
         });
-        println!("\n\n======================"); 
-        self.stats.players.iter().for_each(|p| println!("{:?}", p.played.to_string()));
+
+        if let Turn::Playing(_) = self.game_state.turn {
+            self.update_partners();
+        }
+        self.stats.players.iter().for_each(|p| println!("{:?} {:?}", p.played.to_string(), p.in_taker_team));
     }
 
-    pub fn my_state(&self) -> &GamePlayerState {
+    fn update_partners(&mut self) {
+        let deal = &self.game_state.deal;
+        if self.stats.teams_known { println!("teams known"); return ()};
+        let taker_opt = self.game_state.players.iter()
+            .find(|p| p.role == PlayerRole::Taker);
+        if let Some(taker) = taker_opt {
+            self.stats.players[taker.pos.to_n()].is_taker = true;
+            self.stats.players[taker.pos.to_n()].in_taker_team = Some(true);
+        }
+
+        if let Some(king) = deal.king {
+            let partner_pos: Option<usize> = if deal.hand.has(king) {
+                println!("i have king ({})", king.to_string());
+                Some(self.my_state().pos.to_n())
+            } else {
+                println!("searching king in played cards");
+                self.stats.players.iter()
+                    .enumerate()
+                    .find(|(idx, pstat)| pstat.played.has(king))
+                    .map(|(idx, pstat)| idx)
+            };
+
+            if let Some(pos) = partner_pos {
+                for (idx, pstat) in  self.stats.players.iter_mut().enumerate() {
+                    pstat.in_taker_team = Some(pstat.is_taker || idx == pos);
+                    println!("taker {:?}, p{} <> id{}",pstat.is_taker, pos, idx);
+                }
+                self.stats.teams_known = true;
+            }
+        } else {
+            self.stats.players.iter_mut().map(|pstat|
+                pstat.in_taker_team = Some(pstat.is_taker)
+            );
+            self.stats.teams_known = true;
+        }
+    }
+
+    fn my_state(&self) -> &GamePlayerState {
         self.game_state
             .players
             .iter()

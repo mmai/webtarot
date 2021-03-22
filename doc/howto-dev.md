@@ -1,5 +1,12 @@
 # Dev
 
+## Test bots
+```sh
+nix develop
+cd webtarot_bot
+cargo run -- --join_code KSGWGW
+```
+
 ## Packaging
 
 

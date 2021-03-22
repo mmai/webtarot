@@ -483,6 +483,13 @@ impl Hand {
         suit_cards.first().map(|c| *c)
     }
 
+    // given a card, returns the lowest card in hand beating it for the suit
+    pub fn suit_lowest_over_card(self, suit: Suit, card: Card) -> Option<Card>{
+        let mut suit_cards: Vec<Card> = self.get_suit_cards(&suit).into_iter().filter(|c| c.rank() > card.rank()).collect();
+        suit_cards.sort();
+        suit_cards.first().map(|c| *c)
+    }
+
     /// Check if the hand has the "petit sec" (one of trump with no other trump nor the excuse)
     pub fn has_petit_sec(self) -> bool {
         let petit = Card::new(Suit::Trump, Rank::Rank1);

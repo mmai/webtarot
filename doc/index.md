@@ -19,8 +19,12 @@ Tarot en ligne
 
 ## Backlog
 
+- indiquer partenaire
+
 - bug : son cartes jouées
 - bug : bot essaie de jouer dans un tour terminé (pb des dispatch du listener ?)
+
+- scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
 - vérifier random
 - jouer contre des bots
 - **UX** volet résultats
@@ -34,7 +38,6 @@ Tarot en ligne
 - **refacto** retirer la dépendence Universe de Game : possible ? cf. https://docs.google.com/presentation/d/1ov5957xmm8s9V2F32AgXbaaQL0nCPai58PavU6jn0jA/edit#slide=id.p 
 - compte utilisateur activitypub https://socialhub.activitypub.rocks/t/single-sign-on-for-fediverse/712
 - **server** store accounts
-- scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
 - **UX** chien : interdire de finir si le chien ne contient pas trois cartes
 - **rules** optionnelles
   - roi au chien autorisé (montré ensuite) (strictement interdit dans les règles officielles)

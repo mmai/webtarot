@@ -333,19 +333,20 @@ header {
     border-radius: 10px;
   }
 
-  .contract::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border: 10px solid transparent;
-    border-top-color: black;
-    border-bottom: 0;
-    margin-left: -10px;
-    margin-bottom: -10px;
-  }
+  //Displays a downwards triangle at the bottom
+  // .contract::after {
+  //   content: '';
+  //   position: absolute;
+  //   bottom: 0;
+  //   left: 50%;
+  //   width: 0;
+  //   height: 0;
+  //   border: 10px solid transparent;
+  //   border-top-color: black;
+  //   border-bottom: 0;
+  //   margin-left: -10px;
+  //   margin-bottom: -10px;
+  // }
 }
 
 /*

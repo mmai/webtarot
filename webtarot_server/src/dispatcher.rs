@@ -157,7 +157,7 @@ pub async fn on_player_play(
             game.send(player_id, &Message::Error(e.into())).await;//1
         } else {
             // We don't show played cards anymore in the chat box
-            // game.broadcast(&Message::PlayEvent(PlayEvent::Play ( player_id, cmd.card ))).await;
+            // game.broadcast(&Message::PlayEvent(PlayEvent::Play ( player_id, cmd.card ))).await; // uncomment to show played cards
             for (event, state) in listener.events_states {
                 // println!("new state event {:?}!", event);
                 game.broadcast_state(&state).await;

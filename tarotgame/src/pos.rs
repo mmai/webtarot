@@ -24,6 +24,18 @@ pub enum AbsolutePos {
     P4,
 }
 
+impl AbsolutePos {
+    pub fn to_n(self) -> usize {
+        match self {
+            AbsolutePos::P0 => 0,
+            AbsolutePos::P1 => 1,
+            AbsolutePos::P2 => 2,
+            AbsolutePos::P3 => 3,
+            AbsolutePos::P4 => 4,
+        }
+    }
+}
+
 /// Iterates on players
 pub struct PlayerIterator {
     current: PlayerPos,
@@ -68,13 +80,7 @@ impl PlayerPos {
     /// Returns the number corresponding to the position.
     ///
     pub fn to_n(self) -> usize {
-        match self.pos {
-            AbsolutePos::P0 => 0,
-            AbsolutePos::P1 => 1,
-            AbsolutePos::P2 => 2,
-            AbsolutePos::P3 => 3,
-            AbsolutePos::P4 => 4,
-        }
+        self.pos.to_n()
     }
 
     /// Returns the next player in line

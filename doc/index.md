@@ -22,7 +22,10 @@ Tarot en ligne
 - indiquer partenaire
 
 - bug : son cartes jouées
+
 - bug : bot essaie de jouer dans un tour terminé (pb des dispatch du listener ?)
+- bug : bot premier à jouer joue de l'atout
+- bug : bot joue un roi alors que le preneur joue après lui et qu'il n'est pas avec lui
 
 - scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
 - vérifier random

@@ -477,6 +477,15 @@ impl Hand {
         suit_cards.last().map(|c| *c)
     }
 
+    pub fn trump_highest(self) -> Option<Card> {
+        //We do not consider the excuse as a trump
+        let mut without_excuse = self.clone();
+        without_excuse.remove(Card::new(Suit::Trump, Rank::Rank22));
+        let mut suit_cards = without_excuse.get_suit_cards(&Suit::Trump);
+        suit_cards.sort();
+        suit_cards.last().map(|c| *c)
+    }
+
     pub fn suit_lowest(self, suit: Suit) -> Option<Card>{
         let mut suit_cards = self.get_suit_cards(&suit);
         suit_cards.sort();

@@ -14,7 +14,7 @@ use url::Url;
 use serde_json::Result;
 
 use tarotgame::{deal_seeded_hands, cards::{Deck, Card, Hand, Suit, Rank}, deal::can_play, bid::Target, points::strength, pos::PlayerPos, trick::Trick};
-use webtarot_protocol::{Message, Command, GameStateSnapshot, PlayerAction, GamePlayCommand, PlayCommand, GamePlayerState, BidCommand, CallKingCommand, MakeDogCommand, Turn, PlayerRole};
+use webtarot_protocol::{Message, Command, GameStateSnapshot, PlayerAction, GamePlayCommand, PlayCommand, GamePlayerState, BidCommand, CallKingCommand, MakeDogCommand, Turn, PlayerRole, PlayEvent};
 use webgame_protocol::{AuthenticateCommand, JoinGameCommand, PlayerInfo};
 
 type TarotSocket = WebSocket<Stream<std::net::TcpStream, native_tls::TlsStream<std::net::TcpStream>>>;
@@ -23,6 +23,7 @@ type TarotSocket = WebSocket<Stream<std::net::TcpStream, native_tls::TlsStream<s
 struct DealStats {
     pub players: Vec<PlayerStats>,
     pub suit_left: HashMap<Suit, Hand>,
+    pub suit_played: [bool;5],
     pub teams_known: bool,
 }
 
@@ -31,6 +32,7 @@ impl DealStats {
         DealStats { 
             players: vec![],
             suit_left: HashMap::default(),
+            suit_played: [false; 5],
             teams_known: false
         }
     }
@@ -95,6 +97,14 @@ impl DealStats {
 
     fn suit_is_cut(&self, suit: Suit) -> bool {
         self.players.iter().any(|player| player.suits_available.get(&suit).unwrap() == &Some(false))
+    }
+
+    fn suit_already_played(&self, suit: Suit) -> bool {
+        self.suit_played[suit.to_n()]
+    }
+
+    fn set_suit_played(&mut self, suit: &Suit) {
+        self.suit_played[suit.to_n()] = true;
     }
 }
 
@@ -284,8 +294,13 @@ impl SocketPlayer {
                 self.send(&Command::MarkReady);
             }
             Message::GameStateSnapshot(game_state) => {
-                self.game_state = game_state;
-                self.handle_new_state();
+                if game_state != self.game_state {
+                    self.game_state = game_state;
+                    self.handle_new_state();
+                }
+            }
+            Message::PlayEvent(play_event) => {
+                // println!("play event for {}: {:?}", self.player_info.nickname, play_event);
             }
             Message::Chat(_) => {}
             Message::Pong => {
@@ -309,7 +324,6 @@ impl SocketPlayer {
     fn handle_new_state(&mut self){
         self.update_stats();
         let my_state = self.my_state();
-        // let card_played = self.game_state.deal.last_trick.card_played(my_state.pos);
         let player_action = my_state.get_turn_player_action(self.game_state.turn);
         // let mypos = my_state.pos.to_n();
         // let is_my_turn = self.game_state.get_playing_pos() == Some(self.my_state().pos);
@@ -334,10 +348,14 @@ impl SocketPlayer {
                 self.send(&Command::GamePlay(GamePlayCommand::MakeDog(MakeDogCommand { cards: dog, slam: false })));
             }
             Some(PlayerAction::Play) => {
-                self.choose_card().map(|card| {
-                    println!("{} is playing {}...", self.player_info.nickname, card.to_string());
-                    self.send(&Command::GamePlay(GamePlayCommand::Play(PlayCommand { card })));
-                });
+                let card_played = self.game_state.deal.last_trick.card_played(my_state.pos);
+                if card_played.is_none() {
+                    self.choose_card().map(|card| {
+                        println!("{} is playing {}...", self.player_info.nickname, card.to_string());
+                        self.stats.set_suit_played(&card.suit());
+                        self.send(&Command::GamePlay(GamePlayCommand::Play(PlayCommand { card })));
+                    });
+                }
             }
             _ => {}
         }
@@ -346,18 +364,20 @@ impl SocketPlayer {
     fn guess_bid(&self) -> Option<Target>{
         let curr_target = &self.game_state.deal.contract_target();
 
+        // original : 40 < 56 < 71 < 81
         let points = self.evaluate_hand();
         let candidate = if points < 40 {
             None
-        } else if points < 56 {
+        } else if points < 51 {
             Some(Target::Prise)
-        } else if points < 71 {
+        } else if points < 66 {
             Some(Target::Garde)
-        } else if points < 81 {
+        } else if points < 76 {
             Some(Target::GardeSans)
         } else {
             Some(Target::GardeContre)
         };
+        // println!("points : {}", points);
         candidate.filter(|bidtarget| curr_target.lt(&Some(*bidtarget)))
     }
 
@@ -558,12 +578,10 @@ impl SocketPlayer {
 
                 // Must be higher trump if exists
                 if let Some(mylowest) = hand.suit_lowest_over_card(Suit::Trump, winner_card){
-                    println!("play 559");
                     return Some(mylowest);
                 }
                 // or cut with smallest (except petit)
                 if let Some(mylowest) = hand.suit_lowest_over_card(Suit::Trump, petit){
-                    println!("play 563");
                     return Some(mylowest);
                 }
 
@@ -578,7 +596,6 @@ impl SocketPlayer {
                         print!("i can win..  ");
                         // If not points, take the lowest still winning  
                         if myhighest.rank() < Rank::RankJ {
-                            println!("play 574");
                             return hand.suit_lowest_over_card(starting_suit, winner_card);
                         }
 
@@ -586,12 +603,10 @@ impl SocketPlayer {
                             if  myhighest > highest_left.unwrap() && 
                                 !self.stats.suit_is_cut(starting_suit) &&
                                 ( me.in_taker_team == Some(true) || !danger ) {
-                                println!("play 581");
                                 return Some(myhighest);
                             }
                         } else {
                             if let Some(mylowest) = hand.suit_lowest(starting_suit){
-                                println!("play 584");
                                 return Some(mylowest);
                             }
 
@@ -604,10 +619,8 @@ impl SocketPlayer {
                         if self.stats.players[trick.winner.pos.to_n()].is_partner(me) == Some(true)
                            && myhighest.rank() >= Rank::RankJ
                            && !danger {
-                            println!("play 596");
                             return Some(myhighest);
                         } else {
-                            println!("play 598");
                             return hand.suit_lowest(starting_suit);
                         }
                     }
@@ -622,7 +635,6 @@ impl SocketPlayer {
                     if trick.points() > 3.0 && self.stats.clone().opponent_is_after(trick, mepos) != Some(false) {
                         if let Some(highest) = hand.trump_highest(){
                             if highest.rank() > winner_card.rank() {
-                                println!("play 611");
                                 return Some(highest);
                             }
                         }
@@ -631,13 +643,11 @@ impl SocketPlayer {
                     // Must be higher trump than other cuts
                     if winner_card.suit() == Suit::Trump { 
                         if let Some(mylowest) = hand.suit_lowest_over_card(Suit::Trump, winner_card){
-                            println!("play 619");
                             return Some(mylowest);
                         }
                     }
                     // or cut with smallest (except petit)
                     if let Some(mylowest) = hand.suit_lowest_over_card(Suit::Trump, petit){
-                        println!("play 624");
                         return Some(mylowest);
                     }
 
@@ -654,6 +664,18 @@ impl SocketPlayer {
             let found = self.play_try_save_petit(true);
             if found.is_some() { return found };
 
+            // I am the taker : play for the king I called if the suit has not been already played
+            if me.is_taker {
+                print!("i am the taker..  ");
+                if let Some(king) = deal.king {
+                    print!("i called the {} king..  ", king.to_string());
+                    if !self.stats.suit_already_played(king.suit()) {
+                        print!("whose color has not been played..  ");
+                        return hand.suit_highest(king.suit());//We give points
+                    }
+                }
+            } 
+
             // In  taker team & have king & suit not cut by opponents : play king
             if me.in_taker_team == Some(true) {
                 let kings: Vec<Card> = hand.list().into_iter()
@@ -661,12 +683,12 @@ impl SocketPlayer {
                     .collect();
                 for king in kings {
                     if !self.stats.suit_is_cut(king.suit()) {
-                        println!("play 646");
                         return Some(king);
+                    // } else { println!("My king {:?} would be cut", king); 
                     }
                 }
             }
-            
+
             //Remove cards of the called king if it's the first trick
             let forbidden_suit: Option<Suit> = if deal.trick_count == 1 {
                 deal.king.map(|k| k.suit())
@@ -674,17 +696,37 @@ impl SocketPlayer {
                 None
             };
             let mut playable_suits: Vec<Suit> = vec![Suit::Heart, Suit::Spade, Suit::Diamond, Suit::Club]
-                .into_iter().filter(|s| { Some(*s) != forbidden_suit })
+                .into_iter().filter(|s| { Some(*s) != forbidden_suit && hand.has_any(*s) })
                 .collect();
+
+            // Should we do an opening ? (partner is last and i have an unplayed color)
+            let nb_players = self.stats.players.len();
+            let last_pos = (mepos + nb_players - 1) % nb_players;
+            if self.stats.players[last_pos].is_partner(me) == Some(true) { //We should do an opening
+                let unplayed_suits: Vec<&Suit> = playable_suits.iter()
+                    .filter(|s| !self.stats.suit_already_played(**s))
+                    .collect();
+                if let Some(unplayed_suit) = unplayed_suits.last() {
+                    return hand.suit_lowest(**unplayed_suit); // this card exists because we previously filtered suits with hand.has_any()
+                    
+                }
+            } else { //We shouldn't do an opening
+                let played_suits: Vec<&Suit> = playable_suits.iter()
+                    .filter(|s| self.stats.suit_already_played(**s))
+                    .collect();
+                if let Some(played_suit) = played_suits.last() {
+                    return hand.suit_lowest(**played_suit); // this card exists because we previously filtered suits with hand.has_any()
+                }
+            }
+            
             //Sort by number of cards so we can get the long suit
             playable_suits.sort_by(|a, b| {
                 hand.get_suit_cards(&a).len().cmp(&hand.get_suit_cards(&b).len())
             });
             // Play small card of long suit
-            let long_suit = playable_suits.last().unwrap();
-            println!("play 667");
-            print!("{:?}", playable_suits );
-            return hand.suit_lowest(*long_suit);
+            if let Some(long_suit) = playable_suits.last() {
+                return hand.suit_lowest(*long_suit); // this card exists because we previously filtered suits with hand.has_any()
+            }
         }
 
         print!("default play..  ");
@@ -694,7 +736,6 @@ impl SocketPlayer {
         })
         .collect();
         playable.sort_by(|a, b| a.rank().cmp(& b.rank()));
-        println!("play 677");
         playable.first().map(|c| *c)
     }
 
@@ -716,7 +757,7 @@ impl SocketPlayer {
         if petit_not_played && 
            hand.has(vingtetun) && 
            table_layout_ok
-           { println!("699"); Some(vingtetun) } else { None }
+           { Some(vingtetun) } else { None }
     }
 
     fn play_try_own_petit(&self) -> Option<Card> {
@@ -743,18 +784,15 @@ impl SocketPlayer {
             let trumps_left_highest = self.stats.suit_left[&Suit::Trump].suit_highest(Suit::Trump);
             if let Some(highest_left) = trumps_left_highest {
                 if highest_left.rank() < winner_card.rank() {
-                    println!("play 726");
                     return Some(petit)
                 }
             } else { // No trumps left
-                println!("play 730");
                 return Some(petit)
             }
         }
 
         if winner_card.suit() != Suit::Trump { // No trump has been played
             if self.stats.is_trick_last_player(trick, mepos) {
-                println!("play 737");
                 return Some(petit)
             }
 
@@ -775,7 +813,6 @@ impl SocketPlayer {
             if suit_left_count + card_played_count == 14 &&
                ( me.in_taker_team == Some(true) || 
                  trick.clone().player_already_played(PlayerPos::from_n(self.get_taker_pos().unwrap() as usize, nb_players as u8)))  {
-                   println!("play 758");
                    return Some(petit);
             }
         }

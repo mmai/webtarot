@@ -49,6 +49,16 @@ impl Suit {
         }
     }
 
+    pub fn to_n(self) -> usize {
+        match self {
+            Suit::Heart => 0,
+            Suit::Spade => 1,
+            Suit::Diamond => 2,
+            Suit::Club => 3,
+            Suit::Trump => 4,
+        }.to_owned()
+    }
+
     /// Returns a UTF-8 character representing the suit (♥, ♠, ♦ or ♣).
     pub fn to_string(self) -> String {
         match self {

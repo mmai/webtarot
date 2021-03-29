@@ -462,7 +462,7 @@ impl SocketPlayer {
 
     fn make_dog(&self) -> Hand {
         //Let the players see the initial dog
-        let delay = time::Duration::from_millis(3000);
+        let delay = time::Duration::from_millis(10000); // 10s
         let now = time::Instant::now();
         thread::sleep(delay);
 
@@ -558,11 +558,11 @@ impl SocketPlayer {
         let danger = self.stats.clone().opponent_is_after(trick, mepos) != Some(false);
 
         if let Some(starting_suit) = trick.suit() { // Not the first to play
-            print!("not the first to play..  ");
+            // print!("not the first to play..  ");
             let winner_card = trick.cards[trick.winner.pos as usize].unwrap();
 
             if starting_suit == Suit::Trump {
-                print!("trump asked..  ");
+                // print!("trump asked..  ");
                 // Try to save partner's petit
                 let found = self.play_try_save_petit(false);
                 if found.is_some() { return found };
@@ -586,14 +586,14 @@ impl SocketPlayer {
                 }
 
             } else {
-                print!("no trump asked..  ");
+                // print!("no trump asked..  ");
                 let my_highest = hand.suit_highest(starting_suit);
                 let highest_left = self.stats.suit_left.get(&starting_suit).unwrap().suit_highest(starting_suit);
                 if my_highest.is_some() {
-                    print!("i have color..  ");
+                    // print!("i have color..  ");
                     let mut myhighest = my_highest.unwrap();
                     if myhighest > winner_card && winner_card.suit() != Suit::Trump { // I can win the trick
-                        print!("i can win..  ");
+                        // print!("i can win..  ");
                         // If not points, take the lowest still winning  
                         if myhighest.rank() < Rank::RankJ {
                             return hand.suit_lowest_over_card(starting_suit, winner_card);
@@ -614,7 +614,7 @@ impl SocketPlayer {
 
 
                     } else { // I can't win the trick
-                        print!("i can't win..  ");
+                        // print!("i can't win..  ");
                         // Give points if my parter win the trick
                         if self.stats.players[trick.winner.pos.to_n()].is_partner(me) == Some(true)
                            && myhighest.rank() >= Rank::RankJ
@@ -626,7 +626,7 @@ impl SocketPlayer {
                     }
 
                 } else { // I must cut or piss
-                    print!("i have not the color..  ");
+                    // print!("i have not the color..  ");
                     // Try to save own's petit
                     let found = self.play_try_own_petit();
                     if found.is_some() { return found };
@@ -660,17 +660,17 @@ impl SocketPlayer {
             }
             
         } else {//First to play 
-            print!("i am first to play..  ");
+            // print!("i am first to play..  ");
             let found = self.play_try_save_petit(true);
             if found.is_some() { return found };
 
             // I am the taker : play for the king I called if the suit has not been already played
             if me.is_taker {
-                print!("i am the taker..  ");
+                // print!("i am the taker..  ");
                 if let Some(king) = deal.king {
-                    print!("i called the {} king..  ", king.to_string());
+                    // print!("i called the {} king..  ", king.to_string());
                     if !self.stats.suit_already_played(king.suit()) {
-                        print!("whose color has not been played..  ");
+                        // print!("whose color has not been played..  ");
                         return hand.suit_highest(king.suit());//We give points
                     }
                 }
@@ -729,7 +729,7 @@ impl SocketPlayer {
             }
         }
 
-        print!("default play..  ");
+        // print!("default play..  ");
         //Low playable card
         let mut playable: Vec<Card> = hand.list().into_iter().filter(|card| {
             can_play(self.my_state().pos, *card, hand, &deal.last_trick, deal.king, deal.trick_count == 1).is_ok()

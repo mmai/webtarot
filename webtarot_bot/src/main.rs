@@ -1,18 +1,9 @@
 use clap::{Arg, App};
 
 mod explorer;
+mod socket_listener;
 mod player;
 mod player_factory;
-
-use std::io::{BufRead, BufReader};
-use std::os::unix::net::{UnixStream,UnixListener};
-
-use tungstenite::connect;
-use tungstenite::stream::Stream;
-use tungstenite::protocol::WebSocket;
-// use rayon::prelude::*;
-use url::Url;
-type TarotSocket = WebSocket<Stream<std::net::TcpStream, native_tls::TlsStream<std::net::TcpStream>>>;
 
 pub fn main() {
     let version = format!("{}.{}.{}{}",
@@ -67,56 +58,7 @@ pub fn main() {
     let count = matches.value_of("count").and_then(|str_count| str_count.parse::<usize>().ok()).unwrap_or(1); 
 
     if let Some(str_socket) = matches.value_of("socket"){
-        let socket_file = std::path::Path::new(str_socket);
-        if socket_file.exists() {
-            println!("Removing dangling socket file {:?} ", socket_file);
-            std::fs::remove_file(&socket_file).unwrap();
-        }
-        if let Ok(listener) = UnixListener::bind(socket_file) {
-            println!("Listening to socket {}", str_socket);
-            for stream in listener.incoming() {
-                match stream {
-                    Ok(stream) => {
-                        let stream = BufReader::new(stream);
-                        let url_websocket = format!("{}/new_new", str_websocket);
-                        let mut code_count = 0;
-                        for line in stream.lines() {
-                            let code = line.unwrap();
-                            if code == "SHUTDOWN" {
-                                break
-                            } else {
-                                let my_code_count = code_count.clone();
-                                let my_url_websocket = url_websocket.clone();
-                                std::thread::spawn(move || {
-                                    let nickname = format!("bot-{}", my_code_count);
-                                    let tarot_socket: TarotSocket = connect(Url::parse(&my_url_websocket)
-                                        .unwrap())
-                                        .expect("Can't connect")
-                                        .0;
-                                    let mut bot = player::SocketPlayer::new(tarot_socket, code.to_string(), nickname);
-                                    bot.play();
-                                    println!("a bot finished");
-                                });
-                            }
-                            code_count = code_count + 1;
-                        }
-                        println!("Shuting down bot listener");
-                        drop(listener);
-                        if socket_file.exists() {
-                            std::fs::remove_file(&socket_file).unwrap();
-                        }
-                        break
-                    }
-                    Err(err) => {
-                        println!("Error: {}", err);
-                        break;
-                    }
-                }
-            }
-        } else {
-            println!("couldn't connect to socket {}", str_socket);
-        }
-
+        socket_listener::start(str_socket, str_websocket);
     } else {
         match str_command {
             "find_decks" => explorer::find_decks(),

@@ -16,6 +16,7 @@ webgame_protocol = { path = "../../webgame/webgame_protocol" }
 # webgame_server = { git = "https://github.com/mmai/webgame", tag = "v0.6.3" }
 # webgame_protocol = { git = "https://github.com/mmai/webgame", tag = "v0.6.3" }
 webtarot_protocol = { path = "../webtarot_protocol" }
+webtarot_bot = { path = "../webtarot_bot" }
 
 uuid = { version = "0.8.1", features = ["v4"] }
 log = "0.4.8"

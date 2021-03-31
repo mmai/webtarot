@@ -54,7 +54,7 @@ pub fn main() {
 
     let str_command = matches.value_of("command").unwrap_or("play"); 
     let joincode = matches.value_of("joincode").unwrap_or(""); 
-    let str_websocket = matches.value_of("websocket").unwrap_or("ws://127.0.0.1:8001/ws/"); 
+    let str_websocket = matches.value_of("websocket").unwrap_or("ws://127.0.0.1:8001"); 
     let count = matches.value_of("count").and_then(|str_count| str_count.parse::<usize>().ok()).unwrap_or(1); 
 
     if let Some(str_socket) = matches.value_of("socket"){

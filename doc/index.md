@@ -19,19 +19,16 @@ Tarot en ligne
 
 ## Backlog
 
-- indiquer partenaire
+- **UX** indiquer joueur appelé quand il est connu
+- scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
+
 
 - bug : son cartes jouées
 
-- bug : bot essaie de jouer dans un tour terminé (pb des dispatch du listener ?)
-- bug : bot premier à jouer joue de l'atout
-- bug : bot joue un roi alors que le preneur joue après lui et qu'il n'est pas avec lui
-
-- scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
 - vérifier random
-- jouer contre des bots
 - **UX** volet résultats
-- **UX** indiquer joueur appelé quand il est connu
+- envoyer langue du premier connecté au serveur (pour messages chat)
+- **bot** envoyer des messages au chat (selon résultat du trick, différent selon n° de bot) 
 - **server** enregistrement des parties
   - listing
   - permet interruption et reprise serveur ?

@@ -25,6 +25,7 @@ struct DealStats {
     pub suit_left: HashMap<Suit, Hand>,
     pub suit_played: [bool;5],
     pub teams_known: bool,
+    pub teams_known_by_all: bool,
 }
 
 impl DealStats {
@@ -33,12 +34,17 @@ impl DealStats {
             players: vec![],
             suit_left: HashMap::default(),
             suit_played: [false; 5],
-            teams_known: false
+            teams_known: false,
+            teams_known_by_all: false
         }
     }
 
     fn init_state(&mut self, nb_players: usize, hand: Hand) {
         self.players = vec![ PlayerStats::new() ; nb_players];
+        self.suit_played = [false; 5];
+        self.teams_known = false;
+        self.teams_known_by_all = false;
+
         //reset cards left
         let deck = Deck::new();
         let hearts = deck.get_suit_cards(Suit::Heart).into();
@@ -79,12 +85,14 @@ impl DealStats {
     fn opponent_is_after(self, trick: &Trick, mepos: usize) -> Option<bool> {
         let me = &self.players[mepos];
         if self.teams_known {
+            // print!(" i know the teams.. ");
             let is_after = self.players.iter().enumerate().any(|(npos, player)| {
                 let pos = PlayerPos::from_n(npos, self.players.len() as u8);
                 player.is_partner(me) == Some(false) && !trick.clone().player_already_played(pos)
             });
             return Some(is_after);
         } else if self.is_trick_last_player(trick, mepos){
+            // print!(" i am the last so no opponent after me.. ");
             return Some(false);
         }
         None
@@ -96,7 +104,11 @@ impl DealStats {
     }
 
     fn suit_is_cut(&self, suit: Suit) -> bool {
-        self.players.iter().any(|player| player.suits_available.get(&suit).unwrap() == &Some(false))
+        if self.suit_left[&Suit::Trump].size() == 0 { return false; } // No more trumps
+        self.players.iter().any(|player| 
+            player.suits_available.get(&suit).unwrap() == &Some(false) &&
+            player.suits_available.get(&Suit::Trump).unwrap() != &Some(false)
+            )
     }
 
     fn suit_already_played(&self, suit: Suit) -> bool {
@@ -179,7 +191,9 @@ impl SocketPlayer {
             };
 
             let message: Message = serde_json::from_str(&msg).expect("Can't parse JSON");
-            self.handle_server_message(message);
+            if self.handle_server_message(message) {
+                break
+            }
         }
 
     }
@@ -225,45 +239,62 @@ impl SocketPlayer {
 
     fn update_partners(&mut self) {
         let deal = &self.game_state.deal;
-        if self.stats.teams_known { return ()};
+        if self.stats.teams_known_by_all { return () }
+        self.stats.teams_known_by_all = deal.king.map(|king| !self.stats.suit_left[&king.suit()].has(king)).unwrap_or(true);
+        if self.stats.teams_known { return () }
+        let me_pos = self.my_state().pos.to_n();
+        let mystats = &self.stats.players[me_pos];
+
         let taker_opt = self.game_state.players.iter()
             .find(|p| p.role == PlayerRole::Taker);
         if let Some(taker) = taker_opt {
+            // print!(" taker.. ");
             self.stats.players[taker.pos.to_n()].is_taker = true;
             self.stats.players[taker.pos.to_n()].in_taker_team = Some(true);
         }
 
         if let Some(king) = deal.king {
-            let partner_pos: Option<usize> = if deal.hand.has(king) {
-                    // I have king
-                    Some(self.my_state().pos.to_n())
-                } else {
-                    // searching king in players played cards
-                    self.stats.players.iter()
-                        .enumerate()
-                        .find(|(idx, pstat)| pstat.played.has(king))
-                        .map(|(idx, pstat)| idx)
-                };
-            if let Some(pos) = partner_pos {
+            if deal.hand.has(king) { // I have the king
+                // print!(" king.. ");
+
                 for (idx, pstat) in  self.stats.players.iter_mut().enumerate() {
-                    pstat.in_taker_team = Some(pstat.is_taker || idx == pos);
+                    pstat.in_taker_team = Some(pstat.is_taker || idx == me_pos);
                 }
                 self.stats.teams_known = true;
-            } else { // King not played
-                //Check players who don't have cards of the king's suit
-                for pstat in  self.stats.players.iter_mut() {
-                    if Some(false) == pstat.suits_available[&king.suit()] {
-                        pstat.in_taker_team = Some(false);
+            } else { //I have not the king
+                // print!(" no king.. ");
+                self.stats.players[me_pos].in_taker_team = Some(false);
+
+                // Do other players played the king ?
+                let partner_pos = self.stats.players.iter()
+                    .enumerate()
+                    .find(|(idx, pstat)| pstat.played.has(king))
+                    .map(|(idx, pstat)| idx);
+                if let Some(pos) = partner_pos { // yes, king played
+                    // print!(" king played.. ");
+                    for (idx, pstat) in  self.stats.players.iter_mut().enumerate() {
+                        pstat.in_taker_team = Some(pstat.is_taker || idx == pos);
+                    }
+                    self.stats.teams_known = true;
+                    self.stats.teams_known_by_all = true;
+                } else { // King not played
+                    // print!(" king not played.. ");
+                    //Check players who don't have cards of the king's suit
+                    for pstat in  self.stats.players.iter_mut() {
+                        if pstat.in_taker_team.is_none() && Some(false) == pstat.suits_available[&king.suit()] {
+                            pstat.in_taker_team = Some(false);
+                        }
                     }
                 }
             }
-
         } else { // Aucun roi appelé : le preneur est seul 
             self.stats.players.iter_mut().map(|pstat|
                 pstat.in_taker_team = Some(pstat.is_taker)
             );
             self.stats.teams_known = true;
+            self.stats.teams_known_by_all = true;
         }
+        let mystats = &self.stats.players[me_pos];
     }
 
     fn my_state(&self) -> &GamePlayerState {
@@ -280,17 +311,18 @@ impl SocketPlayer {
         Ok(())
     }
 
-    fn handle_server_message(&mut self, msg: Message){
+    // Returns a bool : do we exit ?
+    fn handle_server_message(&mut self, msg: Message) -> bool {
         match msg {
             Message::Authenticated(player_info) => {
                 self.player_info = player_info;
-                println!("Authenticated with id {}", self.player_info.id);
+                // println!("Authenticated with id {}", self.player_info.id);
                 // if self.check_join_code() {
                     self.send(&Command::JoinGame(JoinGameCommand { join_code: self.join_code.clone(), }));
                 // }
             }
             Message::GameJoined(game_info) => {
-                println!("Game joined: {}", game_info.game_id);
+                // println!("Game joined: {}", game_info.game_id);
                 self.send(&Command::MarkReady);
             }
             Message::GameStateSnapshot(game_state) => {
@@ -310,15 +342,20 @@ impl SocketPlayer {
                 server_status.games.iter()
                     .next()
                     .map(|g| {
-                        println!("Found a game with code {}", g.game.join_code);
+                        // println!("Found a game with code {}", g.game.join_code);
                         self.join_code = g.game.join_code.clone();
                         self.send(&Command::JoinGame(JoinGameCommand { join_code: self.join_code.clone(), }));
                     });
+            }
+            Message::PlayerDisconnected(_) => {
+                // println!("A player disconnected, I disconnect too");
+                return true; //We exit
             }
             _ => {
                 println!("Unmanaged server message for {}: {:?}", self.player_info.nickname, msg);
             }
         }
+        false // we don't exit
     }
 
     fn handle_new_state(&mut self){
@@ -351,7 +388,7 @@ impl SocketPlayer {
                 let card_played = self.game_state.deal.last_trick.card_played(my_state.pos);
                 if card_played.is_none() {
                     self.choose_card().map(|card| {
-                        println!("{} is playing {}...", self.player_info.nickname, card.to_string());
+                        // println!("{} is playing {}...", self.player_info.nickname, card.to_string());
                         self.stats.set_suit_played(&card.suit());
                         self.send(&Command::GamePlay(GamePlayCommand::Play(PlayCommand { card })));
                     });
@@ -364,15 +401,14 @@ impl SocketPlayer {
     fn guess_bid(&self) -> Option<Target>{
         let curr_target = &self.game_state.deal.contract_target();
 
-        // original : 40 < 56 < 71 < 81
         let points = self.evaluate_hand();
-        let candidate = if points < 40 {
+        let candidate = if points < 47 {
             None
-        } else if points < 51 {
+        } else if points < 63 {
             Some(Target::Prise)
-        } else if points < 66 {
+        } else if points < 78 {
             Some(Target::Garde)
-        } else if points < 76 {
+        } else if points < 88 {
             Some(Target::GardeSans)
         } else {
             Some(Target::GardeContre)
@@ -383,7 +419,12 @@ impl SocketPlayer {
 
     // cf. https://www.le-tarot.fr/quel-contrat-choisir/
     fn evaluate_hand(&self) -> usize {
-        let mut points = 0;
+        let mut points = match self.stats.players.len() {
+            5 => 14,
+            4 => 7,
+            3 => 0,
+            _ => 0,
+        };
 
         let deal = &self.game_state.deal;
         let hand = deal.hand;
@@ -460,14 +501,20 @@ impl SocketPlayer {
         candidates.pop().unwrap()
     }
 
-    fn make_dog(&self) -> Hand {
+    fn make_dog(&mut self) -> Hand {
         //Let the players see the initial dog
-        let delay = time::Duration::from_millis(10000); // 10s
+        let delay = time::Duration::from_millis(6000); // 6s
         let now = time::Instant::now();
         thread::sleep(delay);
 
         let mut dog = Hand::new();
         let deal = &self.game_state.deal;
+
+        //remove dog cards from suit_left
+        for card in deal.initial_dog {
+            (*self.stats.suit_left.get_mut(&card.suit()).unwrap()).remove(card);
+        }
+
         let dog_size = deal.initial_dog.size();
         let mut hand_all = deal.hand.clone();
         hand_all.merge(deal.initial_dog);
@@ -596,16 +643,22 @@ impl SocketPlayer {
                         // print!("i can win..  ");
                         // If not points, take the lowest still winning  
                         if myhighest.rank() < Rank::RankJ {
+                            // print!("with a no points card..  ");
                             return hand.suit_lowest_over_card(starting_suit, winner_card);
                         }
 
                         if highest_left.is_some() {
-                            if  myhighest > highest_left.unwrap() && 
-                                !self.stats.suit_is_cut(starting_suit) &&
+                            // print!("highest_left: {}..  ", highest_left.unwrap().to_string());
+                            let is_cut = self.stats.suit_is_cut(starting_suit);
+                            // if is_cut { println!("I am cut"); } else { println!("I am not cut"); }
+                            // if me.in_taker_team == Some(true) { println!("in taker team"); } else { println!("not in taker team"); }
+                            // if danger { println!("danger"); } else { println!("no danger"); }
+                            if  myhighest > highest_left.unwrap() && !is_cut &&
                                 ( me.in_taker_team == Some(true) || !danger ) {
                                 return Some(myhighest);
                             }
                         } else {
+                            // print!("i will be cut..  ");
                             if let Some(mylowest) = hand.suit_lowest(starting_suit){
                                 return Some(mylowest);
                             }
@@ -618,7 +671,9 @@ impl SocketPlayer {
                         // Give points if my parter win the trick
                         if self.stats.players[trick.winner.pos.to_n()].is_partner(me) == Some(true)
                            && myhighest.rank() >= Rank::RankJ
-                           && !danger {
+                           && ( !danger || 
+                               ( me.in_taker_team == Some(true) && (winner_card.suit() == Suit::Trump || highest_left.map(|c|c.rank() > winner_card.rank()) != Some(true) ) )
+                               ) {
                             return Some(myhighest);
                         } else {
                             return hand.suit_lowest(starting_suit);
@@ -664,8 +719,9 @@ impl SocketPlayer {
             let found = self.play_try_save_petit(true);
             if found.is_some() { return found };
 
-            // I am the taker : play for the king I called if the suit has not been already played
-            if me.is_taker {
+            // I am the taker and it is not the first trick :
+            // play for the king I called if the suit has not been already played
+            if me.is_taker && deal.trick_count > 1 {
                 // print!("i am the taker..  ");
                 if let Some(king) = deal.king {
                     // print!("i called the {} king..  ", king.to_string());
@@ -678,13 +734,14 @@ impl SocketPlayer {
 
             // In  taker team & have king & suit not cut by opponents : play king
             if me.in_taker_team == Some(true) {
+                // print!("i am in the taker team..  ");
                 let kings: Vec<Card> = hand.list().into_iter()
                     .filter(|card| { card.rank() == Rank::RankK })
                     .collect();
                 for king in kings {
                     if !self.stats.suit_is_cut(king.suit()) {
                         return Some(king);
-                    // } else { println!("My king {:?} would be cut", king); 
+                    // } else { print!("my king {:?} would be cut.. ", king); 
                     }
                 }
             }
@@ -707,15 +764,24 @@ impl SocketPlayer {
                     .filter(|s| !self.stats.suit_already_played(**s))
                     .collect();
                 if let Some(unplayed_suit) = unplayed_suits.last() {
-                    return hand.suit_lowest(**unplayed_suit); // this card exists because we previously filtered suits with hand.has_any()
-                    
+                    if let Some(lowest) = hand.suit_lowest(**unplayed_suit) {
+                        if lowest.rank() < Rank::RankJ { // we don't play points
+                            // print!("an opening.. ");
+                            return Some(lowest);
+                        }
+                    } 
                 }
             } else { //We shouldn't do an opening
                 let played_suits: Vec<&Suit> = playable_suits.iter()
                     .filter(|s| self.stats.suit_already_played(**s))
                     .collect();
                 if let Some(played_suit) = played_suits.last() {
-                    return hand.suit_lowest(**played_suit); // this card exists because we previously filtered suits with hand.has_any()
+                    if let Some(lowest) = hand.suit_lowest(**played_suit) {
+                        if lowest.rank() < Rank::RankJ { // we don't play points
+                            // print!("not an opening.. ");
+                            return Some(lowest);
+                        }
+                    } 
                 }
             }
             
@@ -725,6 +791,7 @@ impl SocketPlayer {
             });
             // Play small card of long suit
             if let Some(long_suit) = playable_suits.last() {
+                // print!("small card of long suite.. ");
                 return hand.suit_lowest(*long_suit); // this card exists because we previously filtered suits with hand.has_any()
             }
         }
@@ -747,7 +814,7 @@ impl SocketPlayer {
         let vingtetun = Card::new(Suit::Trump, Rank::Rank21);
         let petit = Card::new(Suit::Trump, Rank::Rank1);
 
-        let table_layout_ok = self.stats.clone().partner_is_after(trick, self.my_state().pos.to_n()) == Some(true)
+        let table_layout_ok = (self.stats.teams_known_by_all && self.stats.clone().partner_is_after(trick, self.my_state().pos.to_n()) == Some(true))
                 || (self.my_state().role == PlayerRole::Taker && is_first_player );
 
         let petit_not_played = self.stats.suit_left.get(&Suit::Trump).unwrap().has(petit);

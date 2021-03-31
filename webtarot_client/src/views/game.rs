@@ -528,9 +528,10 @@ impl Component for GamePage {
                                    </div>
                                    <div>{{ tr!("Share this link to invite players:") }} </div>
                                    <div><a href={{ url_game.clone() }}>{{ url_game }}</a></div>
-                                   <br/><br/>
+                                   <br/>
                                    <div>
                                        <div>{{ tr!("Or you can play with tarot-bots:") }} </div>
+                                       <br/>
                                        <button class="primary" onclick=self.link.callback(|_| Msg::InviteBot)>{ tr!("Add a bot player")}</button>
                                    </div>
                                </div>

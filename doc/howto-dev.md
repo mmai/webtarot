@@ -1,5 +1,16 @@
 # Dev
 
+## Upgrading yew / webpack
+
+Base template : https://github.com/yewstack/yew-wasm-pack-template
+
+Problem : dependabot found vulnerabilities on node-forge, needs 0.10.0 but webpack-dev-server needs 0.9 => we need to upgrade webpack-dev-server dependencies
+
+```sh
+cd webtarot_client
+yarn upgrade --depth
+```
+
 ## Test bots
 ```sh
 nix develop
@@ -12,7 +23,6 @@ cargo run -- --join_code KSGWGW
 
 * edit the _Cargo.toml_ files : version number
 * compile release version : `make` 
-* remove webtarot-bot from the root Cargo.toml (not needed for nix packages and error openssl / pkg-config with webtarot-bot)
 * edit _flake.nix_ : 
   * version number
   * fake cargoSha256
@@ -23,14 +33,3 @@ cargo run -- --join_code KSGWGW
 * `cachix push mmai ./result`
 * `nix copy  --to ssh://root@rhumbs.fr ./result`
 * `make docker` :  does not work ?
-
-## Upgrading yew / webpack
-
-Base template : https://github.com/yewstack/yew-wasm-pack-template
-
-Problem : dependabot found vulnerabilities on node-forge, needs 0.10.0 but webpack-dev-server needs 0.9 => we need to upgrade webpack-dev-server dependencies
-
-```sh
-cd webtarot_client
-yarn upgrade --depth
-```

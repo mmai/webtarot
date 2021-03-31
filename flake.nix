@@ -32,6 +32,9 @@
           version = "0.7.0";
           src = ./.;
 
+          nativeBuildInputs = [ pkgconfig ];
+          buildInputs = [ openssl ];
+
           cargoSha256 = "sha256-zyB/tRzqsn0oURYiiIodLMO6h+436wV4uQtSPz9aGVM=";
 
           meta = with pkgs.stdenv.lib; {

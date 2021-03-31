@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.7.0
+- bots
+
 ## 0.6.3
 - UX : connexions / deconnexions
 

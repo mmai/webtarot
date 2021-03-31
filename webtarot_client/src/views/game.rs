@@ -62,6 +62,7 @@ pub enum Msg {
     Ping,
     Disconnect,
     MarkReady,
+    InviteBot,
     Continue,
     CloseError,
     Bid((bid::Target, bool)),
@@ -362,6 +363,10 @@ impl Component for GamePage {
                 self.is_waiting = true;
                 self.api.send(Command::MarkReady);
             }
+            Msg::InviteBot => {
+                self.is_waiting = true;
+                self.api.send(Command::InviteBot);
+            }
             Msg::Disconnect => {
                 if dialog::DialogService::confirm(&tr!("Really disconnect ?")) {
                     self.api.send(Command::LeaveGame);
@@ -523,6 +528,12 @@ impl Component for GamePage {
                                    </div>
                                    <div>{{ tr!("Share this link to invite players:") }} </div>
                                    <div><a href={{ url_game.clone() }}>{{ url_game }}</a></div>
+                                   <br/>
+                                   <div>
+                                       <div>{{ tr!("Or you can play with tarot-bots:") }} </div>
+                                       <br/>
+                                       <button class="primary" onclick=self.link.callback(|_| Msg::InviteBot)>{ tr!("Add a bot player")}</button>
+                                   </div>
                                </div>
                            }} else { html! {} }}
                     </div>

@@ -5,15 +5,6 @@ A online game of [french tarot](https://en.wikipedia.org/wiki/French_tarot) in r
 The project is in its early stages. It is playable but still lacks a lot of features and it may be unstable. 
 (I am learning rust with this project, don't hesitate to make pull requests)
 
-## Docker image
-
-You can test the application using its docker image:
-
-```
-docker pull mmai/webtarot:0.5.2
-docker run mmai/webtarot:0.5.2
-```
-
 ## Manual installation
 
 Compile application: 

@@ -81,6 +81,9 @@ impl Trick {
         )
     }
 
+    pub fn player_already_played(self, player: pos::PlayerPos) -> bool {
+        self.cards[player.pos as usize].is_some()
+    }
 
 
     /// Plays a card.

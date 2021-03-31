@@ -3,6 +3,7 @@
 use rand::{thread_rng, SeedableRng};
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
+use std::cmp::Ordering;
 
 use serde::{Deserialize, Serialize};
 use std::num::Wrapping;
@@ -10,7 +11,7 @@ use std::str::FromStr;
 use std::string::ToString;
 
 /// One of the four Suits: Heart, Spade, Diamond, Club.
-#[derive(PartialEq, Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Clone, Copy, Debug, Serialize, Deserialize, Eq, Hash)]
 #[repr(u64)]
 pub enum Suit {
     /// The suit of hearts.
@@ -46,6 +47,16 @@ impl Suit {
             4 => Suit::Trump,
             other => panic!("bad suit number: {}", other),
         }
+    }
+
+    pub fn to_n(self) -> usize {
+        match self {
+            Suit::Heart => 0,
+            Suit::Spade => 1,
+            Suit::Diamond => 2,
+            Suit::Club => 3,
+            Suit::Trump => 4,
+        }.to_owned()
     }
 
     /// Returns a UTF-8 character representing the suit (♥, ♠, ♦ or ♣).
@@ -87,7 +98,7 @@ impl FromStr for Suit {
 }
 
 /// Rank of a card in a suit.
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug, PartialOrd, Eq, Ord)]
 #[repr(u64)]
 pub enum Rank {
     Rank1 = 1,
@@ -232,8 +243,21 @@ impl Rank {
 }
 
 /// Represents a single card.
-#[derive(PartialEq, Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Card(u64, u32); // (pips & courts , trumps)
+
+
+impl PartialOrd for Card {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.rank().partial_cmp(&other.rank())
+    }
+}
+
+impl Ord for Card {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.rank().cmp(&other.rank())
+    }
+}
 
 impl Card {
     /// Returns the card id (from 0 to 77).
@@ -320,11 +344,26 @@ impl Card {
     pub fn is_oudler(self) -> bool {
         self.suit() == Suit::Trump && [Rank::Rank1, Rank::Rank21, Rank::Rank22].contains(&self.rank())
     }
+
+    pub fn excuse() -> Card {
+        Card::new(Suit::Trump, Rank::Rank22)
+    }
+
 }
 
 /// Represents an unordered set of cards.
 #[derive(PartialEq, Clone, Copy, Debug, Serialize, Deserialize, Default)]
 pub struct Hand(u64, u32);
+
+impl From<Vec<Card>> for Hand {
+    fn from(cards: Vec<Card>) -> Hand {
+        let mut hand = Self::new();
+        for card in cards.into_iter() {
+            hand.add(card);
+        }
+        hand
+    }
+}
 
 impl Hand {
     /// Returns an empty hand.
@@ -424,6 +463,10 @@ impl Hand {
         }
     }
 
+    pub fn get_suit_cards(self, suit: &Suit) -> Vec<Card> {
+        self.into_iter().filter(|c| &c.suit() == suit).collect()
+    }
+
     /// Returns the cards contained in `self` as a `Vec`.
     pub fn list(self) -> Vec<Card> {
         let mut cards = Vec::new();
@@ -438,6 +481,34 @@ impl Hand {
         cards
     }
 
+    pub fn suit_highest(self, suit: Suit) -> Option<Card>{
+        let mut suit_cards = self.get_suit_cards(&suit);
+        suit_cards.sort();
+        suit_cards.last().map(|c| *c)
+    }
+
+    pub fn trump_highest(self) -> Option<Card> {
+        //We do not consider the excuse as a trump
+        let mut without_excuse = self.clone();
+        without_excuse.remove(Card::new(Suit::Trump, Rank::Rank22));
+        let mut suit_cards = without_excuse.get_suit_cards(&Suit::Trump);
+        suit_cards.sort();
+        suit_cards.last().map(|c| *c)
+    }
+
+    pub fn suit_lowest(self, suit: Suit) -> Option<Card>{
+        let mut suit_cards = self.get_suit_cards(&suit);
+        suit_cards.sort();
+        suit_cards.first().map(|c| *c)
+    }
+
+    // given a card, returns the lowest card in hand beating it for the suit
+    pub fn suit_lowest_over_card(self, suit: Suit, card: Card) -> Option<Card>{
+        let mut suit_cards: Vec<Card> = self.get_suit_cards(&suit).into_iter().filter(|c| c.rank() > card.rank()).collect();
+        suit_cards.sort();
+        suit_cards.first().map(|c| *c)
+    }
+
     /// Check if the hand has the "petit sec" (one of trump with no other trump nor the excuse)
     pub fn has_petit_sec(self) -> bool {
         let petit = Card::new(Suit::Trump, Rank::Rank1);
@@ -447,6 +518,11 @@ impl Hand {
     /// Returns the trumps in `self`.
     pub fn trumps(self) -> Self {
         Self(0, self.1)
+    }
+
+    /// Returns the non trumps in `self`.
+    pub fn no_trumps(self) -> Self {
+        Self(self.0, 0)
     }
 
     /// Returns the number of trumps in `self`.
@@ -514,6 +590,10 @@ impl Deck {
         }
 
         d
+    }
+
+    pub fn get_suit_cards(&self, suit: Suit) -> Vec<Card> {
+        self.cards.clone().into_iter().filter(|c| c.suit() == suit).collect()
     }
 
     /// Shuffle this deck.

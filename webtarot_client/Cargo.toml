@@ -1,6 +1,6 @@
 [package]
 name = "webtarot_client"
-version = "0.7.1"
+version = "0.7.2"
 authors = ["Henri Bourcereau <henri@bourcereau.fr>"]
 edition = "2018"
 
@@ -35,7 +35,7 @@ web-sys = { version = "0.3.4", features = [
   "console"
   ] }                                 
 im-rc = "14.3.0"                      
-strum = "0.18.0"                      
+strum = "0.19.0"                      
 tr = { version = "0.1", default-features = false, features = ["gettext"] }
 rust-embed = { version = "5.5.1", features = ["debug-embed"] }
 i18n-embed = { version = "0.6", features = ["web-sys-requester"] }

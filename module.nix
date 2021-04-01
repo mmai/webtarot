@@ -104,6 +104,9 @@ in
           proxy_set_header X-Forwarded-Port $server_port;
           proxy_redirect off;
 
+          proxy_headers_hash_max_size 512;
+          proxy_headers_hash_bucket_size 128; 
+
           # config for websockets proxying (cf. http://nginx.org/en/docs/http/websocket.html)
           proxy_http_version 1.1;
           proxy_set_header Upgrade $http_upgrade;

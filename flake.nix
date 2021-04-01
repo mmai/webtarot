@@ -35,7 +35,7 @@
           nativeBuildInputs = [ pkgconfig ];
           buildInputs = [ openssl ];
 
-          cargoSha256 = "sha256-fnLi0xnX4duE7XeSeM+H7/VLp4CLJhzJORI7qADRWoQ=";
+          cargoSha256 = "sha256-bGyW70rHOG0SYTfc0AeMo6ClNLzCgI5V4BOsPSsoZ1M=";
 
           meta = with pkgs.stdenv.lib; {
             description = "A online game of french tarot";

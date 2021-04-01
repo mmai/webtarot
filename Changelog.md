@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.7.1
+- fix archives option
+
 ## 0.7.0
 - bots
 

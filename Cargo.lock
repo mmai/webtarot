@@ -1885,6 +1885,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57bd81eb48f4c437cadc685403cad539345bf703d78e63707418431cecd4522b"
 
 [[package]]
+name = "strum"
+version = "0.19.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b89a286a7e3b5720b9a477b23253bc50debac207c8d21505f8e70b36792f11b5"
+
+[[package]]
 name = "strum_macros"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1913,7 +1919,7 @@ version = "0.6.0"
 dependencies = [
  "rand 0.7.3",
  "serde",
- "strum",
+ "strum 0.18.0",
  "strum_macros",
 ]
 
@@ -2518,7 +2524,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_client"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
@@ -2528,7 +2534,7 @@ dependencies = [
  "lazy_static",
  "rust-embed",
  "serde",
- "strum",
+ "strum 0.19.5",
  "tarotgame",
  "tr",
  "url",

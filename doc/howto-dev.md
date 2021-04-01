@@ -24,6 +24,7 @@ cargo run -- --join_code KSGWGW
 * edit the _Cargo.toml_ files : version number
 * compile release version : `make` 
   * attention, le build du front peut être cassé si lancé depuis le shell nix à cause de la version de rustc : vérifier les erreurs du debut. Il est peut-être nécessaire de lancer séparément le build du front et le build du serveur (celui-ci devant être lancé depuis le shell nix pour profiter des lib ssl nécessaires pour webtarot_bot)
+    * compilation du front : s'assurer que webtarot_client est présent dans Cargo.toml principal puis compiler depuis shell nix
 * edit _flake.nix_ : 
   * version number
   * fake cargoSha256
@@ -31,6 +32,7 @@ cargo run -- --join_code KSGWGW
 * fix cargoSha256 in flake.nix 
 * git flow release
 * rerun `nix build .#webtarot`
+    * commenter webtarot_client dans Cargo.toml principal puis compiler en dehors du shell nix
 * `cachix push mmai ./result`
 * `nix copy  --to ssh://root@rhumbs.fr ./result`
 * `make docker` :  does not work ?

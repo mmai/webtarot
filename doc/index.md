@@ -20,6 +20,7 @@ Tarot en ligne
 ## Backlog
 
 - **UX** indiquer joueur appelé quand il est connu
+- **UX** "Choisissez une carte pour déterminer votre partenaire"
 - scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
 
 
@@ -56,3 +57,13 @@ Tarot en ligne
 
 DDD : schema bounded contexts
 Gestion Joueurs, parties, historique...
+
+## Backlog perfs
+
+### peu d'impact
+
+- invitations bots 
+  - remplacer unix file socket par un canal
+  - garder un canal ouvert au lieu de le recréer à chaque fois (webgame_server > universe.rs)
+
+

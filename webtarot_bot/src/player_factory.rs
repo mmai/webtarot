@@ -29,7 +29,8 @@ pub fn play(join_code: &str, str_websocket: &str, count: usize) {
 
     sockets.into_par_iter().enumerate().for_each(|(i, socket)| {
         let nickname = format!("TAROBOT-{}", i);
-        let mut bot = player::SocketPlayer::new(socket, join_code.to_string(), nickname);
+        let delay = time::Duration::from_millis(6000); // 6s
+        let mut bot = player::SocketPlayer::new(socket, join_code.to_string(), nickname, delay);
         bot.play();
     });
 

@@ -1,6 +1,7 @@
 use clap::{Arg, App};
 
 mod explorer;
+mod simulator;
 mod socket_listener;
 mod player;
 mod player_factory;
@@ -62,6 +63,7 @@ pub fn main() {
     } else {
         match str_command {
             "find_decks" => explorer::find_decks(),
+            "simulate" => simulator::simulate(),
             "play" => player_factory::play(joincode, str_websocket, count),
             _ => println!("Nothing to do")
         }

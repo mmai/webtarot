@@ -1,8 +1,3 @@
-use tungstenite::Message as TMessage;
-use tungstenite::stream::Stream;
-use tungstenite::protocol::WebSocket;
-
-
 use std::{thread, time};
 // use std::rc::Rc;
 use std::collections::HashMap;
@@ -17,7 +12,11 @@ use tarotgame::{deal_seeded_hands, cards::{Deck, Card, Hand, Suit, Rank}, deal::
 use webtarot_protocol::{Message, Command, GameStateSnapshot, PlayerAction, GamePlayCommand, PlayCommand, GamePlayerState, BidCommand, CallKingCommand, MakeDogCommand, Turn, PlayerRole, PlayEvent};
 use webgame_protocol::{AuthenticateCommand, JoinGameCommand, PlayerInfo};
 
-type TarotSocket = WebSocket<Stream<std::net::TcpStream, native_tls::TlsStream<std::net::TcpStream>>>;
+pub trait InOut {
+    fn read(&mut self) -> Message;
+    fn send(&mut self, command: &Command) -> Result<()>;
+    fn close(&mut self);
+}
 
 #[derive(Clone)]
 struct DealStats {
@@ -154,8 +153,9 @@ impl PlayerStats {
     }
 }
 
-pub struct SocketPlayer {
-    socket: TarotSocket,
+pub struct Player {
+    delay: time::Duration,
+    in_out: Box<dyn InOut>,
     join_code: String,
     game_state: GameStateSnapshot,
     player_info: PlayerInfo,
@@ -163,16 +163,17 @@ pub struct SocketPlayer {
     // stats: Rc<DealStats>,
 }
 
-impl Drop for SocketPlayer {
+impl Drop for Player {
     fn drop(&mut self) {
-        self.socket.close(None);
+        self.in_out.close();
     }
 }
 
-impl SocketPlayer {
-    pub fn new(socket: TarotSocket, join_code: String, nickname: String) -> Self {
-        SocketPlayer { 
-            socket,
+impl Player {
+    pub fn new(in_out: Box<dyn InOut>, join_code: String, nickname: String, delay: time::Duration) -> Self {
+        Player { 
+            delay,
+            in_out,
             join_code,
             game_state: GameStateSnapshot::default(),
             player_info: PlayerInfo { id: Uuid::default(), nickname } ,
@@ -182,15 +183,9 @@ impl SocketPlayer {
     }
     
     pub fn play(&mut self){
-        self.send(&Command::Authenticate(AuthenticateCommand { nickname: self.player_info.nickname.clone() }));
+        self.in_out.send(&Command::Authenticate(AuthenticateCommand { nickname: self.player_info.nickname.clone() }));
         loop {
-            let msg = self.socket.read_message().expect("Error reading message");
-            let msg = match msg {
-                tungstenite::Message::Text(s) => { s }
-                _ => { panic!() }
-            };
-
-            let message: Message = serde_json::from_str(&msg).expect("Can't parse JSON");
+            let message = self.in_out.read();
             if self.handle_server_message(message) {
                 break
             }
@@ -305,12 +300,6 @@ impl SocketPlayer {
             .unwrap()
     }
 
-    fn send(&mut self, command: &Command) -> Result<()> {
-        let json = serde_json::to_string(command)?;
-        self.socket.write_message(TMessage::Text(json)).unwrap();
-        Ok(())
-    }
-
     // Returns a bool : do we exit ?
     fn handle_server_message(&mut self, msg: Message) -> bool {
         match msg {
@@ -318,12 +307,12 @@ impl SocketPlayer {
                 self.player_info = player_info;
                 // println!("Authenticated with id {}", self.player_info.id);
                 // if self.check_join_code() {
-                    self.send(&Command::JoinGame(JoinGameCommand { join_code: self.join_code.clone(), }));
+                    self.in_out.send(&Command::JoinGame(JoinGameCommand { join_code: self.join_code.clone(), }));
                 // }
             }
             Message::GameJoined(game_info) => {
                 // println!("Game joined: {}", game_info.game_id);
-                self.send(&Command::MarkReady);
+                self.in_out.send(&Command::MarkReady);
             }
             Message::GameStateSnapshot(game_state) => {
                 if game_state != self.game_state {
@@ -344,7 +333,7 @@ impl SocketPlayer {
                     .map(|g| {
                         // println!("Found a game with code {}", g.game.join_code);
                         self.join_code = g.game.join_code.clone();
-                        self.send(&Command::JoinGame(JoinGameCommand { join_code: self.join_code.clone(), }));
+                        self.in_out.send(&Command::JoinGame(JoinGameCommand { join_code: self.join_code.clone(), }));
                     });
             }
             Message::PlayerDisconnected(_) => {
@@ -369,20 +358,20 @@ impl SocketPlayer {
                 //deal has started, we can init its state
                 self.stats.init_state(self.game_state.nb_players as usize, self.game_state.deal.hand);
                 if let Some(target) = self.guess_bid() {
-                    self.send(&Command::GamePlay(GamePlayCommand::Bid(BidCommand { target, slam: false })));
+                    self.in_out.send(&Command::GamePlay(GamePlayCommand::Bid(BidCommand { target, slam: false })));
                 } else {
-                    self.send(&Command::GamePlay(GamePlayCommand::Pass));
+                    self.in_out.send(&Command::GamePlay(GamePlayCommand::Pass));
                 }
             }
             Some(PlayerAction::CallKing) => {
-                self.send(&Command::GamePlay(GamePlayCommand::CallKing(CallKingCommand { card: self.call_king() })));
+                self.in_out.send(&Command::GamePlay(GamePlayCommand::CallKing(CallKingCommand { card: self.call_king() })));
             }
             Some(PlayerAction::MakeDog) => {
                 let dog  = self.make_dog();
                 for card in dog.list() {
                     (*self.stats.suit_left.get_mut(&card.suit()).unwrap()).remove(card);
                 }
-                self.send(&Command::GamePlay(GamePlayCommand::MakeDog(MakeDogCommand { cards: dog, slam: false })));
+                self.in_out.send(&Command::GamePlay(GamePlayCommand::MakeDog(MakeDogCommand { cards: dog, slam: false })));
             }
             Some(PlayerAction::Play) => {
                 let card_played = self.game_state.deal.last_trick.card_played(my_state.pos);
@@ -390,7 +379,7 @@ impl SocketPlayer {
                     self.choose_card().map(|card| {
                         // println!("{} is playing {}...", self.player_info.nickname, card.to_string());
                         self.stats.set_suit_played(&card.suit());
-                        self.send(&Command::GamePlay(GamePlayCommand::Play(PlayCommand { card })));
+                        self.in_out.send(&Command::GamePlay(GamePlayCommand::Play(PlayCommand { card })));
                     });
                 }
             }
@@ -503,9 +492,8 @@ impl SocketPlayer {
 
     fn make_dog(&mut self) -> Hand {
         //Let the players see the initial dog
-        let delay = time::Duration::from_millis(6000); // 6s
         let now = time::Instant::now();
-        thread::sleep(delay);
+        thread::sleep(self.delay);
 
         let mut dog = Hand::new();
         let deal = &self.game_state.deal;

@@ -1,14 +1,18 @@
-use tungstenite::connect;
+// use tungstenite::connect;
 use tungstenite::stream::Stream;
-use tungstenite::protocol::WebSocket;
+// use tungstenite::protocol::WebSocket;
 
+use std::time;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use std::io::{BufRead, BufReader};
 use std::os::unix::net::{UnixStream,UnixListener};
 use url::Url;
-type TarotSocket = WebSocket<Stream<std::net::TcpStream, native_tls::TlsStream<std::net::TcpStream>>>;
+
+use crate::in_out_websocket::TarotWebSocket;
+
+// type TarotSocket = WebSocket<Stream<std::net::TcpStream, native_tls::TlsStream<std::net::TcpStream>>>;
 
 struct NickNamer {
     parties: HashMap<String, u8>,
@@ -30,6 +34,7 @@ impl NickNamer {
 }
 
 pub fn start(str_socket: &str , str_websocket: &str) {
+    let bot_delay = time::Duration::from_millis(6000); // 6s
     let socket_file = std::path::Path::new(str_socket);
     if socket_file.exists() {
         // remove dangling socket file
@@ -43,21 +48,25 @@ pub fn start(str_socket: &str , str_websocket: &str) {
             match stream {
                 Ok(stream) => {
                     let stream = BufReader::new(stream);
-                    let url_websocket = format!("{}/ws/new_new", str_websocket);
+                    // let url_websocket = format!("{}/ws/new_new", str_websocket);
                     for line in stream.lines() {
                         let code = line.unwrap();
                         if code == "SHUTDOWN" {
                             break
                         } else {
-                            let my_url_websocket = url_websocket.clone();
+                            // let my_url_websocket = url_websocket.clone();
+                            let my_str_websocket = String::from(str_websocket);
                             let my_nicknamer = nicknamer.clone();
+                            let my_delay = bot_delay.clone();
                             std::thread::spawn(move || {
                                 let nickname = my_nicknamer.lock().unwrap().get_nickname(&code);
-                                let tarot_socket: TarotSocket = connect(Url::parse(&my_url_websocket)
-                                    .unwrap())
-                                    .expect("Can't connect")
-                                    .0;
-                                let mut bot = crate::player::SocketPlayer::new(tarot_socket, code.to_string(), nickname);
+                                // let in_out = TarotWebSocket::new(&my_str_websocket);
+                                let in_out = Box::new(TarotWebSocket::new(&my_str_websocket));
+                                // let tarot_socket: TarotSocket = connect(Url::parse(&my_url_websocket)
+                                //     .unwrap())
+                                //     .expect("Can't connect")
+                                //     .0;
+                                let mut bot = crate::player::Player::new(in_out, code.to_string(), nickname, my_delay);
                                 bot.play();
                                 // we clean the nicknamer as soon as the first bot quits the party
                                 my_nicknamer.lock().unwrap().delete_party(&code);

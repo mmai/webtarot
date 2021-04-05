@@ -29,13 +29,13 @@
 
       webtarot = with final; ( rustPlatform.buildRustPackage rec {
           name = "webtarot";
-          version = "0.7.2";
+          version = "0.7.3";
           src = ./.;
 
           nativeBuildInputs = [ pkgconfig ];
           buildInputs = [ openssl ];
 
-          cargoSha256 = "sha256-bGyW70rHOG0SYTfc0AeMo6ClNLzCgI5V4BOsPSsoZ1M=";
+          cargoSha256 = "sha256-3uOAKQmHKIFlYAl6W1Tt9j9jhZzjWiBWqc2Mf+am/Wo=";
 
           meta = with pkgs.stdenv.lib; {
             description = "A online game of french tarot";
@@ -82,6 +82,11 @@
     });
 
     defaultPackage = forAllSystems (system: self.packages.${system}.webtarot);
+
+
+    # Use nixpkgs with oxalica rust-bin overlay (cf. https://github.com/NixOS/nixpkgs/issues/112535)
+    # rust_overlay = import (builtins.fetchTarball "https://github.com/oxalica/rust-overlay/archive/master.tar.gz");
+
 
     devShell = forAllSystems (system: (import ./shell.nix { pkgs = nixpkgs.legacyPackages.${system}; }));
 

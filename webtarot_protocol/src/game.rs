@@ -304,6 +304,9 @@ impl GameState for TarotGameState {
             Self::Operation::SetSeed(seed) => {
                 let (hands, dog) = tarotgame::deal_seeded_hands(seed, self.nb_players as usize);
                 self.deal.deal_auction_mut().map(|auction| auction.set_hands(hands, dog));
+            },
+            Self::Operation::ShowState => {
+                println!("Debug state : {}", serde_json::to_string(self).unwrap());
             }
         }
         

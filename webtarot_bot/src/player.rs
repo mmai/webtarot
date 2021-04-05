@@ -9,7 +9,7 @@ use url::Url;
 use serde_json::Result;
 
 use tarotgame::{deal_seeded_hands, cards::{Deck, Card, Hand, Suit, Rank}, deal::can_play, bid::Target, points::strength, pos::PlayerPos, trick::Trick};
-use webtarot_protocol::{Message, Command, GameStateSnapshot, PlayerAction, GamePlayCommand, PlayCommand, GamePlayerState, BidCommand, CallKingCommand, MakeDogCommand, Turn, PlayerRole, PlayEvent};
+use webtarot_protocol::{Message, Command, GameStateSnapshot, PlayerAction, GamePlayCommand, PlayCommand, GamePlayerState, BidCommand, CallKingCommand, MakeDogCommand, Turn, PlayerRole, PlayEvent, TarotVariant, VariantSettings};
 use webgame_protocol::{AuthenticateCommand, JoinGameCommand, PlayerInfo};
 
 pub trait InOut {
@@ -250,15 +250,17 @@ impl Player {
 
         if let Some(king) = deal.king {
             if deal.hand.has(king) { // I have the king
-                // print!(" king.. ");
+                // print!("teams : i have king.. ");
 
                 for (idx, pstat) in  self.stats.players.iter_mut().enumerate() {
                     pstat.in_taker_team = Some(pstat.is_taker || idx == me_pos);
                 }
                 self.stats.teams_known = true;
-            } else { //I have not the king
-                // print!(" no king.. ");
-                self.stats.players[me_pos].in_taker_team = Some(false);
+            } else { //I do not have the king
+                // print!("teams : i don't have king.. ");
+                if self.stats.players[me_pos].in_taker_team.is_none() {
+                    self.stats.players[me_pos].in_taker_team = Some(false);
+                }
 
                 // Do other players played the king ?
                 let partner_pos = self.stats.players.iter()
@@ -266,14 +268,14 @@ impl Player {
                     .find(|(idx, pstat)| pstat.played.has(king))
                     .map(|(idx, pstat)| idx);
                 if let Some(pos) = partner_pos { // yes, king played
-                    // print!(" king played.. ");
+                    // print!(" teams : king was played.. ");
                     for (idx, pstat) in  self.stats.players.iter_mut().enumerate() {
                         pstat.in_taker_team = Some(pstat.is_taker || idx == pos);
                     }
                     self.stats.teams_known = true;
                     self.stats.teams_known_by_all = true;
                 } else { // King not played
-                    // print!(" king not played.. ");
+                    // print!(" teams : king was not played.. ");
                     //Check players who don't have cards of the king's suit
                     for pstat in  self.stats.players.iter_mut() {
                         if pstat.in_taker_team.is_none() && Some(false) == pstat.suits_available[&king.suit()] {
@@ -306,12 +308,27 @@ impl Player {
             Message::Authenticated(player_info) => {
                 self.player_info = player_info;
                 // println!("Authenticated with id {}", self.player_info.id);
-                // if self.check_join_code() {
+                if self.join_code != "" {
                     self.in_out.send(&Command::JoinGame(JoinGameCommand { join_code: self.join_code.clone(), }));
-                // }
+                } else {
+                    //Create game
+                    // println!("creating game");
+                    let variant = TarotVariant {
+                        parameters: VariantSettings { nb_players: 5 }
+                    };
+                    self.in_out.send(&Command::NewGame(variant));
+                }
             }
             Message::GameJoined(game_info) => {
-                // println!("Game joined: {}", game_info.game_id);
+                // println!("Game joined: {:?}", game_info);
+                if self.join_code == "" {
+                    // println!("need to invite other bots");
+                    self.join_code = game_info.join_code.clone();
+                    self.in_out.send(&Command::InviteBot);
+                    self.in_out.send(&Command::InviteBot);
+                    self.in_out.send(&Command::InviteBot);
+                    self.in_out.send(&Command::InviteBot);
+                }
                 self.in_out.send(&Command::MarkReady);
             }
             Message::GameStateSnapshot(game_state) => {
@@ -377,7 +394,7 @@ impl Player {
                 let card_played = self.game_state.deal.last_trick.card_played(my_state.pos);
                 if card_played.is_none() {
                     self.choose_card().map(|card| {
-                        // println!("{} is playing {}...", self.player_info.nickname, card.to_string());
+                        // println!(">> {} is playing {}...\n\n", self.player_info.nickname, card.to_string());
                         self.stats.set_suit_played(&card.suit());
                         self.in_out.send(&Command::GamePlay(GamePlayCommand::Play(PlayCommand { card })));
                     });
@@ -715,7 +732,10 @@ impl Player {
                     // print!("i called the {} king..  ", king.to_string());
                     if !self.stats.suit_already_played(king.suit()) {
                         // print!("whose color has not been played..  ");
-                        return hand.suit_highest(king.suit());//We give points
+                        let card = hand.suit_highest(king.suit());//We give points
+                        if card.is_some() {
+                            return card;
+                        }
                     }
                 }
             } 
@@ -781,6 +801,12 @@ impl Player {
             if let Some(long_suit) = playable_suits.last() {
                 // print!("small card of long suite.. ");
                 return hand.suit_lowest(*long_suit); // this card exists because we previously filtered suits with hand.has_any()
+            }
+
+            // if we are here, we should only have trumps left, play the highest
+            let card = hand.suit_highest(Suit::Trump);
+            if card.is_some() {
+                return card;
             }
         }
 

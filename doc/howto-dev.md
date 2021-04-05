@@ -1,30 +1,10 @@
 # Dev
 
-## Upgrading yew / webpack
-
-Base template, à regarder régulièrement pour les mise à jour de dépendences et la config webpack : https://github.com/yewstack/yew-wasm-pack-template
-
-Problem : dependabot found vulnerabilities on node-forge, needs 0.10.0 but webpack-dev-server needs 0.9 => we need to upgrade webpack-dev-server dependencies
-
-```sh
-cd webtarot_client
-yarn upgrade --depth
-```
-
-## Test bots
-```sh
-nix develop
-cd webtarot_bot
-cargo run -- --join_code KSGWGW
-```
-
 ## Packaging
-
 
 * edit the _Cargo.toml_ files : version number
 * compile release version : `make` 
   * attention, le build du front peut être cassé si lancé depuis le shell nix à cause de la version de rustc : vérifier les erreurs du debut. Il est peut-être nécessaire de lancer séparément le build du front et le build du serveur (celui-ci devant être lancé depuis le shell nix pour profiter des lib ssl nécessaires pour webtarot_bot)
-    * compilation du front : s'assurer que webtarot_client est présent dans Cargo.toml principal puis compiler
 * edit _flake.nix_ : 
   * version number
   * fake cargoSha256
@@ -37,7 +17,46 @@ cargo run -- --join_code KSGWGW
 * `nix copy  --to ssh://root@rhumbs.fr ./result`
 * `make docker` :  does not work ?
 
-## Résolution de problèmes
+## Upgrading yew / webpack
+
+Base template, à regarder régulièrement pour les mise à jour de dépendences et la config webpack : https://github.com/yewstack/yew-wasm-pack-template
+
+Problem : dependabot found vulnerabilities on node-forge, needs 0.10.0 but webpack-dev-server needs 0.9 => we need to upgrade webpack-dev-server dependencies
+
+```sh
+cd webtarot_client
+yarn upgrade --depth
+```
+
+## Diagnostics
+
+Display games list
+```sh
+(echo '{"cmd": "show_server_status"}';sleep 0.1 )| websocat ws://127.0.0.1:8001/ws/new_new | jq 
+``` 
+
+Print a specific game_state in server logs :
+
+```sh
+echo '{"cmd": "debug_game", "game_id":"'$GUID'" , "operation": "ShowState"}' | websocat  ws://127.0.0.1:8001/ws/new_new
+```
+
+## Bots
+
+Launch bots from command line:
+```sh
+nix develop
+cd webtarot_bot
+cargo run -- --join_code KSGWGW --count 4
+```
+
+Only bots plays against each others: 
+
+```sh
+cargo run
+```
+
+## Compilation fixes
 
 Demande un `use strum::IntoEnumIterator` alors qu'il y est déjà puis se plaint qu'il y soit...
 

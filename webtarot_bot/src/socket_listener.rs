@@ -12,8 +12,6 @@ use url::Url;
 
 use crate::in_out_websocket::TarotWebSocket;
 
-// type TarotSocket = WebSocket<Stream<std::net::TcpStream, native_tls::TlsStream<std::net::TcpStream>>>;
-
 struct NickNamer {
     parties: HashMap<String, u8>,
 }
@@ -54,18 +52,12 @@ pub fn start(str_socket: &str , str_websocket: &str) {
                         if code == "SHUTDOWN" {
                             break
                         } else {
-                            // let my_url_websocket = url_websocket.clone();
                             let my_str_websocket = String::from(str_websocket);
                             let my_nicknamer = nicknamer.clone();
                             let my_delay = bot_delay.clone();
                             std::thread::spawn(move || {
                                 let nickname = my_nicknamer.lock().unwrap().get_nickname(&code);
-                                // let in_out = TarotWebSocket::new(&my_str_websocket);
                                 let in_out = Box::new(TarotWebSocket::new(&my_str_websocket));
-                                // let tarot_socket: TarotSocket = connect(Url::parse(&my_url_websocket)
-                                //     .unwrap())
-                                //     .expect("Can't connect")
-                                //     .0;
                                 let mut bot = crate::player::Player::new(in_out, code.to_string(), nickname, my_delay);
                                 bot.play();
                                 // we clean the nicknamer as soon as the first bot quits the party

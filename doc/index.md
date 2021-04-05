@@ -19,6 +19,8 @@ Tarot en ligne
 
 ## Backlog
 
+- bug : archives en lignes non actives (vérifier après 24h)
+
 - **UX** indiquer joueur appelé quand il est connu
 - **UX** "Choisissez une carte pour déterminer votre partenaire"
 - scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /

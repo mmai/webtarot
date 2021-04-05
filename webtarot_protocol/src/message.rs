@@ -46,7 +46,8 @@ pub struct SetPlayerRoleCommand {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum DebugOperation {
-    SetSeed([u8; 32])
+    SetSeed([u8; 32]),
+    ShowState,
 }
 
 impl webgame_protocol::DebugOperation for DebugOperation { }

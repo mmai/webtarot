@@ -1,9 +1,11 @@
 use clap::{Arg, App};
 
 mod explorer;
+mod simulator;
 mod socket_listener;
 mod player;
 mod player_factory;
+mod in_out_websocket;
 
 pub fn main() {
     let version = format!("{}.{}.{}{}",
@@ -62,6 +64,7 @@ pub fn main() {
     } else {
         match str_command {
             "find_decks" => explorer::find_decks(),
+            "simulate" => simulator::simulate(4),
             "play" => player_factory::play(joincode, str_websocket, count),
             _ => println!("Nothing to do")
         }

@@ -1,8 +1,3 @@
-use tungstenite::Message as TMessage;
-use tungstenite::stream::Stream;
-use tungstenite::protocol::WebSocket;
-
-
 use std::{thread, time};
 // use std::rc::Rc;
 use std::collections::HashMap;
@@ -14,10 +9,14 @@ use url::Url;
 use serde_json::Result;
 
 use tarotgame::{deal_seeded_hands, cards::{Deck, Card, Hand, Suit, Rank}, deal::can_play, bid::Target, points::strength, pos::PlayerPos, trick::Trick};
-use webtarot_protocol::{Message, Command, GameStateSnapshot, PlayerAction, GamePlayCommand, PlayCommand, GamePlayerState, BidCommand, CallKingCommand, MakeDogCommand, Turn, PlayerRole, PlayEvent};
+use webtarot_protocol::{Message, Command, GameStateSnapshot, PlayerAction, GamePlayCommand, PlayCommand, GamePlayerState, BidCommand, CallKingCommand, MakeDogCommand, Turn, PlayerRole, PlayEvent, TarotVariant, VariantSettings};
 use webgame_protocol::{AuthenticateCommand, JoinGameCommand, PlayerInfo};
 
-type TarotSocket = WebSocket<Stream<std::net::TcpStream, native_tls::TlsStream<std::net::TcpStream>>>;
+pub trait InOut {
+    fn read(&mut self) -> Message;
+    fn send(&mut self, command: &Command) -> Result<()>;
+    fn close(&mut self);
+}
 
 #[derive(Clone)]
 struct DealStats {
@@ -154,8 +153,9 @@ impl PlayerStats {
     }
 }
 
-pub struct SocketPlayer {
-    socket: TarotSocket,
+pub struct Player {
+    delay: time::Duration,
+    in_out: Box<dyn InOut>,
     join_code: String,
     game_state: GameStateSnapshot,
     player_info: PlayerInfo,
@@ -163,16 +163,17 @@ pub struct SocketPlayer {
     // stats: Rc<DealStats>,
 }
 
-impl Drop for SocketPlayer {
+impl Drop for Player {
     fn drop(&mut self) {
-        self.socket.close(None);
+        self.in_out.close();
     }
 }
 
-impl SocketPlayer {
-    pub fn new(socket: TarotSocket, join_code: String, nickname: String) -> Self {
-        SocketPlayer { 
-            socket,
+impl Player {
+    pub fn new(in_out: Box<dyn InOut>, join_code: String, nickname: String, delay: time::Duration) -> Self {
+        Player { 
+            delay,
+            in_out,
             join_code,
             game_state: GameStateSnapshot::default(),
             player_info: PlayerInfo { id: Uuid::default(), nickname } ,
@@ -182,15 +183,9 @@ impl SocketPlayer {
     }
     
     pub fn play(&mut self){
-        self.send(&Command::Authenticate(AuthenticateCommand { nickname: self.player_info.nickname.clone() }));
+        self.in_out.send(&Command::Authenticate(AuthenticateCommand { nickname: self.player_info.nickname.clone() }));
         loop {
-            let msg = self.socket.read_message().expect("Error reading message");
-            let msg = match msg {
-                tungstenite::Message::Text(s) => { s }
-                _ => { panic!() }
-            };
-
-            let message: Message = serde_json::from_str(&msg).expect("Can't parse JSON");
+            let message = self.in_out.read();
             if self.handle_server_message(message) {
                 break
             }
@@ -255,15 +250,17 @@ impl SocketPlayer {
 
         if let Some(king) = deal.king {
             if deal.hand.has(king) { // I have the king
-                // print!(" king.. ");
+                // print!("teams : i have king.. ");
 
                 for (idx, pstat) in  self.stats.players.iter_mut().enumerate() {
                     pstat.in_taker_team = Some(pstat.is_taker || idx == me_pos);
                 }
                 self.stats.teams_known = true;
-            } else { //I have not the king
-                // print!(" no king.. ");
-                self.stats.players[me_pos].in_taker_team = Some(false);
+            } else { //I do not have the king
+                // print!("teams : i don't have king.. ");
+                if self.stats.players[me_pos].in_taker_team.is_none() {
+                    self.stats.players[me_pos].in_taker_team = Some(false);
+                }
 
                 // Do other players played the king ?
                 let partner_pos = self.stats.players.iter()
@@ -271,14 +268,14 @@ impl SocketPlayer {
                     .find(|(idx, pstat)| pstat.played.has(king))
                     .map(|(idx, pstat)| idx);
                 if let Some(pos) = partner_pos { // yes, king played
-                    // print!(" king played.. ");
+                    // print!(" teams : king was played.. ");
                     for (idx, pstat) in  self.stats.players.iter_mut().enumerate() {
                         pstat.in_taker_team = Some(pstat.is_taker || idx == pos);
                     }
                     self.stats.teams_known = true;
                     self.stats.teams_known_by_all = true;
                 } else { // King not played
-                    // print!(" king not played.. ");
+                    // print!(" teams : king was not played.. ");
                     //Check players who don't have cards of the king's suit
                     for pstat in  self.stats.players.iter_mut() {
                         if pstat.in_taker_team.is_none() && Some(false) == pstat.suits_available[&king.suit()] {
@@ -305,25 +302,34 @@ impl SocketPlayer {
             .unwrap()
     }
 
-    fn send(&mut self, command: &Command) -> Result<()> {
-        let json = serde_json::to_string(command)?;
-        self.socket.write_message(TMessage::Text(json)).unwrap();
-        Ok(())
-    }
-
     // Returns a bool : do we exit ?
     fn handle_server_message(&mut self, msg: Message) -> bool {
         match msg {
             Message::Authenticated(player_info) => {
                 self.player_info = player_info;
                 // println!("Authenticated with id {}", self.player_info.id);
-                // if self.check_join_code() {
-                    self.send(&Command::JoinGame(JoinGameCommand { join_code: self.join_code.clone(), }));
-                // }
+                if self.join_code != "" {
+                    self.in_out.send(&Command::JoinGame(JoinGameCommand { join_code: self.join_code.clone(), }));
+                } else {
+                    //Create game
+                    // println!("creating game");
+                    let variant = TarotVariant {
+                        parameters: VariantSettings { nb_players: 5 }
+                    };
+                    self.in_out.send(&Command::NewGame(variant));
+                }
             }
             Message::GameJoined(game_info) => {
-                // println!("Game joined: {}", game_info.game_id);
-                self.send(&Command::MarkReady);
+                // println!("Game joined: {:?}", game_info);
+                if self.join_code == "" {
+                    // println!("need to invite other bots");
+                    self.join_code = game_info.join_code.clone();
+                    self.in_out.send(&Command::InviteBot);
+                    self.in_out.send(&Command::InviteBot);
+                    self.in_out.send(&Command::InviteBot);
+                    self.in_out.send(&Command::InviteBot);
+                }
+                self.in_out.send(&Command::MarkReady);
             }
             Message::GameStateSnapshot(game_state) => {
                 if game_state != self.game_state {
@@ -344,7 +350,7 @@ impl SocketPlayer {
                     .map(|g| {
                         // println!("Found a game with code {}", g.game.join_code);
                         self.join_code = g.game.join_code.clone();
-                        self.send(&Command::JoinGame(JoinGameCommand { join_code: self.join_code.clone(), }));
+                        self.in_out.send(&Command::JoinGame(JoinGameCommand { join_code: self.join_code.clone(), }));
                     });
             }
             Message::PlayerDisconnected(_) => {
@@ -369,28 +375,28 @@ impl SocketPlayer {
                 //deal has started, we can init its state
                 self.stats.init_state(self.game_state.nb_players as usize, self.game_state.deal.hand);
                 if let Some(target) = self.guess_bid() {
-                    self.send(&Command::GamePlay(GamePlayCommand::Bid(BidCommand { target, slam: false })));
+                    self.in_out.send(&Command::GamePlay(GamePlayCommand::Bid(BidCommand { target, slam: false })));
                 } else {
-                    self.send(&Command::GamePlay(GamePlayCommand::Pass));
+                    self.in_out.send(&Command::GamePlay(GamePlayCommand::Pass));
                 }
             }
             Some(PlayerAction::CallKing) => {
-                self.send(&Command::GamePlay(GamePlayCommand::CallKing(CallKingCommand { card: self.call_king() })));
+                self.in_out.send(&Command::GamePlay(GamePlayCommand::CallKing(CallKingCommand { card: self.call_king() })));
             }
             Some(PlayerAction::MakeDog) => {
                 let dog  = self.make_dog();
                 for card in dog.list() {
                     (*self.stats.suit_left.get_mut(&card.suit()).unwrap()).remove(card);
                 }
-                self.send(&Command::GamePlay(GamePlayCommand::MakeDog(MakeDogCommand { cards: dog, slam: false })));
+                self.in_out.send(&Command::GamePlay(GamePlayCommand::MakeDog(MakeDogCommand { cards: dog, slam: false })));
             }
             Some(PlayerAction::Play) => {
                 let card_played = self.game_state.deal.last_trick.card_played(my_state.pos);
                 if card_played.is_none() {
                     self.choose_card().map(|card| {
-                        // println!("{} is playing {}...", self.player_info.nickname, card.to_string());
+                        // println!(">> {} is playing {}...\n\n", self.player_info.nickname, card.to_string());
                         self.stats.set_suit_played(&card.suit());
-                        self.send(&Command::GamePlay(GamePlayCommand::Play(PlayCommand { card })));
+                        self.in_out.send(&Command::GamePlay(GamePlayCommand::Play(PlayCommand { card })));
                     });
                 }
             }
@@ -503,9 +509,8 @@ impl SocketPlayer {
 
     fn make_dog(&mut self) -> Hand {
         //Let the players see the initial dog
-        let delay = time::Duration::from_millis(6000); // 6s
         let now = time::Instant::now();
-        thread::sleep(delay);
+        thread::sleep(self.delay);
 
         let mut dog = Hand::new();
         let deal = &self.game_state.deal;
@@ -727,7 +732,10 @@ impl SocketPlayer {
                     // print!("i called the {} king..  ", king.to_string());
                     if !self.stats.suit_already_played(king.suit()) {
                         // print!("whose color has not been played..  ");
-                        return hand.suit_highest(king.suit());//We give points
+                        let card = hand.suit_highest(king.suit());//We give points
+                        if card.is_some() {
+                            return card;
+                        }
                     }
                 }
             } 
@@ -793,6 +801,12 @@ impl SocketPlayer {
             if let Some(long_suit) = playable_suits.last() {
                 // print!("small card of long suite.. ");
                 return hand.suit_lowest(*long_suit); // this card exists because we previously filtered suits with hand.has_any()
+            }
+
+            // if we are here, we should only have trumps left, play the highest
+            let card = hand.suit_highest(Suit::Trump);
+            if card.is_some() {
+                return card;
             }
         }
 

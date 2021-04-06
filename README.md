@@ -2,8 +2,8 @@
 
 A online game of [french tarot](https://en.wikipedia.org/wiki/French_tarot) in rust / webassembly
 
-The project is in its early stages. It is playable but still lacks a lot of features and it may be unstable. 
-(I am learning rust with this project, don't hesitate to make pull requests)
+![webtarot screenshot](webtarot_client/static/screenshot.png?raw=true "Webtarot Screenshot")
+The project is playable but the code (and the interface) is not pretty. I am learning rust with this project, don't hesitate to make pull requests.
 
 ## Manual installation
 
@@ -34,8 +34,8 @@ Start server and client in developpement mode:
 ```sh
 make client
 make server
-firefox http://127.0.0.1:8001/
 ```
+and open your browser to http://127.0.0.1:8001/
 
 ## Internationalization
 

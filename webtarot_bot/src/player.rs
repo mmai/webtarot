@@ -25,6 +25,7 @@ struct DealStats {
     pub suit_played: [bool;5],
     pub teams_known: bool,
     pub teams_known_by_all: bool,
+    // pub count: usize,
 }
 
 impl DealStats {
@@ -34,7 +35,8 @@ impl DealStats {
             suit_left: HashMap::default(),
             suit_played: [false; 5],
             teams_known: false,
-            teams_known_by_all: false
+            teams_known_by_all: false,
+            // count: 0,
         }
     }
 
@@ -43,13 +45,15 @@ impl DealStats {
         self.suit_played = [false; 5];
         self.teams_known = false;
         self.teams_known_by_all = false;
+        // self.count = self.count + 1;
+        // println!("---------------------------- DEAL {} --------------------", self.count);
 
         //reset cards left
         let deck = Deck::new();
         let hearts = deck.get_suit_cards(Suit::Heart).into();
         let clubs = deck.get_suit_cards(Suit::Club).into();
         let spades = deck.get_suit_cards(Suit::Spade).into();
-        let diamonds = deck.get_suit_cards(Suit::Diamond).into();
+        let diamonds = deck.get_suit_cards(Suit::Diamond).into(); 
         let trumps = deck.get_suit_cards(Suit::Trump).into();
         self.suit_left = [
                 (Suit::Heart, hearts),
@@ -358,7 +362,7 @@ impl Player {
                 return true; //We exit
             }
             _ => {
-                println!("Unmanaged server message for {}: {:?}", self.player_info.nickname, msg);
+                // println!("Unmanaged server message for {}: {:?}", self.player_info.nickname, msg);
             }
         }
         false // we don't exit
@@ -393,11 +397,19 @@ impl Player {
             Some(PlayerAction::Play) => {
                 let card_played = self.game_state.deal.last_trick.card_played(my_state.pos);
                 if card_played.is_none() {
-                    self.choose_card().map(|card| {
-                        // println!(">> {} is playing {}...\n\n", self.player_info.nickname, card.to_string());
-                        self.stats.set_suit_played(&card.suit());
-                        self.in_out.send(&Command::GamePlay(GamePlayCommand::Play(PlayCommand { card })));
-                    });
+                    let mystate = self.my_state().clone();
+                    self.choose_card()
+                        .or_else(|| {
+                            // println!("\n============================ No card played !!");
+                            // println!("state : {:?}", mystate);
+                            None
+                        })
+                        .map(|card| {
+                            // println!(">> {} is playing {}...\n\n", self.player_info.nickname, card.to_string());
+                            self.stats.set_suit_played(&card.suit());
+                            self.in_out.send(&Command::GamePlay(GamePlayCommand::Play(PlayCommand { card })));
+                        })
+                    ;
                 }
             }
             _ => {}
@@ -859,6 +871,13 @@ impl Player {
 
         let win_pos = trick.winner.pos as usize;
         let winner_card = trick.cards[win_pos].unwrap();
+
+        if winner_card.suit() == Suit::Trump {
+            // If I have a higher trump than the winner card, I must play it
+            if let Some(mylowest) = hand.suit_lowest_over_card(Suit::Trump, winner_card){
+                return None;
+            }
+        }
 
         //My partner has played the highest trump
         if self.stats.players[win_pos].is_partner(me) == Some(true) {

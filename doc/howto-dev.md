@@ -12,7 +12,6 @@
 * fix cargoSha256 in flake.nix 
 * git flow release
 * rerun `nix build .#webtarot`
-    * commenter webtarot_client dans Cargo.toml principal puis compiler en dehors du shell nix
 * `cachix push mmai ./result`
 * `nix copy  --to ssh://root@rhumbs.fr ./result`
 * `make docker` :  does not work ?

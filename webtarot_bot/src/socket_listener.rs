@@ -33,6 +33,7 @@ impl NickNamer {
 
 pub fn start(str_socket: &str , str_websocket: &str) {
     let bot_delay = time::Duration::from_millis(6000); // 6s
+    // let bot_delay = time::Duration::from_millis(0);
     let socket_file = std::path::Path::new(str_socket);
     if socket_file.exists() {
         // remove dangling socket file

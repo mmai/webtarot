@@ -20,11 +20,15 @@ Tarot en ligne
 ## Backlog
 
 - bug : archives en lignes non actives (vérifier après 24h)
+- **server** enregistrement des parties
+  - enregistrer les parties lorsqu'elles sont terminées 
+  - listing
+  - permet interruption et reprise serveur ?
+  - remplacer completement btreemap par sled ?
 
 - **UX** indiquer joueur appelé quand il est connu
 - **UX** "Choisissez une carte pour déterminer votre partenaire"
 - scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
-
 
 - bug : son cartes jouées
 
@@ -32,10 +36,6 @@ Tarot en ligne
 - **UX** volet résultats
 - envoyer langue du premier connecté au serveur (pour messages chat)
 - **bot** envoyer des messages au chat (selon résultat du trick, différent selon n° de bot) 
-- **server** enregistrement des parties
-  - listing
-  - permet interruption et reprise serveur ?
-  - remplacer completement btreemap par sled ?
 - docker : étapes supplémentaires pour publier : exécuter localement ?
 - **UX** connexion : afficher directement bon écran
 - **refacto** retirer la dépendence Universe de Game : possible ? cf. https://docs.google.com/presentation/d/1ov5957xmm8s9V2F32AgXbaaQL0nCPai58PavU6jn0jA/edit#slide=id.p 

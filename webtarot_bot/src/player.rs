@@ -420,13 +420,13 @@ impl Player {
         let curr_target = &self.game_state.deal.contract_target();
 
         let points = self.evaluate_hand();
-        let candidate = if points < 47 {
+        let candidate = if points < 46 {
             None
-        } else if points < 63 {
+        } else if points < 58 {
             Some(Target::Prise)
-        } else if points < 78 {
+        } else if points < 75 {
             Some(Target::Garde)
-        } else if points < 88 {
+        } else if points < 85 {
             Some(Target::GardeSans)
         } else {
             Some(Target::GardeContre)
@@ -670,8 +670,11 @@ impl Player {
                             // if is_cut { println!("I am cut"); } else { println!("I am not cut"); }
                             // if me.in_taker_team == Some(true) { println!("in taker team"); } else { println!("not in taker team"); }
                             // if danger { println!("danger"); } else { println!("no danger"); }
+
+                            let taker_pos = PlayerPos::from_n(self.get_taker_pos().unwrap() as usize, self.stats.players.len() as u8);
+                            let taker_already_played = trick.clone(.clone()).player_already_played(taker_pos);
                             if  myhighest > highest_left.unwrap() && !is_cut &&
-                                ( me.in_taker_team == Some(true) || !danger ) {
+                                ( me.in_taker_team == Some(true) || !danger || (self.is_first_time_suit_played(&starting_suit) && taker_already_played)) {
                                 return Some(myhighest);
                             }
                         } else {
@@ -703,8 +706,9 @@ impl Player {
                     let found = self.play_try_own_petit();
                     if found.is_some() { return found };
 
-                    // If there is points to save and i am not the last to play : play high
-                    if trick.points() > 3.0 && self.stats.clone().opponent_is_after(trick, mepos) != Some(false) {
+                    // If there is points to save and i am not the last to play and it is not the
+                    // first time we play this color: play high
+                    if !self.is_first_time_suit_played(&starting_suit) && trick.points() > 3.0 && self.stats.clone().opponent_is_after(trick, mepos) != Some(false) {
                         if let Some(highest) = hand.trump_highest(){
                             if highest.rank() > winner_card.rank() {
                                 return Some(highest);
@@ -809,13 +813,17 @@ impl Player {
             playable_suits.sort_by(|a, b| {
                 hand.get_suit_cards(&a).len().cmp(&hand.get_suit_cards(&b).len())
             });
+
             // Play small card of long suit
             if let Some(long_suit) = playable_suits.last() {
                 // print!("small card of long suite.. ");
-                return hand.suit_lowest(*long_suit); // this card exists because we previously filtered suits with hand.has_any()
+                let lowest = hand.suit_lowest(*long_suit).unwrap(); // this card exists because we previously filtered suits with hand.has_any()
+                if lowest.rank() < Rank::RankJ { // we don't play points
+                    return Some(lowest);
+                }
             }
 
-            // if we are here, we should only have trumps left, play the highest
+            // if we are here, we should only have trumps left (or points we don't want to give), play the highest
             let card = hand.suit_highest(Suit::Trump);
             if card.is_some() {
                 return card;
@@ -896,26 +904,30 @@ impl Player {
                 return Some(petit)
             }
 
-            let card_played_count = trick.cards.iter()
-                .filter(|c| c.is_some())
-                .collect::<Vec<&Option<Card>>>()
-                .len();
-
-            // let card_played_count = if let Some(trick_cards) = trick.cards {
-            //     trick_cards.filter(|c| c.is_some()).len()
-            // } else {
-            //     0
-            // };
-            let suit_left_count = self.stats.suit_left[&winner_card.suit()].size();
             let nb_players = self.stats.players.len();
             // This is the first time we play this suit 
             // and I am in the taker team or the taker already played 
-            if suit_left_count + card_played_count == 14 &&
+            if self.is_first_time_suit_played(&winner_card.suit()) &&
                ( me.in_taker_team == Some(true) || 
                  trick.clone().player_already_played(PlayerPos::from_n(self.get_taker_pos().unwrap() as usize, nb_players as u8)))  {
                    return Some(petit);
             }
         }
         None
+    }
+
+    fn is_first_time_suit_played(&self, suit: &Suit) -> bool {
+        let deal = &self.game_state.deal;
+        let trick = &deal.last_trick;
+        let hand = deal.hand;
+        let card_played_count = trick.cards.iter()
+            .map(|oc| oc.map(|c| c.suit()) )
+            .filter(|s| s == &Some(*suit))
+            .collect::<Vec<Option<Suit>>>()
+            .len();
+        let suit_left_count = self.stats.suit_left[suit].size();
+        let my_count = hand.get_suit_cards(suit).len();
+
+        suit_left_count + card_played_count + my_count == 14
     }
 }

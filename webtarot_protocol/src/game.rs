@@ -80,6 +80,14 @@ impl<'a, Listener: GameEventsListener<(PlayEvent, TarotGameState)> + PartialEq> 
                 }
             }
         };
+
+        // Check if the taker's partner has revealed himself
+        if let Some(deal_state) = self.state.deal.deal_state(){
+            if Some(card) == deal_state.king() {
+                self.state.set_player_role(pid, PlayerRole::Partner);
+            }
+        }
+
         self.state.update_turn();
         Ok(())
     }

@@ -672,7 +672,7 @@ impl Player {
                             // if danger { println!("danger"); } else { println!("no danger"); }
 
                             let taker_pos = PlayerPos::from_n(self.get_taker_pos().unwrap() as usize, self.stats.players.len() as u8);
-                            let taker_already_played = trick.clone(.clone()).player_already_played(taker_pos);
+                            let taker_already_played = trick.clone().player_already_played(taker_pos);
                             if  myhighest > highest_left.unwrap() && !is_cut &&
                                 ( me.in_taker_team == Some(true) || !danger || (self.is_first_time_suit_played(&starting_suit) && taker_already_played)) {
                                 return Some(myhighest);

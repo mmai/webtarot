@@ -19,14 +19,14 @@ Tarot en ligne
 
 ## Backlog
 
-- bug : archives en lignes non actives (vérifier après 24h)
+- [ ] bug : archives en lignes non actives
 - **server** enregistrement des parties
   - enregistrer les parties lorsqu'elles sont terminées 
   - listing
   - permet interruption et reprise serveur ?
   - remplacer completement btreemap par sled ?
 
-- **UX** indiquer joueur appelé quand il est connu
+- **UX** indiquer les enchères
 - **UX** "Choisissez une carte pour déterminer votre partenaire"
 - scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
 

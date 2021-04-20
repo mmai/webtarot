@@ -324,6 +324,10 @@ header {
   position: relative;
   top: -1.8em;
 
+  .nickname::before {
+    content: "🌟 ";
+    // content: "🧠 ";
+  }
   .contract {
     position: relative;
     background-color: black;
@@ -333,7 +337,7 @@ header {
     border-radius: 10px;
   }
 
-  //Displays a downwards triangle at the bottom
+  // // Displays a downwards triangle at the bottom 
   // .contract::after {
   //   content: '';
   //   position: absolute;
@@ -347,17 +351,43 @@ header {
   //   margin-left: -10px;
   //   margin-bottom: -10px;
   // }
+  
+
 }
 
-/*
 .role-partner {
-    .nickname {
-      border: 2px solid pink;
-      background: pink;
-      color: black;
-    }
+  .nickname::before {
+    content: "👑 ";
+  }
+
 }
-*/
+
+.player-chat {
+  position: relative;
+
+  .player-msg {
+    position: relative;
+    background-color: white;
+    color: black;
+    text-align: center;
+    padding: 0.2em 0 0.3em;
+    border-radius: 10px;
+  }
+
+  // Displays an upwards triangle at the top
+  .player-msg::after {
+    content: '';
+    position: absolute;
+    left: 12%;
+    width: 0;
+    height: 0;
+    border: 10px solid transparent;
+    border-bottom-color: white;
+    border-top: 0;
+    margin-left: -10px;
+    margin-top: -12px;
+  }
+}
 
 .current-player {
     .nickname {

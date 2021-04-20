@@ -9,11 +9,13 @@ use crate::protocol::{GameStateSnapshot, DealSnapshot, PlayerRole, GamePlayerSta
 #[derive(Clone, Properties)]
 pub struct Props {
     pub players: Vec<GamePlayerState>,
+    pub players_chat: Vec<Option<String>>,
     pub game_state: Rc<GameStateSnapshot>,
 }
 
 pub struct PlayerList {
     players: Vec<GamePlayerState>,
+    players_chat: Vec<Option<String>>,
     game_state: Rc<GameStateSnapshot>,
     contract_info: String,
 }
@@ -38,6 +40,7 @@ impl Component for PlayerList {
     fn create(props: Self::Properties, _link: ComponentLink<Self>) -> Self {
         PlayerList {
             players: props.players,
+            players_chat: props.players_chat,
             game_state: props.game_state,
             contract_info: "".into(),
         }
@@ -49,6 +52,7 @@ impl Component for PlayerList {
 
     fn change(&mut self, props: Self::Properties) -> ShouldRender {
         self.players = props.players;
+        self.players_chat = props.players_chat;
         self.game_state = props.game_state;
         self.update_contract_info();
         true
@@ -61,6 +65,7 @@ impl Component for PlayerList {
             <section class="players">
                 {
                     for self.players.iter().map(|state| {
+                        let chat = &self.players_chat[state.pos.to_n()];
                         let is_my_turn = self.game_state.get_playing_pos() == Some(state.pos);
                         let card_played = self.game_state.deal.last_trick.card_played(state.pos);
                         let str_card: String = if let Some(card) = card_played { format!(" {}", card.to_string()) } else { "".into() };
@@ -108,6 +113,12 @@ impl Component for PlayerList {
                                 let style =format!("cursor: default; --bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
                                 html! {
                                     <div class="card" style={style}></div>
+                                }
+                            } else if let Some(chat) = chat {
+                                html!{
+                                    <div class="player-chat">
+                                        <div class="player-msg">{{ chat }}</div>
+                                    </div>
                                 }
                             } else {
                                 html!{}

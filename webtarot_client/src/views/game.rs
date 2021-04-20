@@ -1,5 +1,7 @@
-use std::rc::Rc;
 use std::time::Duration;
+
+use std::rc::Rc;
+use std::ops::Add;
 use std::f32;
 use im_rc::Vector;
 use uuid::Uuid;
@@ -46,6 +48,8 @@ pub struct GamePage {
     game_info: GameInfo,
     player_info: PlayerInfo,
     game_state: Rc<GameStateSnapshot>,
+    // players_chat: Box<Vec<Option<(String, DateTime<Utc>)>>>,
+    players_chat: Box<Vec<Option<(String, f64)>>>,
     next_game_messages: Vector<Message>,
     chat_log: Vector<Rc<ChatLine>>,
     dog: cards::Hand,
@@ -81,10 +85,27 @@ pub enum Msg {
 impl GamePage {
     pub fn add_chat_message(&mut self, player_id: Uuid, data: ChatLineData) {
         let nickname = self.get_nickname(player_id);
-        self.chat_log
-            .push_back(Rc::new(ChatLine { nickname, data }));
+        let chat_line = Rc::new(ChatLine { nickname, data });
+        let idx = self.player_index(player_id);
+        let msg = chat_line.text().clone();
+
+        self.players_chat[idx] = Some(( msg.to_string(), js_sys::Date::now() + 5000.));
+        // self.players_chat[idx] = Some(( msg.to_string(), Utc::now().add(chrono::Duration::seconds(5))));
+
+        self.chat_log.push_back(chat_line);
         while self.chat_log.len() > 100 {
             self.chat_log.pop_front();
+        }
+
+    }
+
+    fn clean_chat_messages(&mut self){
+        for pchat in self.players_chat.iter_mut() {
+            if let Some((_, expiration)) = pchat {
+                if *expiration < js_sys::Date::now() {
+                    *pchat = None
+                }
+            }
         }
     }
 
@@ -115,6 +136,15 @@ impl GamePage {
             .iter()
             .find(|state| state.player.id == self.player_info.id)
             .unwrap()
+    }
+    
+    fn player_index(&self, id: Uuid) -> usize {
+        self.game_state
+            .players
+            .iter()
+            .find(|state| state.player.id == id)
+            .unwrap()
+            .pos.to_n()
     }
 
     fn apply_snapshot(&mut self, snapshot: GameStateSnapshot){
@@ -165,6 +195,7 @@ impl GamePage {
         if self.update_needs_confirm {
             self.next_game_messages.push_front(msg);
         } else {
+            self.clean_chat_messages();
             match msg {
                 Message::GameStateSnapshot(snapshot) => {
                     self.is_waiting = false;
@@ -293,6 +324,7 @@ impl Component for GamePage {
             link,
             api,
             game_info: props.game_info,
+            players_chat: Box::new(vec![None;5]),
             chat_log: Vector::unit(Rc::new(ChatLine {
                 nickname: props.player_info.nickname.clone(),
                 data: ChatLineData::Connected,
@@ -468,6 +500,12 @@ impl Component for GamePage {
             Turn::CallingKing => tr!("calling king"),
             Turn::MakingDog => tr!("making dog"),
         };
+        
+        let players_msg: Vec<Option<String>> = (*self.players_chat.clone())
+            .into_iter()
+            .map(|chat| chat.map(|c| c.0))
+            .collect()
+            ;
 
         html! {
     <div class=game_classes>
@@ -477,7 +515,7 @@ impl Component for GamePage {
       </div>
       </header>
 
-      <PlayerList game_state=self.game_state.clone() players=others/>
+      <PlayerList game_state=self.game_state.clone() players=others players_chat=players_msg />
 
         { if let Some(error) = &self.error  { 
             let error_str = self.translate_error(&error);

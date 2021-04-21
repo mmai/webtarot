@@ -53,6 +53,7 @@ pub struct App {
     state: AppState,
     player_info: Option<PlayerInfo>,
     game_info: Option<GameInfo>,
+    language: Option<String>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -114,6 +115,10 @@ impl Component for App {
             }
         };
 
+        let language = requested_languages.first().clone().map(|l| {
+            // console_log!(format!("locale : {:?}", &l));
+            l.language.as_str().to_owned()
+        });
         App {
             storage,
             link,
@@ -121,6 +126,7 @@ impl Component for App {
             state: AppState::Start,
             player_info,
             game_info,
+            language,
         }
     }
 
@@ -190,6 +196,7 @@ impl Component for App {
                     <GamePage
                         player_info=self.player_info.as_ref().unwrap().clone(),
                         game_info=self.game_info.as_ref().unwrap().clone(),
+                        language=self.language.clone().unwrap_or(String::from("en")),
                          />
                 }
             }}

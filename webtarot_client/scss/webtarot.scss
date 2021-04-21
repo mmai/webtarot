@@ -245,7 +245,8 @@ p.turn-info {
 .game {
   display: grid;
   grid-template-rows: [header] 50px [players] 1fr [action] 1fr [hand] 1fr [bottom] 30px [end];
-  grid-template-columns: [game] auto [chat] 400px [end];
+  // grid-template-columns: [game] auto [chat] 400px [end];
+  grid-template-columns: [game] auto [end];
   height:100%;
   padding: $gamepadding;
 }
@@ -478,12 +479,16 @@ table.scores {
 
 .yourturn {
   font-weight: bold;
-  padding: 8px;
-  background-color: black; 
-  color: white;
+  padding: 12px;
+  background-color: lightgreen;
+  color: darkgreen;
   border-radius: 7px;
   position: relative;
+  border-color: darkgreen;
   z-index: 1000;
+  border-width: 2px;
+  border-style: solid;
+  box-shadow: 10px 10px 15px 0px rgba(0, 0, 0, 0.7);
 }
 
 .chat-messages {

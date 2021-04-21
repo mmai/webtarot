@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use std::str::FromStr;
 use std::rc::Rc;
 use std::ops::Add;
 use std::f32;
@@ -38,6 +39,7 @@ use crate::sound_player::SoundPlayer;
 pub struct Props {
     pub player_info: PlayerInfo,
     pub game_info: GameInfo,
+    pub language: String,
 }
 
 pub struct GamePage {
@@ -60,6 +62,7 @@ pub struct GamePage {
     error: Option<String>,
     slam_selected: bool,
     overlay_box: Option<Html>,
+    language: String,
 }
 
 pub enum Msg {
@@ -89,8 +92,7 @@ impl GamePage {
         let idx = self.player_index(player_id);
         let msg = chat_line.text().clone();
 
-        self.players_chat[idx] = Some(( msg.to_string(), js_sys::Date::now() + 5000.));
-        // self.players_chat[idx] = Some(( msg.to_string(), Utc::now().add(chrono::Duration::seconds(5))));
+        self.players_chat[idx] = Some(( self.translate_chat(&msg.to_string()), js_sys::Date::now() + 5000.));
 
         self.chat_log.push_back(chat_line);
         while self.chat_log.len() > 100 {
@@ -163,7 +165,7 @@ impl GamePage {
             "bid: auctions are closed" => tr!("auctions are closed"),
             "bid: invalid turn order" => tr!("invalid turn order"),
             "bid: bid must be higher than current contract" => tr!("bid must be higher than current contract"),
-            "bid: the auction are still running" => tr!("the auction are still running"),
+            "bid: the auction are still running" => tr!("the auctions are still running"),
             "bid: no contract was offered" => tr!("no contract was offered"),
             "play: invalid turn order" => tr!("invalid turn order"),
             "play: you can only play cards you have" => tr!("you can only play cards you have" ),
@@ -182,6 +184,27 @@ impl GamePage {
             _ => error.to_string()
         }
     }
+
+    fn translate_chat(&self, msg: &String) -> String {
+        console_log!(format!("translating : '{}' in {}", &msg, &self.language));
+        match msg.as_str() {
+            "*connected*" => tr!("*connected*"),
+            "Pass" => tr!("Pass"),
+            "bid: Garde" => tr!("Garde"),
+            _ => {
+                console_log!(format!("non trouvé : '{}'", &msg));
+                msg.to_string()
+            }
+        }
+    }
+
+    fn translate_card(&self, str_card: &String) -> String {
+        let locale = &self.language;
+        cards::Card::from_str(str_card)
+            .map(|c| c.to_locale_string(locale))
+            .unwrap_or(str_card.to_owned())
+    }
+
 
     fn display_overlay_box(&self) -> Html {
         let output;
@@ -205,7 +228,7 @@ impl GamePage {
                     self.sound_player.play("card".into());
                     match evt {
                         PlayEvent::Play(uuid, card) => {
-                            self.add_chat_message(uuid, ChatLineData::Text(format!("play: {}", card.to_string())));
+                            self.add_chat_message(uuid, ChatLineData::Text(format!("play: {}", card.to_locale_string(&self.language))));
                         }
                         PlayEvent::EndTrick => {
                             let winner_pos = self.game_state.deal.last_trick.winner;
@@ -340,6 +363,7 @@ impl Component for GamePage {
             next_game_messages: Vector::new(),
             update_needs_confirm: false,
             overlay_box: None,
+            language: props.language,
         }
     }
 
@@ -700,12 +724,13 @@ impl Component for GamePage {
         }}
         </section>
 
-        <ChatBox log=self.chat_log.clone()
-                 on_send_chat=self.link.callback(|text| Msg::SetChatLine(text))
-        />
-
     </div>
 
         }
     }
 }
+// XXX to restore chat: add following lines before the last </div>
+       // <ChatBox log=self.chat_log.clone()
+       //           on_send_chat=self.link.callback(|text| Msg::SetChatLine(text))
+       //  />
+

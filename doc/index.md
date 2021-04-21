@@ -31,6 +31,7 @@ Tarot en ligne
 - scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
 
 - bug : son cartes jouées
+- à vous de jouer : plus voyant
 
 - vérifier random
 - **UX** volet résultats

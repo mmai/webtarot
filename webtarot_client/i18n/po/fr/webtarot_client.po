@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: webtarot_client 0.2.6\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-04-21 16:55+0000\n"
+"POT-Creation-Date: 2021-04-21 19:14+0000\n"
 "PO-Revision-Date: 2020-07-11 18:47+0200\n"
 "Last-Translator:  <henri@henri-desktop>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -25,7 +25,7 @@ msgstr "envoyez un message"
 msgid "Passe"
 msgstr "passe"
 
-#: src/components/bidding_actions.rs:97 src/views/game.rs:655
+#: src/components/bidding_actions.rs:97 src/views/game.rs:672
 msgid "Slam"
 msgstr "Grand chelem"
 
@@ -121,124 +121,127 @@ msgstr "Il est interdit de mettre un roi dans le chien"
 msgid "Can't put a trump in the dog"
 msgstr "Il est interdit de mettre un atout dans le chien"
 
-#: src/views/game.rs:191
-#, fuzzy
-msgid "*connected*"
+#: src/views/game.rs:199
+msgid "I call {}"
+msgstr "J'appelle {}"
+
+#: src/views/game.rs:204
+msgid "connected"
 msgstr "connecté"
 
-#: src/views/game.rs:192
+#: src/views/game.rs:205
 msgid "Pass"
 msgstr "passe"
 
-#: src/views/game.rs:193
+#: src/views/game.rs:206
 msgid "Garde"
 msgstr "Garde"
 
-#: src/views/game.rs:235
+#: src/views/game.rs:252
 msgid "trick for "
 msgstr "Pli remporté par "
 
-#: src/views/game.rs:250
+#: src/views/game.rs:267
 msgid "Contract succeded by {} point"
 msgstr "Contrat réussi de {} point"
 
-#: src/views/game.rs:253
+#: src/views/game.rs:270
 msgid "Contract failed by {} point"
 msgstr "Contrat chuté de {} point"
 
-#: src/views/game.rs:258
+#: src/views/game.rs:275
 msgid "{} oudler"
 msgstr "{} bout"
 
-#: src/views/game.rs:266
+#: src/views/game.rs:283
 msgid "Petit au bout bonus: {}"
 msgstr "Bonus petit au bout : {}"
 
-#: src/views/game.rs:267
+#: src/views/game.rs:284
 msgid "Poignees bonus: {}"
 msgstr "Bonus poignées : {}"
 
-#: src/views/game.rs:268
+#: src/views/game.rs:285
 msgid "Slam bonus: {}"
 msgstr "Bonus chelem : {}"
 
-#: src/views/game.rs:270
+#: src/views/game.rs:287
 msgid "Dog : {0}"
 msgstr "Chien : {0}"
 
-#: src/views/game.rs:304
+#: src/views/game.rs:321
 msgid "{} announced a {}"
 msgstr "{} a annoncé une {}"
 
-#: src/views/game.rs:424
+#: src/views/game.rs:441
 msgid "Really disconnect ?"
 msgstr "Voulez-vous vraiement vous déconnecter ?"
 
-#: src/views/game.rs:515
+#: src/views/game.rs:532
 msgid "pre-game"
 msgstr "Préparation de la partie"
 
-#: src/views/game.rs:516
+#: src/views/game.rs:533
 msgid "inter trick"
 msgstr "fin du pli"
 
-#: src/views/game.rs:517
+#: src/views/game.rs:534
 msgid "inter deal"
 msgstr "nouvelle donne"
 
-#: src/views/game.rs:518
+#: src/views/game.rs:535
 msgid "{0} bidding"
 msgstr "à {0} de dire"
 
-#: src/views/game.rs:519
+#: src/views/game.rs:536
 msgid "{0} playing"
 msgstr "à {0} de jouer"
 
-#: src/views/game.rs:520
+#: src/views/game.rs:537
 msgid "end"
 msgstr "fin"
 
-#: src/views/game.rs:521
+#: src/views/game.rs:538
 msgid "calling king"
 msgstr "le preneur appelle un roi"
 
-#: src/views/game.rs:522
+#: src/views/game.rs:539
 msgid "making dog"
 msgstr "le preneur fait son chien"
 
-#: src/views/game.rs:535
+#: src/views/game.rs:552
 msgid "disconnect"
 msgstr "déconnexion"
 
-#: src/views/game.rs:574
+#: src/views/game.rs:591
 msgid "Waiting for"
 msgstr "En attente de"
 
-#: src/views/game.rs:576
+#: src/views/game.rs:593
 msgid "other player"
 msgstr "joueur"
 
-#: src/views/game.rs:583
+#: src/views/game.rs:600
 msgid "Ready!"
 msgstr "Prêt!"
 
-#: src/views/game.rs:588
+#: src/views/game.rs:605
 msgid "Share this link to invite players:"
 msgstr "Partagez ce lien pour inviter d'autres joueurs :"
 
-#: src/views/game.rs:592
+#: src/views/game.rs:609
 msgid "Or you can play with tarot-bots:"
 msgstr "Vous pouvez aussi jouer avec des tarot-bots :"
 
-#: src/views/game.rs:594
+#: src/views/game.rs:611
 msgid "Add a bot player"
 msgstr "Ajouter un robot"
 
-#: src/views/game.rs:649
+#: src/views/game.rs:666
 msgid "finish"
 msgstr "terminer"
 
-#: src/views/game.rs:684
+#: src/views/game.rs:701
 msgid "Your turn to play!"
 msgstr "C'est à vous de jouer!"
 

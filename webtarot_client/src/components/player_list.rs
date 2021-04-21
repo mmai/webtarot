@@ -11,6 +11,7 @@ pub struct Props {
     pub players: Vec<GamePlayerState>,
     pub players_chat: Vec<Option<String>>,
     pub game_state: Rc<GameStateSnapshot>,
+    pub language: String,
 }
 
 pub struct PlayerList {
@@ -18,13 +19,14 @@ pub struct PlayerList {
     players_chat: Vec<Option<String>>,
     game_state: Rc<GameStateSnapshot>,
     contract_info: String,
+    language: String,
 }
 
 impl PlayerList {
     fn update_contract_info(&mut self) {
         self.contract_info = if let Some(contract) = &self.game_state.deal.contract {
              let king_info = if let Some(king) = self.game_state.deal.king {
-                format!(" ({})", king.to_string())
+                format!(" ({})", king.to_locale_string(&self.language))
              } else { "".into() };
              format!("{}{}", contract.to_string(), king_info)
         } else {
@@ -43,6 +45,7 @@ impl Component for PlayerList {
             players_chat: props.players_chat,
             game_state: props.game_state,
             contract_info: "".into(),
+            language: props.language,
         }
     }
 
@@ -68,7 +71,7 @@ impl Component for PlayerList {
                         let chat = &self.players_chat[state.pos.to_n()];
                         let is_my_turn = self.game_state.get_playing_pos() == Some(state.pos);
                         let card_played = self.game_state.deal.last_trick.card_played(state.pos);
-                        let str_card: String = if let Some(card) = card_played { format!(" {}", card.to_string()) } else { "".into() };
+                        let str_card: String = if let Some(card) = card_played { format!(" {}", card.to_locale_string(&self.language)) } else { "".into() };
 
                         // XXX incorrect : scores are known at the end of the trick 
                         // let scores = self.game_state.scores.last().unwrap_or(&empty_scores);

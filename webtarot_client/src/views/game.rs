@@ -187,22 +187,36 @@ impl GamePage {
 
     fn translate_chat(&self, msg: &String) -> String {
         console_log!(format!("translating : '{}' in {}", &msg, &self.language));
-        match msg.as_str() {
-            "*connected*" => tr!("*connected*"),
-            "Pass" => tr!("Pass"),
-            "bid: Garde" => tr!("Garde"),
-            _ => {
-                console_log!(format!("non trouvé : '{}'", &msg));
-                msg.to_string()
+
+
+        let mut parts = msg.split(':').fuse();
+        let str_type = parts.next();
+        let str_val = parts.next();
+
+        match str_type  {
+            Some("call king") => match str_val {
+                Some(str_card) => {
+                    tr!("I call {}", self.translate_card(str_card.trim()))
+                },
+                _ => String::from(""),
+            },
+            _ => match msg.as_str() {
+                "*connected*" => tr!("connected"),
+                "Pass" | "pass" => tr!("Pass"),
+                _ => {
+                    console_log!(format!("non trouvé : '{}'", &msg));
+                    msg.to_string()
+                }
             }
         }
     }
 
-    fn translate_card(&self, str_card: &String) -> String {
+    fn translate_card(&self, str_card: &str) -> String {
         let locale = &self.language;
         cards::Card::from_str(str_card)
             .map(|c| c.to_locale_string(locale))
-            .unwrap_or(str_card.to_owned())
+            .unwrap()
+            // .unwrap_or(str_card.to_owned())
     }
 
 
@@ -539,7 +553,7 @@ impl Component for GamePage {
       </div>
       </header>
 
-      <PlayerList game_state=self.game_state.clone() players=others players_chat=players_msg />
+      <PlayerList game_state=self.game_state.clone() players=others players_chat=players_msg language=self.language.clone()/>
 
         { if let Some(error) = &self.error  { 
             let error_str = self.translate_error(&error);

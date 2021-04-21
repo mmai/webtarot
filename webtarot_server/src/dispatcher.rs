@@ -87,7 +87,7 @@ pub async fn on_player_bid(
 ) -> Result<(), ProtocolError> {
         game.broadcast(&Message::Chat(ChatMessage {
             player_id,
-            text: format!("bid: {:?}", cmd.target),
+            text: format!("{:?}", cmd.target),
         }))
         .await;
 

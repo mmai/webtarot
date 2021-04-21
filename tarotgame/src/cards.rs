@@ -327,12 +327,12 @@ impl FromStr for Card {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, String> {
+        let s = s.chars().collect::<Vec<_>>();
         let len = s.len();
 
         if len < 2 {
-            return Err(format!("invalid card: {}", s));
+            return Err(format!("invalid card: {:?}", s));
         } 
-        let s = s.chars().collect::<Vec<_>>();
 
         let str_suit: String = s[(len - 1)..].iter().collect();
         let str_rank: String = s[..(len - 1)].iter().collect();

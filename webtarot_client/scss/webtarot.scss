@@ -301,6 +301,9 @@ header {
   height: 27vh;
   margin: 2px;
 
+  position: relative;
+  top: -1.8em;
+
   .nickname {
     // border: 2px solid black;
     border-radius: 3px;
@@ -313,6 +316,40 @@ header {
     font-weight: bold;
     font-size: 1.2em;
   }
+
+  .player-msg {
+    position: relative;
+    background-color: white;
+    color: black;
+    text-align: center;
+    padding: 0.2em 0 0.3em;
+    border-radius: 10px;
+  }
+
+  // Displays a triangle
+  .player-msg::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: 0;
+    height: 0;
+    border: 10px solid transparent;
+    left: 20%;
+
+    // downwards triangle at the bottom
+    margin-left: -10px;
+    border-bottom: 0;
+    margin-bottom: -10px;
+    border-top-color: white;
+
+    // upwards triangle at the top
+    // margin-right: -10px;
+    // border-top: 0;
+    // margin-top: -10px;
+    // border-bottom-color: white;
+    
+  }
+
 }
 
 .card-info {
@@ -321,8 +358,6 @@ header {
 }
 
 .role-taker {
-  position: relative;
-  top: -1.8em;
 
   .nickname::before {
     content: "🌟 ";
@@ -336,23 +371,6 @@ header {
     padding: 0.2em 0 0.3em;
     border-radius: 10px;
   }
-
-  // // Displays a downwards triangle at the bottom 
-  // .contract::after {
-  //   content: '';
-  //   position: absolute;
-  //   bottom: 0;
-  //   left: 50%;
-  //   width: 0;
-  //   height: 0;
-  //   border: 10px solid transparent;
-  //   border-top-color: black;
-  //   border-bottom: 0;
-  //   margin-left: -10px;
-  //   margin-bottom: -10px;
-  // }
-  
-
 }
 
 .role-partner {
@@ -360,33 +378,6 @@ header {
     content: "👑 ";
   }
 
-}
-
-.player-chat {
-  position: relative;
-
-  .player-msg {
-    position: relative;
-    background-color: white;
-    color: black;
-    text-align: center;
-    padding: 0.2em 0 0.3em;
-    border-radius: 10px;
-  }
-
-  // Displays an upwards triangle at the top
-  .player-msg::after {
-    content: '';
-    position: absolute;
-    left: 12%;
-    width: 0;
-    height: 0;
-    border: 10px solid transparent;
-    border-bottom-color: white;
-    border-top: 0;
-    margin-left: -10px;
-    margin-top: -12px;
-  }
 }
 
 .current-player {

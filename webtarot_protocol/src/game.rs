@@ -83,7 +83,7 @@ impl<'a, Listener: GameEventsListener<(PlayEvent, TarotGameState)> + PartialEq> 
 
         // Check if the taker's partner has revealed himself
         if let Some(deal_state) = self.state.deal.deal_state(){
-            if Some(card) == deal_state.king() {
+            if Some(card) == deal_state.king() && self.state.get_player_role(pid) != Some(PlayerRole::Taker) {
                 self.state.set_player_role(pid, PlayerRole::Partner);
             }
         }
@@ -184,6 +184,10 @@ impl GameState for TarotGameState {
 
     fn remove_player(&mut self, player_id: Uuid) -> bool {
         self.players.remove(&player_id).is_some()
+    }
+
+    fn get_player_role(&self, player_id: Uuid) -> Option<PlayerRole>{
+        self.players.get(&player_id).map(|p| p.role)
     }
 
     fn set_player_role(&mut self, player_id: Uuid, role: PlayerRole) {

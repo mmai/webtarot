@@ -89,9 +89,12 @@ impl Component for PlayerList {
                         html! {
 
                         <div class=player_classes>
-                        {
-                            if state.role == PlayerRole::Taker {
-                                html!{<div class="contract">{{ &self.contract_info }}</div>}
+                        { if chat.is_some() {
+                                html!{
+                                    <div class="player-chat">
+                                        <div class="player-msg">{{ chat.as_ref().unwrap() }}</div>
+                                    </div>
+                                }
                             } else { html!{} }
                         }
                         <div class="nickname withtooltip">
@@ -113,12 +116,6 @@ impl Component for PlayerList {
                                 let style =format!("cursor: default; --bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
                                 html! {
                                     <div class="card" style={style}></div>
-                                }
-                            } else if let Some(chat) = chat {
-                                html!{
-                                    <div class="player-chat">
-                                        <div class="player-msg">{{ chat }}</div>
-                                    </div>
                                 }
                             } else {
                                 html!{}

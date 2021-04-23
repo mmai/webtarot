@@ -1,5 +1,8 @@
-use std::rc::Rc;
 use std::time::Duration;
+
+use std::str::FromStr;
+use std::rc::Rc;
+use std::ops::Add;
 use std::f32;
 use im_rc::Vector;
 use uuid::Uuid;
@@ -36,6 +39,7 @@ use crate::sound_player::SoundPlayer;
 pub struct Props {
     pub player_info: PlayerInfo,
     pub game_info: GameInfo,
+    pub language: String,
 }
 
 pub struct GamePage {
@@ -46,6 +50,8 @@ pub struct GamePage {
     game_info: GameInfo,
     player_info: PlayerInfo,
     game_state: Rc<GameStateSnapshot>,
+    // players_chat: Box<Vec<Option<(String, DateTime<Utc>)>>>,
+    players_chat: Box<Vec<Option<(String, f64)>>>,
     next_game_messages: Vector<Message>,
     chat_log: Vector<Rc<ChatLine>>,
     dog: cards::Hand,
@@ -56,6 +62,7 @@ pub struct GamePage {
     error: Option<String>,
     slam_selected: bool,
     overlay_box: Option<Html>,
+    language: String,
 }
 
 pub enum Msg {
@@ -81,10 +88,26 @@ pub enum Msg {
 impl GamePage {
     pub fn add_chat_message(&mut self, player_id: Uuid, data: ChatLineData) {
         let nickname = self.get_nickname(player_id);
-        self.chat_log
-            .push_back(Rc::new(ChatLine { nickname, data }));
+        let chat_line = Rc::new(ChatLine { nickname, data });
+        let idx = self.player_index(player_id);
+        let msg = chat_line.text().clone();
+
+        self.players_chat[idx] = Some(( self.translate_chat(&msg.to_string()), js_sys::Date::now() + 5000.));
+
+        self.chat_log.push_back(chat_line);
         while self.chat_log.len() > 100 {
             self.chat_log.pop_front();
+        }
+
+    }
+
+    fn clean_chat_messages(&mut self){
+        for pchat in self.players_chat.iter_mut() {
+            if let Some((_, expiration)) = pchat {
+                if *expiration < js_sys::Date::now() {
+                    *pchat = None
+                }
+            }
         }
     }
 
@@ -116,6 +139,15 @@ impl GamePage {
             .find(|state| state.player.id == self.player_info.id)
             .unwrap()
     }
+    
+    fn player_index(&self, id: Uuid) -> usize {
+        self.game_state
+            .players
+            .iter()
+            .find(|state| state.player.id == id)
+            .unwrap()
+            .pos.to_n()
+    }
 
     fn apply_snapshot(&mut self, snapshot: GameStateSnapshot){
         self.game_state = Rc::new(snapshot);
@@ -133,7 +165,7 @@ impl GamePage {
             "bid: auctions are closed" => tr!("auctions are closed"),
             "bid: invalid turn order" => tr!("invalid turn order"),
             "bid: bid must be higher than current contract" => tr!("bid must be higher than current contract"),
-            "bid: the auction are still running" => tr!("the auction are still running"),
+            "bid: the auction are still running" => tr!("the auctions are still running"),
             "bid: no contract was offered" => tr!("no contract was offered"),
             "play: invalid turn order" => tr!("invalid turn order"),
             "play: you can only play cards you have" => tr!("you can only play cards you have" ),
@@ -153,6 +185,41 @@ impl GamePage {
         }
     }
 
+    fn translate_chat(&self, msg: &String) -> String {
+        console_log!(format!("translating : '{}' in {}", &msg, &self.language));
+
+
+        let mut parts = msg.split(':').fuse();
+        let str_type = parts.next();
+        let str_val = parts.next();
+
+        match str_type  {
+            Some("call king") => match str_val {
+                Some(str_card) => {
+                    tr!("I call {}", self.translate_card(str_card.trim()))
+                },
+                _ => String::from(""),
+            },
+            _ => match msg.as_str() {
+                "*connected*" => tr!("connected"),
+                "Pass" | "pass" => tr!("Pass"),
+                _ => {
+                    console_log!(format!("non trouvé : '{}'", &msg));
+                    msg.to_string()
+                }
+            }
+        }
+    }
+
+    fn translate_card(&self, str_card: &str) -> String {
+        let locale = &self.language;
+        cards::Card::from_str(str_card)
+            .map(|c| c.to_locale_string(locale))
+            .unwrap()
+            // .unwrap_or(str_card.to_owned())
+    }
+
+
     fn display_overlay_box(&self) -> Html {
         let output;
         if let Some(message) = &self.overlay_box  { 
@@ -165,6 +232,7 @@ impl GamePage {
         if self.update_needs_confirm {
             self.next_game_messages.push_front(msg);
         } else {
+            self.clean_chat_messages();
             match msg {
                 Message::GameStateSnapshot(snapshot) => {
                     self.is_waiting = false;
@@ -174,7 +242,7 @@ impl GamePage {
                     self.sound_player.play("card".into());
                     match evt {
                         PlayEvent::Play(uuid, card) => {
-                            self.add_chat_message(uuid, ChatLineData::Text(format!("play: {}", card.to_string())));
+                            self.add_chat_message(uuid, ChatLineData::Text(format!("play: {}", card.to_locale_string(&self.language))));
                         }
                         PlayEvent::EndTrick => {
                             let winner_pos = self.game_state.deal.last_trick.winner;
@@ -293,6 +361,7 @@ impl Component for GamePage {
             link,
             api,
             game_info: props.game_info,
+            players_chat: Box::new(vec![None;5]),
             chat_log: Vector::unit(Rc::new(ChatLine {
                 nickname: props.player_info.nickname.clone(),
                 data: ChatLineData::Connected,
@@ -308,6 +377,7 @@ impl Component for GamePage {
             next_game_messages: Vector::new(),
             update_needs_confirm: false,
             overlay_box: None,
+            language: props.language,
         }
     }
 
@@ -468,6 +538,12 @@ impl Component for GamePage {
             Turn::CallingKing => tr!("calling king"),
             Turn::MakingDog => tr!("making dog"),
         };
+        
+        let players_msg: Vec<Option<String>> = (*self.players_chat.clone())
+            .into_iter()
+            .map(|chat| chat.map(|c| c.0))
+            .collect()
+            ;
 
         html! {
     <div class=game_classes>
@@ -477,7 +553,7 @@ impl Component for GamePage {
       </div>
       </header>
 
-      <PlayerList game_state=self.game_state.clone() players=others/>
+      <PlayerList game_state=self.game_state.clone() players=others players_chat=players_msg language=self.language.clone()/>
 
         { if let Some(error) = &self.error  { 
             let error_str = self.translate_error(&error);
@@ -555,6 +631,7 @@ impl Component for GamePage {
                                 rank=rank
                                 on_call_king=self.link.callback(|card| Msg::CallKing(card))
                                 />
+                            <span class="msgkings" >{ tr!("Choose your partner") }</span>
                         </div>
                     }
                },
@@ -662,12 +739,13 @@ impl Component for GamePage {
         }}
         </section>
 
-        <ChatBox log=self.chat_log.clone()
-                 on_send_chat=self.link.callback(|text| Msg::SetChatLine(text))
-        />
-
     </div>
 
         }
     }
 }
+// XXX to restore chat: add following lines before the last </div>
+       // <ChatBox log=self.chat_log.clone()
+       //           on_send_chat=self.link.callback(|text| Msg::SetChatLine(text))
+       //  />
+

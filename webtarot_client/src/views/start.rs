@@ -77,8 +77,8 @@ impl Component for StartPage {
     fn view(&self) -> Html {
         let nickname_placeholder_text = tr!("nickname");
         html! {
-            <div class="wrapper">
-                <h1>{ tr!("Let's play Tarot together") }</h1>
+            <div class="wrapper centered">
+                <h1>{{ "Webtarot" }}</h1>
                 <p class="explanation">
                     { tr!("Give yourself a nickname to play:") }
                 </p>

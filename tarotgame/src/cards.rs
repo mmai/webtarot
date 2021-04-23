@@ -70,6 +70,19 @@ impl Suit {
         }.to_owned()
     }
 
+    /// Returns a character representing the given suit.
+    pub fn to_locale_string(self, locale: &str) -> String {
+        match locale {
+            "fr" => {
+                match self {
+                    Suit::Trump => "A".to_owned(),
+                    _ => self.to_string()
+                }
+            },
+            _ => self.to_string()
+        }
+    }
+
     /// Returns a character representing the suit (H, S, D or C).
     pub fn to_safe_string(self) -> String {
         match self {
@@ -240,7 +253,58 @@ impl Rank {
             Rank::Rank22 => "E",
         }.to_owned()
     }
+
+    /// Returns a character representing the given rank.
+    pub fn to_locale_string(self, locale: &str) -> String {
+        match locale {
+            "fr" => {
+                match self {
+                    Rank::RankQ => String::from("D"),
+                    Rank::RankK => String::from("R"),
+                    _ => self.to_string()
+                }
+            },
+            _ => self.to_string()
+        }
+    }
 }
+
+impl FromStr for Rank {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, String> {
+        match s {
+            "1" => Ok(Rank::Rank1),
+            "2" => Ok(Rank::Rank2),
+            "3" => Ok(Rank::Rank3),
+            "4" => Ok(Rank::Rank4),
+            "5" => Ok(Rank::Rank5),
+            "6" => Ok(Rank::Rank6),
+            "7" => Ok(Rank::Rank7),
+            "8" => Ok(Rank::Rank8),
+            "9" => Ok(Rank::Rank9),
+            "10" => Ok(Rank::Rank10),
+            "J" => Ok(Rank::RankJ),
+            "C" => Ok(Rank::RankC),
+            "Q" => Ok(Rank::RankQ),
+            "K" => Ok(Rank::RankK),
+            "11" => Ok(Rank::Rank11),
+            "12" => Ok(Rank::Rank12),
+            "13" => Ok(Rank::Rank13),
+            "14" => Ok(Rank::Rank14),
+            "15" => Ok(Rank::Rank15),
+            "16" => Ok(Rank::Rank16),
+            "17" => Ok(Rank::Rank17),
+            "18" => Ok(Rank::Rank18),
+            "19" => Ok(Rank::Rank19),
+            "20" => Ok(Rank::Rank20),
+            "21" => Ok(Rank::Rank21),
+            "22" => Ok(Rank::Rank22),
+            _ => Err(format!("invalid rank: {}", s)),
+        }
+    }
+}
+
 
 /// Represents a single card.
 #[derive(PartialEq, Eq, Clone, Copy, Debug, Serialize, Deserialize)]
@@ -256,6 +320,26 @@ impl PartialOrd for Card {
 impl Ord for Card {
     fn cmp(&self, other: &Self) -> Ordering {
         self.rank().cmp(&other.rank())
+    }
+}
+
+impl FromStr for Card {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, String> {
+        let s = s.chars().collect::<Vec<_>>();
+        let len = s.len();
+
+        if len < 2 {
+            return Err(format!("invalid card: {:?}", s));
+        } 
+
+        let str_suit: String = s[(len - 1)..].iter().collect();
+        let str_rank: String = s[..(len - 1)].iter().collect();
+        let suit = Suit::from_str(&str_suit)?;
+        let rank = Rank::from_str(&str_rank)?;
+
+        Ok(Card::new(suit, rank))
     }
 }
 
@@ -330,6 +414,13 @@ impl Card {
         let r = self.rank();
         let s = self.suit();
         r.to_string() + &s.to_string()
+    }
+
+    /// Returns a locale string representation of the card (ex: "7♦").
+    pub fn to_locale_string(self, locale: &str) -> String {
+        let r = self.rank();
+        let s = self.suit();
+        r.to_locale_string(locale) + &s.to_locale_string(locale)
     }
 
     /// Creates a card from the given suit and rank.
@@ -661,6 +752,26 @@ impl ToString for Deck {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_suit_translation() {
+        assert!(Rank::RankQ.to_locale_string("fr") == "D");
+        assert!(Rank::RankQ.to_locale_string("es") == "Q");
+        assert!(Rank::Rank2.to_locale_string("fr") == "2");
+    }
+
+    #[test]
+    fn test_card_translation() {
+        let card = Card::new(Suit::Heart, Rank::RankK);
+        assert!(card.to_locale_string("fr") == "R♥");
+    }
+
+    #[test]
+    fn test_card_from_str() {
+        let card = Card::from_str("11T");
+        assert!(card.is_ok());
+        assert!(card.unwrap().to_locale_string("fr") == "11A");
+    }
 
     #[test]
     fn test_card() {

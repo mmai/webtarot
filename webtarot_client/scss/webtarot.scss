@@ -160,6 +160,16 @@ div.wrapper {
   z-index: 500;
 }
 
+.centered {
+  text-align: center;
+}
+
+.msgkings {
+    position: relative;
+    top: -30vh;
+    left: 30vh;
+} 
+
 div.announce-proof {
   width: 50em;
   left: -1em;
@@ -245,7 +255,8 @@ p.turn-info {
 .game {
   display: grid;
   grid-template-rows: [header] 50px [players] 1fr [action] 1fr [hand] 1fr [bottom] 30px [end];
-  grid-template-columns: [game] auto [chat] 400px [end];
+  // grid-template-columns: [game] auto [chat] 400px [end];
+  grid-template-columns: [game] auto [end];
   height:100%;
   padding: $gamepadding;
 }
@@ -301,6 +312,9 @@ header {
   height: 27vh;
   margin: 2px;
 
+  position: relative;
+  top: -1.8em;
+
   .nickname {
     // border: 2px solid black;
     border-radius: 3px;
@@ -313,6 +327,40 @@ header {
     font-weight: bold;
     font-size: 1.2em;
   }
+
+  .player-msg {
+    position: relative;
+    background-color: white;
+    color: black;
+    text-align: center;
+    padding: 0.2em 0 0.3em;
+    border-radius: 10px;
+  }
+
+  // Displays a triangle
+  .player-msg::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: 0;
+    height: 0;
+    border: 10px solid transparent;
+    left: 20%;
+
+    // downwards triangle at the bottom
+    margin-left: -10px;
+    border-bottom: 0;
+    margin-bottom: -10px;
+    border-top-color: white;
+
+    // upwards triangle at the top
+    // margin-right: -10px;
+    // border-top: 0;
+    // margin-top: -10px;
+    // border-bottom-color: white;
+    
+  }
+
 }
 
 .card-info {
@@ -321,9 +369,11 @@ header {
 }
 
 .role-taker {
-  position: relative;
-  top: -1.8em;
 
+  .nickname::before {
+    content: "🌟 ";
+    // content: "🧠 ";
+  }
   .contract {
     position: relative;
     background-color: black;
@@ -332,32 +382,14 @@ header {
     padding: 0.2em 0 0.3em;
     border-radius: 10px;
   }
-
-  //Displays a downwards triangle at the bottom
-  // .contract::after {
-  //   content: '';
-  //   position: absolute;
-  //   bottom: 0;
-  //   left: 50%;
-  //   width: 0;
-  //   height: 0;
-  //   border: 10px solid transparent;
-  //   border-top-color: black;
-  //   border-bottom: 0;
-  //   margin-left: -10px;
-  //   margin-bottom: -10px;
-  // }
 }
 
-/*
 .role-partner {
-    .nickname {
-      border: 2px solid pink;
-      background: pink;
-      color: black;
-    }
+  .nickname::before {
+    content: "👑 ";
+  }
+
 }
-*/
 
 .current-player {
     .nickname {
@@ -457,12 +489,16 @@ table.scores {
 
 .yourturn {
   font-weight: bold;
-  padding: 8px;
-  background-color: black; 
-  color: white;
+  padding: 12px;
+  background-color: lightgreen;
+  color: darkgreen;
   border-radius: 7px;
   position: relative;
+  border-color: darkgreen;
   z-index: 1000;
+  border-width: 2px;
+  border-style: solid;
+  box-shadow: 10px 10px 15px 0px rgba(0, 0, 0, 0.7);
 }
 
 .chat-messages {

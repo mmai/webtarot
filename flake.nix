@@ -29,13 +29,13 @@
 
       webtarot = with final; ( rustPlatform.buildRustPackage rec {
           name = "webtarot";
-          version = "0.7.4";
+          version = "0.7.5";
           src = ./.;
 
           nativeBuildInputs = [ pkgconfig ];
           buildInputs = [ openssl ];
 
-          cargoSha256 = "sha256-mStv4IMI8XkIUrelUMyAe8s2JM/DRNOBBMq3pfyG6jE=";
+          cargoSha256 = "sha256-advqpOnKqBCWOUV9CmMXvHQfkvsKqSb89LqUfl2n3p0=";
 
           meta = with pkgs.stdenv.lib; {
             description = "A online game of french tarot";

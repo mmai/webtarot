@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: webtarot_client 0.2.6\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-04-21 19:14+0000\n"
+"POT-Creation-Date: 2021-04-23 17:05+0000\n"
 "PO-Revision-Date: 2020-07-11 18:47+0200\n"
 "Last-Translator:  <henri@henri-desktop>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -25,7 +25,7 @@ msgstr "envoyez un message"
 msgid "Passe"
 msgstr "passe"
 
-#: src/components/bidding_actions.rs:97 src/views/game.rs:672
+#: src/components/bidding_actions.rs:97 src/views/game.rs:673
 msgid "Slam"
 msgstr "Grand chelem"
 
@@ -133,10 +133,6 @@ msgstr "connecté"
 msgid "Pass"
 msgstr "passe"
 
-#: src/views/game.rs:206
-msgid "Garde"
-msgstr "Garde"
-
 #: src/views/game.rs:252
 msgid "trick for "
 msgstr "Pli remporté par "
@@ -237,11 +233,15 @@ msgstr "Vous pouvez aussi jouer avec des tarot-bots :"
 msgid "Add a bot player"
 msgstr "Ajouter un robot"
 
-#: src/views/game.rs:666
+#: src/views/game.rs:634
+msgid "Choose your partner"
+msgstr "Choisissez votre partenaire"
+
+#: src/views/game.rs:667
 msgid "finish"
 msgstr "terminer"
 
-#: src/views/game.rs:701
+#: src/views/game.rs:702
 msgid "Your turn to play!"
 msgstr "C'est à vous de jouer!"
 
@@ -281,10 +281,6 @@ msgstr "Erreur : {0}"
 msgid "nickname"
 msgstr "nom"
 
-#: src/views/start.rs:81
-msgid "Let's play Tarot together"
-msgstr "Jouons au tarot"
-
 #: src/views/start.rs:83
 msgid "Give yourself a nickname to play:"
 msgstr "Entrez votre nom"
@@ -296,6 +292,12 @@ msgstr "Jouer"
 #: src/views/start.rs:104
 msgid "not good: {0}"
 msgstr "problème : {0}"
+
+#~ msgid "Garde"
+#~ msgstr "Garde"
+
+#~ msgid "Let's play Tarot together"
+#~ msgstr "Jouons au tarot"
 
 #~ msgid " — ready"
 #~ msgstr " - prêt"

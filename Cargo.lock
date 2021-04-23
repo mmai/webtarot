@@ -1909,7 +1909,7 @@ dependencies = [
 
 [[package]]
 name = "tarotgame"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "rand 0.7.3",
  "serde",
@@ -2440,7 +2440,7 @@ dependencies = [
 [[package]]
 name = "webgame_protocol"
 version = "0.6.2"
-source = "git+https://github.com/mmai/webgame?tag=v0.7.4#487017687cb4f604b44834cced6bb1cb811c1fda"
+source = "git+https://github.com/mmai/webgame?tag=v0.7.5#d6d9d879efe7f39dae80564944bae5419f3afdd7"
 dependencies = [
  "chrono",
  "serde",
@@ -2449,8 +2449,8 @@ dependencies = [
 
 [[package]]
 name = "webgame_server"
-version = "0.7.4"
-source = "git+https://github.com/mmai/webgame?tag=v0.7.4#487017687cb4f604b44834cced6bb1cb811c1fda"
+version = "0.7.5"
+source = "git+https://github.com/mmai/webgame?tag=v0.7.5#d6d9d879efe7f39dae80564944bae5419f3afdd7"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2497,7 +2497,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_bot"
-version = "0.4.1"
+version = "0.4.2"
 dependencies = [
  "clap",
  "env_logger 0.8.3",
@@ -2518,9 +2518,10 @@ dependencies = [
 
 [[package]]
 name = "webtarot_client"
-version = "0.7.4"
+version = "0.7.5"
 dependencies = [
  "anyhow",
+ "chrono",
  "console_error_panic_hook",
  "i18n-embed",
  "im-rc",
@@ -2555,7 +2556,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_server"
-version = "0.7.4"
+version = "0.7.5"
 dependencies = [
  "clap",
  "futures 0.3.13",

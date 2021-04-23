@@ -631,6 +631,7 @@ impl Component for GamePage {
                                 rank=rank
                                 on_call_king=self.link.callback(|card| Msg::CallKing(card))
                                 />
+                            <span class="msgkings" >{ tr!("Choose your partner") }</span>
                         </div>
                     }
                },

@@ -1,7 +1,28 @@
 # Changelog
 
+## 0.7.5
+- cards translations
+- translate chat messages
+- players chatbox replace taker indicator
+- enhance bot play
+
+## 0.7.4
+- fix bots
+- add screenshot to readme
+
+## 0.7.3
+- fix bots
+- abstract bot io
+- maj doc packaging
+- don't build client from nix
+
+## 0.7.2
+- fix front build
+- nix module : fix nginx proxy headers
+
 ## 0.7.1
-- fix archives option
+─ fix archives option
+─ fix nix ssl dependencies
 
 ## 0.7.0
 - bots

@@ -192,6 +192,12 @@ div.announce-proof {
   font-weight: 700;
   background: black;
   color: white;
+  display: flex;
+  .box-close {
+    flex-grow: 1;
+    text-align: right;
+    font-weight: bold;
+  }
 }
 
 .box ul {
@@ -255,10 +261,13 @@ p.turn-info {
 .game {
   display: grid;
   grid-template-rows: [header] 50px [players] 1fr [action] 1fr [hand] 1fr [bottom] 30px [end];
-  // grid-template-columns: [game] auto [chat] 400px [end];
-  grid-template-columns: [game] auto [end];
+  grid-template-columns: [game] auto [chat] 0px [end];
   height:100%;
   padding: $gamepadding;
+}
+
+.with-chat {
+  grid-template-columns: [game] auto [chat] 400px [end];
 }
 
 .header {
@@ -287,6 +296,26 @@ header {
     &:hover {
       text-decoration: underline;
     }
+}
+
+.btn-menu {
+    color: white;
+    background: black;
+    &:hover {
+      background: limegreen;
+    }
+
+    border-color: white;
+    border-style: solid;
+    border-right: none;
+    border-width: 1px;
+
+    font-family: arial, sans-serif;
+    cursor: pointer;
+
+    position: fixed;
+    bottom: 1em;
+    right: 0;
 }
 
 .game-table {
@@ -462,7 +491,7 @@ section.hand {
   overflow-y: auto;
   display:flex;
   flex-direction:column;
-  max-height: 50vh;
+  margin-right: -1em;
 }
 
 table.scores {

@@ -31,7 +31,7 @@ use crate::protocol::{
     Turn,
     PlayEvent,
 };
-use tarotgame::{bid, deal, cards, deal_size, Announce};
+use tarotgame::{bid, deal, cards, deal_size, trick, Announce};
 use crate::utils::format_join_code;
 use crate::sound_player::SoundPlayer;
 
@@ -56,13 +56,14 @@ pub struct GamePage {
     chat_log: Vector<Rc<ChatLine>>,
     dog: cards::Hand,
     hand: cards::Hand,
+    language: String,
+    error: Option<String>,
+    sound_player: SoundPlayer,
+    overlay_box: Option<Html>,
     is_waiting: bool,
     update_needs_confirm: bool,
-    sound_player: SoundPlayer,
-    error: Option<String>,
     slam_selected: bool,
-    overlay_box: Option<Html>,
-    language: String,
+    chatbox_visible: bool,
 }
 
 pub enum Msg {
@@ -79,6 +80,7 @@ pub enum Msg {
     SetChatLine(String),
     MakeDog,
     ToggleSlam,
+    ToggleChatbox,
     AddToDog(cards::Card),
     AddToHand(cards::Card),
     ServerMessage(Message),
@@ -302,7 +304,7 @@ impl GamePage {
                             }
                         },
                         PlayEvent::Announce(uuid, announce) => {
-                            self.add_chat_message(uuid, ChatLineData::Text(format!("announce: {:?}", announce.proof.map(|h| h.to_string()))));
+                            // self.add_chat_message(uuid, ChatLineData::Text(format!("announce: {:?}", announce.proof.map(|h| h.to_string()))));
                             let nickname = self.get_nickname(uuid);
                             let proof_html = if let Some(proof_hand) = announce.proof {
                                 html!{
@@ -378,6 +380,7 @@ impl Component for GamePage {
             update_needs_confirm: false,
             overlay_box: None,
             language: props.language,
+            chatbox_visible: false,
         }
     }
 
@@ -470,6 +473,9 @@ impl Component for GamePage {
             Msg::ToggleSlam => {
                 self.slam_selected = !self.slam_selected;
             },
+            Msg::ToggleChatbox => {
+                self.chatbox_visible = !self.chatbox_visible;
+            },
             Msg::Announce(announce) => {
                 self.api.send(Command::GamePlay(GamePlayCommand::Announce(AnnounceCommand { announce })));
             }
@@ -516,6 +522,9 @@ impl Component for GamePage {
         let mut game_classes = vec!["game"];
         if self.is_waiting {
             game_classes.push("waiting");
+        }
+        if self.chatbox_visible {
+            game_classes.push("with-chat");
         }
 
         let is_my_turn = self.game_state.get_playing_pos() == Some(self.my_state().pos);
@@ -739,6 +748,18 @@ impl Component for GamePage {
         }}
         </section>
 
+        { if self.chatbox_visible {
+            html! {
+               <ChatBox log=self.chat_log.clone()
+                         on_send_chat=self.link.callback(|text| Msg::SetChatLine(text))
+                         on_close=self.link.callback(|_| Msg::ToggleChatbox)
+               />
+            }
+        } else {
+            html!{
+              <button class="btn-menu" onclick=self.link.callback(|_| Msg::ToggleChatbox)>{"💬 chat" }</button>
+           }
+        }}
     </div>
 
         }

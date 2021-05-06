@@ -2440,7 +2440,7 @@ dependencies = [
 [[package]]
 name = "webgame_protocol"
 version = "0.6.2"
-source = "git+https://github.com/mmai/webgame?tag=v0.7.5#d6d9d879efe7f39dae80564944bae5419f3afdd7"
+source = "git+https://github.com/mmai/webgame?tag=v0.7.6#492ed1f87c73d0e79cac7a592ef5c73df5cd4ff8"
 dependencies = [
  "chrono",
  "serde",
@@ -2450,7 +2450,7 @@ dependencies = [
 [[package]]
 name = "webgame_server"
 version = "0.7.5"
-source = "git+https://github.com/mmai/webgame?tag=v0.7.5#d6d9d879efe7f39dae80564944bae5419f3afdd7"
+source = "git+https://github.com/mmai/webgame?tag=v0.7.6#492ed1f87c73d0e79cac7a592ef5c73df5cd4ff8"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2497,7 +2497,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_bot"
-version = "0.4.2"
+version = "0.4.3"
 dependencies = [
  "clap",
  "env_logger 0.8.3",
@@ -2518,7 +2518,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_client"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2545,7 +2545,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_protocol"
-version = "0.7.4"
+version = "0.7.6"
 dependencies = [
  "serde",
  "serde_json",
@@ -2556,7 +2556,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_server"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "clap",
  "futures 0.3.13",

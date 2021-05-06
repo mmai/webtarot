@@ -15,6 +15,7 @@ pub enum ChatLineData {
 }
 
 pub enum Msg {
+    Close,
     Ignore,
     SendChat,
     SetChatLine(String),
@@ -30,6 +31,7 @@ pub struct ChatLine {
 pub struct Props {
     pub log: Vector<Rc<ChatLine>>,
     pub on_send_chat: Callback<String>,
+    pub on_close: Callback<()>,
 }
 
 pub struct ChatBox {
@@ -38,6 +40,7 @@ pub struct ChatBox {
     log_ref: NodeRef,
     chat_line: String,
     on_send_chat: Callback<String>,
+    on_close: Callback<()>,
 }
 
 impl ChatLine {
@@ -65,6 +68,7 @@ impl Component for ChatBox {
             log_ref: NodeRef::default(),
             chat_line: "".into(),
             on_send_chat: props.on_send_chat,
+            on_close: props.on_close,
         }
     }
 
@@ -77,6 +81,9 @@ impl Component for ChatBox {
             Msg::SendChat => {
                 let text = mem::replace(&mut self.chat_line, "".into());
                 self.on_send_chat.emit(text);
+            }
+            Msg::Close => {
+                self.on_close.emit(());
             }
             Msg::SetChatLine(text) => {
                 self.chat_line = text;
@@ -101,7 +108,10 @@ impl Component for ChatBox {
         let input_placeholder_text = tr!("send some text" );
         html! {
             <aside class="chat box">
-                <h2>{"Chat"}</h2>
+                <h2>
+                    <span class="box-title">{"Chat"}</span>
+                    <button class="btn-link box-close" onclick=self.link.callback(|_| Msg::Close)>{"X"}</button>
+                    </h2>
                 <div class="chat-messages">
                     <ul id="chat-log" ref=self.log_ref.clone()>
                     {

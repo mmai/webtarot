@@ -28,15 +28,15 @@ Tarot en ligne
 
 - scores : indiquer preneur /  partenaire / contrat / echec ? / bonus /
 
-- bug : son cartes jouées
-
-- vérifier random
 - **UX** volet résultats
 - **bot** envoyer des messages au chat (selon résultat du trick, différent selon n° de bot) 
+- bug : son cartes jouées
+
+- **server** store accounts
+- vérifier random
 - docker : étapes supplémentaires pour publier : exécuter localement ?
 - **refacto** retirer la dépendence Universe de Game : possible ? cf. https://docs.google.com/presentation/d/1ov5957xmm8s9V2F32AgXbaaQL0nCPai58PavU6jn0jA/edit#slide=id.p 
 - compte utilisateur activitypub https://socialhub.activitypub.rocks/t/single-sign-on-for-fediverse/712
-- **server** store accounts
 - **UX** chien : interdire de finir si le chien ne contient pas trois cartes
 - **rules** optionnelles
   - roi au chien autorisé (montré ensuite) (strictement interdit dans les règles officielles)

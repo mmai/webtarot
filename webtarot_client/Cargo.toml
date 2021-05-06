@@ -1,6 +1,6 @@
 [package]
 name = "webtarot_client"
-version = "0.7.5"
+version = "0.7.6"
 authors = ["Henri Bourcereau <henri@bourcereau.fr>"]
 edition = "2018"
 
@@ -14,7 +14,7 @@ crate-type = ["cdylib", "rlib"]
 yew = "0.17"
 
 # webgame_protocol = { path = "../../webgame/webgame_protocol" }
-webgame_protocol = { git = "https://github.com/mmai/webgame", tag = "v0.7.5" }
+webgame_protocol = { git = "https://github.com/mmai/webgame", tag = "v0.7.6" }
 
 webtarot_protocol = { path = "../webtarot_protocol" }
 tarotgame = { path = "../tarotgame" }

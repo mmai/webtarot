@@ -325,8 +325,9 @@ impl DealState {
             self.points[winner.pos as usize] += points;
 
             let (has_petit, has_21, has_excuse) = self.current_trick().clone().has_oudlers();
-            if self.in_taker_team(winner) && (has_petit || has_21) {
-                self.oudlers_count += 1;
+            if self.in_taker_team(winner) {
+                if has_petit { self.oudlers_count += 1; }
+                if has_21 { self.oudlers_count += 1; }
             }
 
             if has_excuse {
@@ -406,7 +407,7 @@ impl DealState {
         }
         //Score : taker_diff +- 25
         let (taker_diff, score) = points::score(taking_points, self.oudlers_count);
-        let taker_won = taker_diff > 0.0;
+        let taker_won = taker_diff >= 0.0;
         let petit_bonus = self.petit_au_bout_bonus();
         let multiplier = self.contract.target.multiplier();
         let mut base_points = multiplier as f32 * (score + petit_bonus);

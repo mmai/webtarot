@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.6
+- front: chat box button
+- fix points calculation for poignée & petit + 21
+
 ## 0.7.5
 - cards translations
 - translate chat messages

@@ -72,9 +72,9 @@ in
 
         archivageDelay = mkOption {
           type = types.int;
-          default = 24;
+          default = 1440;
           description = ''
-            Webtarot retention period in hours after wich games are archived
+            Webtarot retention period in minutes after wich games are archived
           '';
         };
 

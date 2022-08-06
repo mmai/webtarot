@@ -1,5 +1,7 @@
 build: compile assemble
 
+dev:
+	nix develop
 client:
 	cd webtarot_client && yarn && yarn run start:dev
 .PHONY: client

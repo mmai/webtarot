@@ -1,5 +1,7 @@
 # webtarot
 
+[![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
+
 A online game of [french tarot](https://en.wikipedia.org/wiki/French_tarot) in rust / webassembly
 
 ![webtarot screenshot](webtarot_client/static/screenshot.png?raw=true "Webtarot Screenshot")

@@ -1,4 +1,4 @@
-//! This module implements a trick in a game of coinche.
+//! This module implements a trick in a game of tarot.
 
 use serde::{Serialize, Deserialize};
 

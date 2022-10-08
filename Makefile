@@ -40,7 +40,7 @@ docker:
 	nix build .#webtarot-docker
 	docker push mmai/webtarot
 
-nixcache:
+nixcache: build
 	nix build .#webtarot
 	cachix push mmai ./result 
 	nix build .#webtarot-front

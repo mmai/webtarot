@@ -36,7 +36,7 @@
           src = ./.;
 
           nativeBuildInputs = [ pkgconfig ];
-          buildInputs = [ openssl ];
+          buildInputs = [ openssl_1_1 ];
 
           #cargoSha256 = "sha256-uBGokRKWZN9cleVBt17wKO6KPD4Iz7Ue533XVrmn9Ww=";
           cargoSha256 = "sha256-T9kgOsWV1sEk8QUCiz/rDgq7pDRKMQt0SeVNw6byxXc=";

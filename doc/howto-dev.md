@@ -11,6 +11,7 @@
 * get correct cargoSha256 value by running `nix build .#webtarot`
 * fix cargoSha256 in flake.nix 
 * git flow release
+* git push && git push --tags
 * rerun `nix build .#webtarot`
 * `cachix push mmai ./result`
 * `nix copy  --to ssh://root@rhumbs.fr ./result`

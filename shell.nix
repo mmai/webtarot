@@ -6,6 +6,7 @@ with pkgs;
 mkShell {
 # Set Environment Variables
   RUST_BACKTRACE = 1;
+  NODE_OPTIONS = "--openssl-legacy-provider";
 
 # nativeBuildInputs = [
 #   rust_channel # Full rust from overlay, includes cargo

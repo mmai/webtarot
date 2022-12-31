@@ -24,7 +24,7 @@ mkShell {
      })
     # rustc 
     cargo
-    pkgconfig openssl
+    pkgconfig openssl_1_1
   ];
 
 }

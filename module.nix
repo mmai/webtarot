@@ -82,7 +82,7 @@ in
     };
 
     config = mkIf cfg.enable {
-      users.users.webtarot = mkIf (cfg.user == "webtarot") { group = cfg.group; isSystemUser = true };
+      users.users.webtarot = mkIf (cfg.user == "webtarot") { group = cfg.group; isSystemUser = true; };
       users.groups.webtarot = mkIf (cfg.group == "webtarot") {};
 
       services.nginx = {

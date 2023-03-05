@@ -2188,7 +2188,7 @@ dependencies = [
  "mio 0.6.23",
  "pin-project-lite 0.1.12",
  "slab",
- "tokio-macros",
+ "tokio-macros 0.2.6",
 ]
 
 [[package]]
@@ -2204,6 +2204,7 @@ dependencies = [
  "once_cell",
  "pin-project-lite 0.2.6",
  "socket2 0.4.7",
+ "tokio-macros 1.8.2",
  "winapi 0.3.9",
 ]
 
@@ -2222,6 +2223,17 @@ name = "tokio-macros"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e44da00bfc73a25f814cd8d7e57a68a5c31b74b3152a0a1d1f590c97ed06265a"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "tokio-macros"
+version = "1.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d266c00fde287f55d3f1c3e96c500c362a2b8c695076ec180f27918820bc6df8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2848,7 +2860,7 @@ dependencies = [
  "pretty_env_logger",
  "rand 0.7.3",
  "serde_json",
- "tokio 0.2.25",
+ "tokio 1.19.2",
  "tokio-timer",
  "uuid 0.8.2",
  "warp 0.3.3",

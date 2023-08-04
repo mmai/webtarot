@@ -635,6 +635,15 @@ impl Player {
                 let found = self.play_try_own_petit();
                 if found.is_some() { return found };
 
+                // If there is points to save and i am not the last to play : play high (fix https://github.com/mmai/webtarot/issues/34)
+                if trick.points() > 4.0 && self.stats.clone().opponent_is_after(trick, mepos) != Some(false) {
+                    if let Some(highest) = hand.trump_highest(){
+                        if highest.rank() > winner_card.rank() {
+                            return Some(highest);
+                        }
+                    }
+                }
+
                 //Play the excuse if there is no points to gain
                 if self.check_play_excuse_instead_of_trump() {
                     return Some(excuse);
@@ -929,5 +938,30 @@ impl Player {
         let my_count = hand.get_suit_cards(suit).len();
 
         suit_left_count + card_played_count + my_count == 14
+    }
+
+}
+
+#[test]
+fn test_assure_petit() {
+    let in_out = Box::new(TestInOut {});
+    let delay = time::Duration::from_millis(1000);
+    let mut bot = Player::new(in_out, "joincode".to_string(), format!("nickname"), delay);
+    assert_eq!("a", "a");
+}
+
+pub struct TestInOut {}
+
+impl InOut for TestInOut {
+    fn read(&mut self) -> Message {
+        let message: Message = serde_json::from_str("{}").expect("Can't parse JSON");
+        message
+    }
+
+    fn send(&mut self, command: &Command) -> Result<()> {
+        Ok(())
+    }
+
+    fn close(&mut self){
     }
 }

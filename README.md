@@ -31,7 +31,7 @@ RUST_LOG=info ./dist/webtarot_server -p 8000 -d dist/public
 
 ## Development
 
-Start server and client in developpement mode:
+Start server and client in development mode:
 
 ```sh
 make client

@@ -20,6 +20,7 @@ Tarot en ligne
 ## Backlog
 
 - [ ] bug : archives en lignes non actives
+- [ ] bug : bot le partenaire a joué le petit, le bot a joué le deux au lieu du 21
 - **server** enregistrement des parties
   - enregistrer les parties lorsqu'elles sont terminées 
   - listing

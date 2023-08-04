@@ -1,5 +1,10 @@
 build: compile assemble
 
+local:
+	cd container && nix flake lock --update-input nixpkgs --update-input webtarot && cd -
+	sudo nixos-container destroy webtarot
+	sudo nixos-container create webtarot --flake ./container/
+	sudo nixos-container start webtarot
 dev:
 	nix develop
 client:

@@ -2,7 +2,7 @@
   description = "Webtarot";
 
   inputs = {
-    nixpkgs = { url = "github:nixos/nixpkgs/nixos-22.11"; };
+    nixpkgs = { url = "github:nixos/nixpkgs/nixos-23.05"; };
     rust-overlay = { url = "github:oxalica/rust-overlay"; };
   };
 
@@ -38,7 +38,6 @@
           nativeBuildInputs = [ pkgconfig ];
           buildInputs = [ openssl_1_1 ];
 
-          #cargoSha256 = "sha256-uBGokRKWZN9cleVBt17wKO6KPD4Iz7Ue533XVrmn9Ww=";
           cargoSha256 = "sha256-T9kgOsWV1sEk8QUCiz/rDgq7pDRKMQt0SeVNw6byxXc=";
 
           meta = with pkgs.lib; {

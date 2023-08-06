@@ -46,7 +46,7 @@ docker:
 	docker push mmai/webtarot
 
 nixcache: build
-	nix build .#webtarot
+	NIXPKGS_ALLOW_INSECURE=1 nix build --impure .#webtarot
 	cachix push mmai ./result 
 	nix build .#webtarot-front
 	cachix push mmai ./result 

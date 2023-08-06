@@ -1,6 +1,6 @@
 [package]
 name = "webtarot_client"
-version = "0.7.7"
+version = "0.7.8"
 authors = ["Henri Bourcereau <henri@bourcereau.fr>"]
 edition = "2018"
 
@@ -14,7 +14,7 @@ crate-type = ["cdylib", "rlib"]
 yew = "0.17"
 
 # webgame_protocol = { path = "../../webgame/webgame_protocol" }
-webgame_protocol = { git = "https://github.com/mmai/webgame", tag = "v0.7.6" }
+webgame_protocol = { git = "https://github.com/mmai/webgame", tag = "v0.7.7" }
 
 webtarot_protocol = { path = "../webtarot_protocol" }
 tarotgame = { path = "../tarotgame" }
@@ -37,8 +37,8 @@ web-sys = { version = "0.3.4", features = [
 im-rc = "14.3.0"                      
 strum = "0.19.0"                      
 tr = { version = "0.1", default-features = false, features = ["gettext"] }
-rust-embed = { version = "6.3.0", features = ["debug-embed"] }
-i18n-embed = { version = "0.6", features = ["web-sys-requester"] }
+rust-embed = { version = "6.8", features = ["debug-embed"] }
+i18n-embed = { version = "0.13", features = ["gettext-system", "web-sys-requester"] }
 js-sys = "0.3.40"
 lazy_static = "1.4.0"
 url = "2.2.0"

@@ -29,21 +29,18 @@ use crate::views::start::StartPage;
 use lazy_static::lazy_static;
 use rust_embed::RustEmbed;
 use i18n_embed::{
-    language_loader, I18nEmbed,
+    gettext::gettext_language_loader,
     WebLanguageRequester,
+    LanguageLoader,
 };
 
 const KEY: &str = "webtarot.self";
 const KEY_GAME: &str = "webtarot.game";
 
-#[derive(RustEmbed, I18nEmbed)]
+#[derive(RustEmbed)]
 #[folder = "i18n/mo"]
 struct Translations;
 
-language_loader!(WebLanguageLoader);//Creates language loader struct
-lazy_static! {
-    static ref LANGUAGE_LOADER: WebLanguageLoader = WebLanguageLoader::new();
-}
 static TRANSLATIONS: Translations = Translations;
 
 pub struct App {
@@ -88,7 +85,10 @@ impl Component for App {
 
         //i18N
         let requested_languages = WebLanguageRequester::requested_languages();
-        let _res = i18n_embed::select(&*LANGUAGE_LOADER, &TRANSLATIONS, &requested_languages);
+
+        let language_loader = gettext_language_loader!();
+        let _res = i18n_embed::select(&language_loader, &TRANSLATIONS, &requested_languages);
+        // let _res = i18n_embed::select(&*LANGUAGE_LOADER, &TRANSLATIONS, &requested_languages);
 
         //Ping to keep alive websocket
         let _pinger = spawn_pings(&link);

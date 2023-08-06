@@ -2,8 +2,9 @@
   description = "Webtarot";
 
   inputs = {
-    nixpkgs = { url = "github:nixos/nixpkgs/nixos-23.05"; };
-    rust-overlay = { url = "github:oxalica/rust-overlay"; };
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    # flake-utils.url  = "github:numtide/flake-utils";
   };
 
   outputs = { self, nixpkgs, rust-overlay }:
@@ -38,7 +39,12 @@
           nativeBuildInputs = [ pkgconfig ];
           buildInputs = [ openssl_1_1 ];
 
-          cargoSha256 = "sha256-T9kgOsWV1sEk8QUCiz/rDgq7pDRKMQt0SeVNw6byxXc=";
+          cargoLock = {
+            lockFile = ./Cargo.lock;
+            outputHashes = {
+              "webgame_protocol-0.6.2" = "sha256-8S+K8EVYK8tiw5cbL3MZJuT+UFi+sJ7ADTXsrN/1DvU=";
+            };
+          };
 
           meta = with pkgs.lib; {
             description = "A online game of french tarot";

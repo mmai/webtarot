@@ -39,12 +39,25 @@ make server
 ```
 and open your browser to http://127.0.0.1:8001/
 
+## Nix flake deployment
+
+The `container` directory contains an example of a nix configuration.
+
+- build it with `make local`
+- get the ip address of the container : `machinectl`,  which output something like this :
+```
+MACHINE   CLASS     SERVICE        OS    VERSION ADDRESSES
+webtarot container systemd-nspawn nixos 23.05   10.233.2.2…
+```
+
+Then browse to the ip  `firefox http://10.233.2.2`
+
 ## Internationalization
 
 Requirements: 
 - gettext
 - xtr (`cargo install xtr`)
-- cargo-i18n (`cargo install cargo-i18n`)
+- cargo-i18n (`cargo install cargo-i18n`, tested with cargo-i18n v0.2.10)
 
 Edit target languages in _i18n.toml_ and _webtarot_client/i18n.toml_
 

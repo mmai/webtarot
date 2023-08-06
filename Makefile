@@ -6,7 +6,7 @@ local:
 	sudo nixos-container create webtarot --flake ./container/
 	sudo nixos-container start webtarot
 dev:
-	nix develop
+	NIXPKGS_ALLOW_INSECURE=1 nix develop --impure
 client:
 	cd webtarot_client && yarn && yarn run start:dev
 .PHONY: client

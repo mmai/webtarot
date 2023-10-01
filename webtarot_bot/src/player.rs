@@ -834,7 +834,7 @@ impl Player {
 
             // if we are here, we should only have trumps left (or points we don't want to give), play the highest
             let card = hand.suit_highest(Suit::Trump);
-            if card.is_some() {
+            if card.is_some() && card != Some(petit) {
                 return card;
             }
         }

@@ -606,6 +606,23 @@ impl Hand {
         self.has(petit) && self.trumps_count() == 1
     }
 
+    pub fn count_oudlers(self) -> u8 {
+        let petit = Card::new(Suit::Trump, Rank::Rank1);
+        let vingtetun = Card::new(Suit::Trump, Rank::Rank21);
+        let excuse = Card::new(Suit::Trump, Rank::Rank22);
+        let mut count = 0;
+        if self.has(petit){
+            count = count + 1;
+        }
+        if self.has(vingtetun){
+            count = count + 1;
+        }
+        if self.has(excuse){
+            count = count + 1;
+        }
+        count
+    }
+
     /// Returns the trumps in `self`.
     pub fn trumps(self) -> Self {
         Self(0, self.1)

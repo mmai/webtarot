@@ -363,6 +363,10 @@ impl DealState {
                 if has_petit {
                     self.petit_au_bout = Some(winner);
                 }
+                // XXX : ici pour bénéficier de la mutabilité de self
+                if self.contract.target == bid::Target::GardeSans {
+                    self.oudlers_count += self.dog.count_oudlers();
+                }
             } else {
                 self.tricks.push(trick::Trick::new(winner));
             }
@@ -405,6 +409,7 @@ impl DealState {
         if self.contract.target != bid::Target::GardeContre {
             taking_points += points::hand_points(self.dog);
         }
+
         //Score : taker_diff +- 25
         let (taker_diff, score) = points::score(taking_points, self.oudlers_count);
         let taker_won = taker_diff >= 0.0;

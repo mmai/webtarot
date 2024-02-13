@@ -2,7 +2,7 @@
   description = "Webtarot";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
     rust-overlay.url = "github:oxalica/rust-overlay";
     # flake-utils.url  = "github:numtide/flake-utils";
   };
@@ -36,8 +36,8 @@
           version = "0.7.8";
           src = ./.;
 
-          nativeBuildInputs = [ pkgconfig ];
-          buildInputs = [ openssl_1_1 ];
+          nativeBuildInputs = [ pkg-config ];
+          buildInputs = [ openssl ];
 
           cargoLock = {
             lockFile = ./Cargo.lock;

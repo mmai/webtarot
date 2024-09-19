@@ -219,6 +219,10 @@ impl Player {
         }
     }
 
+    pub fn set_test_state_from_snapshot(&mut self, game_state: GameStateSnapshot) {
+        self.game_state = game_state;
+    }
+
     pub fn play(&mut self) {
         self.in_out
             .send(&Command::Authenticate(AuthenticateCommand {
@@ -1136,6 +1140,10 @@ fn test_assure_petit() {
     let in_out = Box::new(TestInOut {});
     let delay = time::Duration::from_millis(1000);
     let mut bot = Player::new(in_out, "joincode".to_string(), format!("nickname"), delay);
+    // TODO
+    let msg = webtarot_protocol::GameStateSnapshot::default();
+    bot.set_test_state_from_snapshot(msg);
+    bot.update_stats();
     assert_eq!("a", "a");
 }
 

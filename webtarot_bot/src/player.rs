@@ -222,7 +222,6 @@ impl Player {
     pub fn set_test_state_from_snapshot(&mut self, game_state: GameStateSnapshot) {
         self.game_state = game_state;
     }
-
     pub fn play(&mut self) {
         self.in_out
             .send(&Command::Authenticate(AuthenticateCommand {

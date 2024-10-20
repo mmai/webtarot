@@ -2965,7 +2965,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_bot"
-version = "0.4.5"
+version = "0.4.6"
 dependencies = [
  "clap",
  "env_logger 0.8.4",
@@ -2986,7 +2986,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_client"
-version = "0.7.9"
+version = "0.7.10"
 dependencies = [
  "anyhow",
  "chrono",
@@ -3024,7 +3024,7 @@ dependencies = [
 
 [[package]]
 name = "webtarot_server"
-version = "0.7.8"
+version = "0.7.9"
 dependencies = [
  "clap",
  "futures 0.3.28",

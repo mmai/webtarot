@@ -1049,7 +1049,7 @@ impl Player {
 
         // TODO : cas du petit montré dans une poignée
         //
-        if petit_not_played && hand.has(vingtetun) && table_layout_ok {
+        if petit_not_played && !hand.has(petit) && hand.has(vingtetun) && table_layout_ok {
             Some(vingtetun)
         } else {
             None

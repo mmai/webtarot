@@ -33,12 +33,14 @@ yarn upgrade --depth
 Display games list
 ```sh
 (echo '{"cmd": "show_server_status"}';sleep 0.1 )| websocat ws://127.0.0.1:8001/ws/new_new | jq 
+(echo '{"cmd": "show_server_status"}';sleep 0.1 )| websocat ws://tarot.rhumbs.fr/ws/new_new | jq 
 ``` 
 
 Print a specific game_state in server logs :
 
 ```sh
-echo '{"cmd": "debug_game", "game_id":"'$GUID'" , "operation": "ShowState"}' | websocat  ws://127.0.0.1:8001/ws/new_new
+echo '{"cmd": "debug_game", "game_id":"'$GUID'" , "operation": "ShowState"}' | websocat  ws://127.0.0.1:8001/ws/new_new | jq '.data | fromjson'
+
 ```
 
 ## Bots

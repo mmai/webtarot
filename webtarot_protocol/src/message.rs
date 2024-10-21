@@ -1,18 +1,17 @@
 use serde::{Deserialize, Serialize};
 
-use webgame_protocol::{ProtocolErrorKind, Message as GenericMessage, Variant, Command as GenericCommand };
 use webgame_protocol::ProtocolError as GenericProtocolError;
+use webgame_protocol::{
+    Command as GenericCommand, Message as GenericMessage, ProtocolErrorKind, Variant,
+};
 
-use crate::player::{PlayerRole, GamePlayerState};
 use crate::game::{GameStateSnapshot, PlayEvent, VariantSettings};
 use crate::game_messages::GamePlayCommand;
+use crate::player::{GamePlayerState, PlayerRole};
 
 impl From<ProtocolError> for GenericProtocolError {
     fn from(error: ProtocolError) -> Self {
-        GenericProtocolError::new(
-            error.kind,
-            error.message      
-       )
+        GenericProtocolError::new(error.kind, error.message)
     }
 }
 
@@ -50,8 +49,14 @@ pub enum DebugOperation {
     ShowState,
 }
 
-impl webgame_protocol::DebugOperation for DebugOperation { }
+impl webgame_protocol::DebugOperation for DebugOperation {}
 
 pub type Message = GenericMessage<GamePlayerState, GameStateSnapshot, DebugOperation, PlayEvent>;
 pub type TarotVariant = Variant<VariantSettings>;
-pub type Command = GenericCommand<GamePlayCommand, SetPlayerRoleCommand, GameStateSnapshot, DebugOperation, TarotVariant>;
+pub type Command = GenericCommand<
+    GamePlayCommand,
+    SetPlayerRoleCommand,
+    GameStateSnapshot,
+    DebugOperation,
+    TarotVariant,
+>;

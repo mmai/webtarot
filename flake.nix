@@ -42,7 +42,7 @@
           cargoLock = {
             lockFile = ./Cargo.lock;
             outputHashes = {
-              "webgame_protocol-0.6.2" = "sha256-8S+K8EVYK8tiw5cbL3MZJuT+UFi+sJ7ADTXsrN/1DvU=";
+              "webgame_protocol-0.7.8" = "sha256-SoamOZzzZQEOOpHlkYjFZRytqgfacw/iB4aX0JE8JwE=";
             };
           };
 

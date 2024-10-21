@@ -15,7 +15,7 @@ use super::AnnounceType;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct DealState {
     players: Vec<cards::Hand>,
-    partner: pos::PlayerPos, 
+    partner: pos::PlayerPos,
     called_king: Option<cards::Card>,
     dog: cards::Hand,
     current: pos::PlayerPos,
@@ -41,7 +41,7 @@ pub enum DealResult {
         taker_diff: f32,
         oudlers_count: u8,
         petit_bonus: f32,
-        multiplier: i32, 
+        multiplier: i32,
         slam_bonus: f32,
         poignees_bonus: f32,
         /// Score for this deal
@@ -92,12 +92,19 @@ impl fmt::Display for PlayError {
             PlayError::IncorrectSuit => write!(f, "wrong suit played"),
             PlayError::InvalidPiss => write!(f, "you must use trumps"),
             PlayError::NonRaisedTrump => write!(f, "too weak trump played"),
-            PlayError::CallKingSuit => write!(f, "you cannot play the suit of the called king in the first trick"),
+            PlayError::CallKingSuit => write!(
+                f,
+                "you cannot play the suit of the called king in the first trick"
+            ),
             PlayError::NoLastTrick => write!(f, "no trick has been played yet"),
             PlayError::DogNotTaker => write!(f, "you are not the taker"),
             PlayError::DogWrongNumberOfCards(_wrong, _right) => write!(f, "Wrong number of cards"),
-            PlayError::DogSameCardTwice(_card) => write!(f, "Can't put the same card twice in the dog"),
-            PlayError::DogCardNotFound(_card) => write!(f, "Card neither in the taker's hand nor in the dog"),
+            PlayError::DogSameCardTwice(_card) => {
+                write!(f, "Can't put the same card twice in the dog")
+            }
+            PlayError::DogCardNotFound(_card) => {
+                write!(f, "Card neither in the taker's hand nor in the dog")
+            }
             PlayError::DogOudler(_card) => write!(f, "Can't put an oudler in the dog"),
             PlayError::DogKing(_card) => write!(f, "Can't put a king in the dog"),
             PlayError::DogTrump(_card) => write!(f, "Can't put a trump in the dog"),
@@ -114,14 +121,23 @@ impl fmt::Display for PlayError {
 
 impl DealState {
     /// Creates a new DealState, with the given cards, first player and contract.
-    pub fn new(deal_first: pos::PlayerPos, hands: Vec<cards::Hand>, dog: cards::Hand, contract: bid::Contract, partner: pos::PlayerPos) -> Self {
+    pub fn new(
+        deal_first: pos::PlayerPos,
+        hands: Vec<cards::Hand>,
+        dog: cards::Hand,
+        contract: bid::Contract,
+        partner: pos::PlayerPos,
+    ) -> Self {
         let count = hands.len();
-        let first = if contract.slam && (contract.target == bid::Target::GardeContre || contract.target == bid::Target::GardeSans ){
+        let first = if contract.slam
+            && (contract.target == bid::Target::GardeContre
+                || contract.target == bid::Target::GardeSans)
+        {
             contract.author
-        } else { 
-            deal_first  // if contract with dog, the slam is checked later and updates the first player with the set_first_player function  
+        } else {
+            deal_first // if contract with dog, the slam is checked later and updates the first player with the set_first_player function
         };
-        
+
         DealState {
             players: hands,
             partner,
@@ -132,8 +148,8 @@ impl DealState {
             tricks: vec![trick::Trick::new(first)],
             oudlers_count: 0,
             petit_au_bout: None,
-            points: vec![0.0;count],
-            announces: vec![vec![];count],
+            points: vec![0.0; count],
+            announces: vec![vec![]; count],
         }
     }
 
@@ -143,7 +159,7 @@ impl DealState {
 
     // Set the first player at the beginning of a deal
     // only used when a slam is announced to override default
-    pub fn set_first_player(&mut self, first: pos::PlayerPos){
+    pub fn set_first_player(&mut self, first: pos::PlayerPos) {
         self.current = first;
         self.tricks = vec![trick::Trick::new(first)];
     }
@@ -168,7 +184,7 @@ impl DealState {
         if pos != self.contract.author {
             println!("Player {:?} is not the taker", pos);
             return false;
-        } 
+        }
 
         let hand = self.players[pos.pos as usize];
         let has_all_kings = hand.has_all_rank(cards::Rank::RankK);
@@ -184,7 +200,7 @@ impl DealState {
         }
 
         //Everything ok, now who is the partner ?
-        self.partner = pos; // the taker by default (if king is in the dog..) 
+        self.partner = pos; // the taker by default (if king is in the dog..)
         for player_pos in &[
             pos::PlayerPos::from_n(0, 5),
             pos::PlayerPos::from_n(1, 5),
@@ -203,10 +219,15 @@ impl DealState {
     }
 
     /// Make the dog
-    pub fn make_dog(&mut self, pos: pos::PlayerPos, cards: cards::Hand, slam: bool) -> Result<(), PlayError> {
+    pub fn make_dog(
+        &mut self,
+        pos: pos::PlayerPos,
+        cards: cards::Hand,
+        slam: bool,
+    ) -> Result<(), PlayError> {
         if pos != self.contract.author {
             return Err(PlayError::DogNotTaker);
-        } 
+        }
         let cards_list = cards.list();
         let dog_size = super::dog_size(self.players.len());
         if cards_list.len() != dog_size {
@@ -231,9 +252,16 @@ impl DealState {
             }
             if card.suit() == cards::Suit::Trump {
                 //Check if there is no alternative (taker has only trumps and kings)
-                if taker_cards.list().iter().filter(|tcard| 
+                if taker_cards
+                    .list()
+                    .iter()
+                    .filter(|tcard| {
                         tcard.rank() != cards::Rank::RankK && tcard.suit() != cards::Suit::Trump
-                    ).peekable().peek().is_some() {
+                    })
+                    .peekable()
+                    .peek()
+                    .is_some()
+                {
                     return Err(PlayError::DogTrump(card));
                 }
             }
@@ -249,7 +277,7 @@ impl DealState {
         self.dog = new_dog;
         self.players[pos.pos as usize] = taker_cards;
         Ok(())
-    } 
+    }
 
     /// Try to declare an announce
     pub fn announce(
@@ -303,18 +331,26 @@ impl DealState {
             //Continue trick
             self.current = self.current.next();
             TrickResult::Nothing
-        } else { // Trick finished
+        } else {
+            // Trick finished
             let is_last_trick = self.tricks.len() == deal_size;
 
             let excuse = cards::Card::new(cards::Suit::Trump, cards::Rank::Rank22);
             // Special case : this is a slam and the taker played the excuse at the last trick
             let is_excuse_slam = if is_last_trick {
-                let won_until_last = self.tricks.split_last().unwrap() // We can unwrap because tricks have been played (last trick)
-                        .1.iter() // get all tricks but the last
-                        .filter(|trick| self.in_taker_team(trick.winner))
-                        .count();
-                won_until_last == deal_size - 1 && self.current_trick().player_played(excuse) == Some(self.contract.author.pos)
-            } else { false };
+                let won_until_last = self
+                    .tricks
+                    .split_last()
+                    .unwrap() // We can unwrap because tricks have been played (last trick)
+                    .1
+                    .iter() // get all tricks but the last
+                    .filter(|trick| self.in_taker_team(trick.winner))
+                    .count();
+                won_until_last == deal_size - 1
+                    && self.current_trick().player_played(excuse) == Some(self.contract.author.pos)
+            } else {
+                false
+            };
             if is_excuse_slam {
                 self.current_trick_mut().winner = self.contract.author;
             }
@@ -326,13 +362,20 @@ impl DealState {
 
             let (has_petit, has_21, has_excuse) = self.current_trick().clone().has_oudlers();
             if self.in_taker_team(winner) {
-                if has_petit { self.oudlers_count += 1; }
-                if has_21 { self.oudlers_count += 1; }
+                if has_petit {
+                    self.oudlers_count += 1;
+                }
+                if has_21 {
+                    self.oudlers_count += 1;
+                }
             }
 
             if has_excuse {
                 let count = self.players.len() as u8;
-                let excuse_player = pos::PlayerPos::from_n(self.current_trick().player_played(excuse).unwrap() as usize, count);
+                let excuse_player = pos::PlayerPos::from_n(
+                    self.current_trick().player_played(excuse).unwrap() as usize,
+                    count,
+                );
                 if is_last_trick && !is_excuse_slam {
                     //Excuse played in the last trick when not a slam : goes to the other team
                     let excuse_points = points::points(excuse);
@@ -345,14 +388,13 @@ impl DealState {
                         self.points[self.contract.author.pos as usize] += excuse_points;
                         self.oudlers_count += 1;
                     }
-
                 } else {
                     //player of the excuse keeps it
-                      // points
+                    // points
                     let diff_points = points::points(excuse) - 0.5; // half a point for the pip exchange card
                     self.points[winner.pos as usize] -= diff_points;
                     self.points[excuse_player.pos as usize] += diff_points;
-                      // oudlers count
+                    // oudlers count
                     if self.in_taker_team(excuse_player) {
                         self.oudlers_count += 1;
                     }
@@ -379,7 +421,7 @@ impl DealState {
 
     fn in_taker_team(&self, player: pos::PlayerPos) -> bool {
         &player == &self.contract.author || &player == &self.partner
-    } 
+    }
 
     fn get_opponent(&self) -> pos::PlayerPos {
         let count = self.players.len() as u8;
@@ -427,7 +469,8 @@ impl DealState {
             if !self.in_taker_team(pos::PlayerPos::from_n(position as usize, count)) {
                 scores[position as usize] -= base_points;
                 scores[self.contract.author.pos as usize] += base_points;
-            } else if position != self.contract.author.pos as u8 { // Partner
+            } else if position != self.contract.author.pos as u8 {
+                // Partner
                 scores[position as usize] += base_points;
                 scores[self.contract.author.pos as usize] -= base_points;
             }
@@ -438,7 +481,7 @@ impl DealState {
             points: self.points.clone(),
             taker_diff,
             petit_bonus,
-            multiplier, 
+            multiplier,
             slam_bonus,
             poignees_bonus,
             scores,
@@ -446,8 +489,13 @@ impl DealState {
     }
 
     fn slam_bonus(&self) -> f32 {
-        if self.contract.slam { // Slam announced
-            if self.is_slam() { 400.0 } else { -200.0 }
+        if self.contract.slam {
+            // Slam announced
+            if self.is_slam() {
+                400.0
+            } else {
+                -200.0
+            }
         } else if self.is_slam() {
             200.0 // Slam not announced
         } else {
@@ -456,12 +504,18 @@ impl DealState {
     }
 
     fn poignees_bonus(&self, taker_won: bool) -> f32 {
-        // All announces points go to the deal winner 
-        let points = self.announces.iter()
+        // All announces points go to the deal winner
+        let points = self
+            .announces
+            .iter()
             .flatten()
             .map(|ann| ann.points())
             .sum();
-        if taker_won { points } else { 0.0 - points }
+        if taker_won {
+            points
+        } else {
+            0.0 - points
+        }
     }
 
     fn petit_au_bout_bonus(&self) -> f32 {
@@ -477,7 +531,8 @@ impl DealState {
     }
 
     fn taker_team_won_count(&self) -> usize {
-        self.tricks.iter()
+        self.tricks
+            .iter()
             .filter(|trick| self.in_taker_team(trick.winner))
             .count()
     }
@@ -495,7 +550,10 @@ impl DealState {
     pub fn is_over(&self) -> bool {
         let nb_players = self.players.len();
         let deal_size = super::deal_size(nb_players);
-        self.tricks.len() == deal_size && !self.tricks[deal_size -1].cards[0..nb_players].iter().any(|&c| c.is_none())
+        self.tricks.len() == deal_size
+            && !self.tricks[deal_size - 1].cards[0..nb_players]
+                .iter()
+                .any(|&c| c.is_none())
     }
 
     /// Return the last trick, if possible
@@ -534,7 +592,7 @@ pub fn can_play(
     hand: cards::Hand,
     trick: &trick::Trick,
     called_king: Option<cards::Card>,
-    is_first_trick:bool,
+    is_first_trick: bool,
 ) -> Result<(), PlayError> {
     // First, we need the card to be able to play
     if !hand.has(card) {
@@ -565,14 +623,17 @@ pub fn can_play(
                 return Err(PlayError::NonRaisedTrump);
             }
         }
-    } else { //First to play (or second if the first played the Excuse)
+    } else {
+        //First to play (or second if the first played the Excuse)
         // Everything is accepted except a card in the suit of the called king at the
         // first trick of the deal if it is not the king itself
         if called_king.is_some()                          // A king has been called (5 players variant)
             && is_first_trick                             // and this is the first trick of the deal
             && card.suit() == called_king.unwrap().suit() // and the card played is in the suit of the called king
-            && card.rank() != cards::Rank::RankK {        // and this is not the king itself
-                return Err(PlayError::CallKingSuit);
+            && card.rank() != cards::Rank::RankK
+        {
+            // and this is not the king itself
+            return Err(PlayError::CallKingSuit);
         }
     }
 
@@ -700,25 +761,36 @@ mod tests {
         let contract = bid::Contract {
             author: pos::PlayerPos::from_n(0, 5),
             target: bid::Target::Prise,
-            slam: false
+            slam: false,
         };
 
-        let mut deal = DealState::new(pos::PlayerPos::from_n(0, 5), hands.to_vec(), dog, contract, pos::PlayerPos::from_n(2, 5));
-        deal.call_king(pos::PlayerPos::from_n(0, 5), cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK));
+        let mut deal = DealState::new(
+            pos::PlayerPos::from_n(0, 5),
+            hands.to_vec(),
+            dog,
+            contract,
+            pos::PlayerPos::from_n(2, 5),
+        );
+        deal.call_king(
+            pos::PlayerPos::from_n(0, 5),
+            cards::Card::new(cards::Suit::Diamond, cards::Rank::RankK),
+        );
 
         // Wrong turn
         assert_eq!(
             deal.play_card(
                 pos::PlayerPos::from_n(1, 5),
                 cards::Card::new(cards::Suit::Club, cards::Rank::Rank10)
-            ).err(),
+            )
+            .err(),
             Some(PlayError::TurnError)
         );
         assert_eq!(
             deal.play_card(
                 pos::PlayerPos::from_n(0, 5),
                 cards::Card::new(cards::Suit::Club, cards::Rank::Rank7)
-            ).ok(),
+            )
+            .ok(),
             Some(TrickResult::Nothing)
         );
         // Card missing
@@ -726,7 +798,8 @@ mod tests {
             deal.play_card(
                 pos::PlayerPos::from_n(1, 5),
                 cards::Card::new(cards::Suit::Heart, cards::Rank::Rank7)
-            ).err(),
+            )
+            .err(),
             Some(PlayError::CardMissing)
         );
         // Wrong color
@@ -734,14 +807,16 @@ mod tests {
             deal.play_card(
                 pos::PlayerPos::from_n(1, 5),
                 cards::Card::new(cards::Suit::Spade, cards::Rank::Rank7)
-            ).err(),
+            )
+            .err(),
             Some(PlayError::IncorrectSuit)
         );
         assert_eq!(
             deal.play_card(
                 pos::PlayerPos::from_n(1, 5),
                 cards::Card::new(cards::Suit::Club, cards::Rank::RankQ)
-            ).ok(),
+            )
+            .ok(),
             Some(TrickResult::Nothing)
         );
         // Invalid piss
@@ -749,14 +824,16 @@ mod tests {
             deal.play_card(
                 pos::PlayerPos::from_n(2, 5),
                 cards::Card::new(cards::Suit::Diamond, cards::Rank::Rank7)
-            ).err(),
+            )
+            .err(),
             Some(PlayError::InvalidPiss)
         );
         assert_eq!(
             deal.play_card(
                 pos::PlayerPos::from_n(2, 5),
                 cards::Card::new(cards::Suit::Trump, cards::Rank::Rank2)
-            ).ok(),
+            )
+            .ok(),
             Some(TrickResult::Nothing)
         );
         // UnderTrump
@@ -764,21 +841,24 @@ mod tests {
             deal.play_card(
                 pos::PlayerPos::from_n(3, 5),
                 cards::Card::new(cards::Suit::Trump, cards::Rank::Rank1)
-            ).err(),
+            )
+            .err(),
             Some(PlayError::NonRaisedTrump)
         );
         assert_eq!(
             deal.play_card(
                 pos::PlayerPos::from_n(3, 5),
                 cards::Card::new(cards::Suit::Trump, cards::Rank::Rank8)
-            ).ok(),
+            )
+            .ok(),
             Some(TrickResult::Nothing)
         );
         assert_eq!(
             deal.play_card(
                 pos::PlayerPos::from_n(4, 5),
                 cards::Card::new(cards::Suit::Club, cards::Rank::Rank4)
-            ).ok(),
+            )
+            .ok(),
             Some(TrickResult::TrickOver(
                 pos::PlayerPos::from_n(3, 5),
                 deal.get_deal_result()
@@ -799,19 +879,20 @@ mod tests {
         hand.add(excuse);
 
         let trick = trick::Trick {
-            cards: [ None, Some(trump), None, None, None ],
+            cards: [None, Some(trump), None, None, None],
             first: first_player,
-            winner: first_player, 
+            winner: first_player,
         };
 
         assert!(!can_play(
-            pos::PlayerPos::from_n(2,5),
+            pos::PlayerPos::from_n(2, 5),
             heart,
             hand,
             &trick,
             Some(king),
             false,
-        ).is_err());
+        )
+        .is_err());
     }
 
     #[test]

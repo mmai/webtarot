@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
-use tarotgame::{bid, cards, pos, deal, trick, AnnounceType};
+use tarotgame::{bid, cards, deal, pos, trick, AnnounceType};
 
 /// Describe a single deal.
 #[derive(Clone, Serialize, Deserialize)]
@@ -9,6 +10,19 @@ pub enum Deal {
     Bidding(bid::Auction),
     /// The deal is in the main playing phase
     Playing(deal::DealState),
+}
+
+impl fmt::Display for Deal {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Deal::Bidding(ref auction) => {
+                write!(f, "Auction")
+            }
+            Deal::Playing(ref deal) => {
+                write!(f, "{}", deal)
+            }
+        }
+    }
 }
 
 impl Deal {
@@ -81,7 +95,7 @@ pub struct DealSnapshot {
     pub dog: cards::Hand, // set to empty hand until the deal is over
     pub taker_diff: f32,
     // pub tricks: Vec<trick::Trick>,
-    pub announces: Vec<Vec<AnnounceType>>
+    pub announces: Vec<Vec<AnnounceType>>,
 }
 
 impl DealSnapshot {
@@ -93,6 +107,4 @@ impl DealSnapshot {
         //     Some(contract) => Some(contract.target)
         // }
     }
-
 }
-

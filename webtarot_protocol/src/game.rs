@@ -146,24 +146,6 @@ impl Default for TarotGameState {
 
 impl fmt::Display for TarotGameState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "nb players : {}", self.nb_players)?;
-        if let Some(deal_state) = self.deal.deal_state() {
-            if let Some(king) = deal_state.king() {
-                writeln!(f, "called king : {}", king.to_string())?;
-            }
-            writeln!(f, "dog : {}", deal_state.dog().to_string())?;
-
-            let taker = self
-                .player_by_pos(deal_state.contract().author)
-                .map(|p| &p.player.nickname);
-            writeln!(f, "taker : {}", taker.unwrap_or(&"".to_string()))?;
-            let partner = self
-                .player_by_pos(deal_state.partner())
-                .map(|p| &p.player.nickname);
-            writeln!(f, "partner : {}", partner.unwrap_or(&"".to_string()))?;
-        }
-        // write!(f, "{}", self.deal)?;
-
         let mut count = self.nb_players;
         for (player_id, play) in &self.deal_history {
             if count == self.nb_players {
@@ -179,6 +161,35 @@ impl fmt::Display for TarotGameState {
             )?;
             count += 1;
         }
+
+        writeln!(f, "----------\n")?;
+        writeln!(f, "nb players : {}", self.nb_players)?;
+        if let Some(deal_state) = self.deal.deal_state() {
+            if let Some(king) = deal_state.king() {
+                writeln!(f, "called king : {}", king.to_string())?;
+            }
+            writeln!(f, "dog : {}", deal_state.dog().to_string())?;
+
+            let taker = self
+                .player_by_pos(deal_state.contract().author)
+                .map(|p| &p.player.nickname);
+            writeln!(f, "taker : {}", taker.unwrap_or(&"".to_string()))?;
+            let partner = self
+                .player_by_pos(deal_state.partner())
+                .map(|p| &p.player.nickname);
+            writeln!(f, "partner : {}", partner.unwrap_or(&"".to_string()))?;
+
+            writeln!(f, "---- Hands ---")?;
+            for (player_id, player) in &self.players {
+                let pos = player.pos.pos;
+                let nic = &player.player.nickname;
+                let hand = deal_state.hands()[pos as usize];
+
+                writeln!(f, "{} : {}", nic, hand.to_string())?;
+            }
+        }
+        // write!(f, "{}", self.deal)?;
+
         write!(f, "")
     }
 }

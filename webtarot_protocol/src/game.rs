@@ -1688,13 +1688,13 @@ mod tests {
     fn test_display() {
         let game = TarotGameState::default();
         let str_game = game.to_string();
-        assert_eq!("nb players : 5\n", str_game);
+        assert_eq!("----------\n\nnb players : 5\n", str_game);
 
         let json_str = include_str!("./test_gamestate.json");
         let game: TarotGameState = serde_json::from_str(json_str).expect("Error parsing JSON");
         let str_game = &game.to_string()[..147];
         assert_eq!(
-            "nb players : 5\ncalled king : K♠\ndog : C♠, Q♦, C♣\ntaker : bot1\npartner : Olivier\n------------\nbot1 : K♥\nbot2 : 1♥\nbot3 : 4♥\nbot4 : 12T",
+            "------------\nbot1 : K♥\nbot2 : 1♥\nbot3 : 4♥\nbot4 : 12T\nOlivier : 5♥\n------------\nbot4 : 2♣\nOlivier : 7♣\nbot1 : K♣\nbot2 : 3♣\nbot3 : 1",
             str_game
         );
     }

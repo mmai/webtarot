@@ -755,7 +755,7 @@ impl Player {
 
             if starting_suit == Suit::Trump {
                 // print!("trump asked..  ");
-                // Try to save partner's petit
+                // Try to save partner's petit by playing 21
                 let found = self.play_try_save_petit(false);
                 if found.is_some() {
                     return found;
@@ -899,7 +899,7 @@ impl Player {
             }
         } else {
             //First to play
-            // print!("i am first to play..  ");
+            // Try to save partner's petit by playing 21
             let found = self.play_try_save_petit(true);
             if found.is_some() {
                 return found;
@@ -986,9 +986,18 @@ impl Player {
 
             //Sort by number of cards so we can get the long suit
             playable_suits.sort_by(|a, b| {
-                hand.get_suit_cards(&a)
-                    .len()
-                    .cmp(&hand.get_suit_cards(&b).len())
+                let col_a = hand.get_suit_cards(&a);
+                let col_b = hand.get_suit_cards(&b);
+                if col_a.len() != col_b.len() {
+                    col_a.len().cmp(&col_b.len())
+                } else {
+                    // même nombre de carte,
+                    // on compare les plus basses cartes de chaque couleur.
+                    // On peut unwrap car les couleurs ont au moins une carte
+                    let min_rank_a = col_a.iter().map(|c| c.rank()).min().unwrap();
+                    let min_rank_b = col_b.iter().map(|c| c.rank()).min().unwrap();
+                    min_rank_a.cmp(&min_rank_b)
+                }
             });
 
             // Play small card of long suit
@@ -1025,6 +1034,10 @@ impl Player {
                 .is_ok()
             })
             .collect();
+        // Si on a plus d'une carte en main, on s'assure qu'on ne joue pas le petit
+        if playable.len() > 1 {
+            playable = playable.into_iter().filter(|card| card != &petit).collect();
+        }
         playable.sort_by(|a, b| a.rank().cmp(&b.rank()));
         playable.first().map(|c| *c)
     }
@@ -1139,6 +1152,20 @@ fn test_assure_petit() {
     let in_out = Box::new(TestInOut {});
     let delay = time::Duration::from_millis(1000);
     let mut bot = Player::new(in_out, "joincode".to_string(), format!("nickname"), delay);
+
+    // let mut bot = Player {
+    //         delay,
+    //         in_out,
+    //         join_code: "joincode".to_string(),
+    //         game_state: GameStateSnapshot::default(),
+    //         player_info: PlayerInfo {
+    //             id: Uuid::default(),
+    //             nickname,
+    //         },
+    //         stats: DealStats::new(),
+    //         // stats: Rc::new(DealStats::new()),
+    //     }
+    //
     // TODO
     // let msg = webtarot_protocol::Message::GameStateSnapshot::default();
     // bot.set_test_state_from_snapshot(msg);

@@ -57,8 +57,6 @@ impl DealStats {
         self.suit_played = [false; 5];
         self.teams_known = false;
         self.teams_known_by_all = false;
-        // self.count = self.count + 1;
-        // println!("---------------------------- DEAL {} --------------------", self.count);
 
         //reset cards left
         let deck = Deck::new();
@@ -442,8 +440,7 @@ impl Player {
 
     fn handle_new_state(&mut self) {
         self.update_stats();
-        let my_state = self.my_state();
-        let player_action = my_state.get_turn_player_action(self.game_state.turn);
+        let player_action = self.my_state().get_turn_player_action(self.game_state.turn);
         // let mypos = my_state.pos.to_n();
         // let is_my_turn = self.game_state.get_playing_pos() == Some(self.my_state().pos);
         match player_action {
@@ -453,6 +450,7 @@ impl Player {
                     self.game_state.nb_players as usize,
                     self.game_state.deal.hand,
                 );
+
                 if let Some(target) = self.guess_bid() {
                     self.in_out
                         .send(&Command::GamePlay(GamePlayCommand::Bid(BidCommand {
@@ -485,9 +483,20 @@ impl Player {
                     )));
             }
             Some(PlayerAction::Play) => {
-                let card_played = self.game_state.deal.last_trick.card_played(my_state.pos);
+                // init state if not already done ( if garde contre by a previous player)
+                if self.stats.players.len() == 0 {
+                    self.stats.init_state(
+                        self.game_state.nb_players as usize,
+                        self.game_state.deal.hand,
+                    );
+                }
+
+                let card_played = self
+                    .game_state
+                    .deal
+                    .last_trick
+                    .card_played(self.my_state().pos);
                 if card_played.is_none() {
-                    let mystate = self.my_state().clone();
                     self.choose_card()
                         .or_else(|| {
                             // println!("\n============================ No card played !!");
@@ -1143,6 +1152,11 @@ impl Player {
         let suit_left_count = self.stats.suit_left[suit].size();
         let my_count = hand.get_suit_cards(suit).len();
 
+        // println!(
+        //     "fist time played {} : {}",
+        //     suit.to_string(),
+        //     suit_left_count + card_played_count + my_count
+        // );
         suit_left_count + card_played_count + my_count == 14
     }
 }

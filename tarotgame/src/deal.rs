@@ -27,6 +27,21 @@ pub struct DealState {
     pub announces: Vec<Vec<AnnounceType>>,
 }
 
+impl fmt::Display for DealState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(king) = self.called_king {
+            writeln!(f, "called king : {}", king.to_string())?;
+        }
+        writeln!(f, "dog : {}", self.dog.to_string())?;
+        writeln!(f, "taker : {:?}", self.contract().author.pos)?;
+        writeln!(f, "partner : {:?}", self.partner.pos)?;
+        // for trick in self.tricks {
+        //     writeln!(f,  "------------")?;
+        // }
+        write!(f, "------------")
+    }
+}
+
 /// Result of a deal.
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub enum DealResult {
@@ -177,6 +192,11 @@ impl DealState {
     /// Returns the called king
     pub fn king(&self) -> Option<cards::Card> {
         self.called_king
+    }
+
+    /// Returns the partner
+    pub fn partner(&self) -> pos::PlayerPos {
+        self.partner
     }
 
     //TODO return Result instead of bool

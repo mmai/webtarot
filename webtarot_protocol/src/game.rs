@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use uuid::Uuid;
 
 use crate::{PlayCommand, ProtocolError};
@@ -140,6 +141,45 @@ impl Default for TarotGameState {
             first: pos::PlayerPos::from_n(0, 5),
             scores: vec![],
         }
+    }
+}
+
+impl fmt::Display for TarotGameState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "nb players : {}", self.nb_players)?;
+        if let Some(deal_state) = self.deal.deal_state() {
+            if let Some(king) = deal_state.king() {
+                writeln!(f, "called king : {}", king.to_string())?;
+            }
+            writeln!(f, "dog : {}", deal_state.dog().to_string())?;
+
+            let taker = self
+                .player_by_pos(deal_state.contract().author)
+                .map(|p| &p.player.nickname);
+            writeln!(f, "taker : {}", taker.unwrap_or(&"".to_string()))?;
+            let partner = self
+                .player_by_pos(deal_state.partner())
+                .map(|p| &p.player.nickname);
+            writeln!(f, "partner : {}", partner.unwrap_or(&"".to_string()))?;
+        }
+        // write!(f, "{}", self.deal)?;
+
+        let mut count = self.nb_players;
+        for (player_id, play) in &self.deal_history {
+            if count == self.nb_players {
+                count = 0;
+                writeln!(f, "------------")?;
+            }
+            let nickname = self.players.get(player_id).map(|p| &p.player.nickname);
+            writeln!(
+                f,
+                "{} : {}",
+                nickname.unwrap_or(&"??".to_string()),
+                play.card.to_string()
+            )?;
+            count += 1;
+        }
+        write!(f, "")
     }
 }
 
@@ -1631,5 +1671,20 @@ mod tests {
         }
         // assert_eq!(game_manager.get_game().get_turn(), Turn::Interdeal);
         // println!("scores: {:?}", game.scores);
+    }
+
+    #[test]
+    fn test_display() {
+        let game = TarotGameState::default();
+        let str_game = game.to_string();
+        assert_eq!("nb players : 5\n", str_game);
+
+        let json_str = include_str!("./test_gamestate.json");
+        let game: TarotGameState = serde_json::from_str(json_str).expect("Error parsing JSON");
+        let str_game = &game.to_string()[..147];
+        assert_eq!(
+            "nb players : 5\ncalled king : K♠\ndog : C♠, Q♦, C♣\ntaker : bot1\npartner : Olivier\n------------\nbot1 : K♥\nbot2 : 1♥\nbot3 : 4♥\nbot4 : 12T",
+            str_game
+        );
     }
 }

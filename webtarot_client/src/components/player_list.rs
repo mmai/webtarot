@@ -4,7 +4,7 @@ use tr::tr;
 
 use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender};
 
-use crate::protocol::{GameStateSnapshot, DealSnapshot, PlayerRole, GamePlayerState, Turn};
+use crate::protocol::{DealSnapshot, GamePlayerState, GameStateSnapshot, PlayerRole, Turn};
 
 #[derive(Clone, Properties)]
 pub struct Props {
@@ -25,10 +25,12 @@ pub struct PlayerList {
 impl PlayerList {
     fn update_contract_info(&mut self) {
         self.contract_info = if let Some(contract) = &self.game_state.deal.contract {
-             let king_info = if let Some(king) = self.game_state.deal.king {
+            let king_info = if let Some(king) = self.game_state.deal.king {
                 format!(" ({})", king.to_locale_string(&self.language))
-             } else { "".into() };
-             format!("{}{}", contract.to_string(), king_info)
+            } else {
+                "".into()
+            };
+            format!("{}{}", contract.to_string(), king_info)
         } else {
             "".into()
         }
@@ -63,7 +65,7 @@ impl Component for PlayerList {
 
     fn view(&self) -> Html {
         let nb_players = self.game_state.players[0].pos.count as usize;
-        let empty_scores = vec![0.0;nb_players];
+        let empty_scores = vec![0.0; nb_players];
         html! {
             <section class="players">
                 {
@@ -73,7 +75,8 @@ impl Component for PlayerList {
                         let card_played = self.game_state.deal.last_trick.card_played(state.pos);
                         let str_card: String = if let Some(card) = card_played { format!(" {}", card.to_locale_string(&self.language)) } else { "".into() };
 
-                        // XXX incorrect : scores are known at the end of the trick 
+                        let str_king: String = format!("{}", self.game_state.deal.king.map(|c| c.suit().to_string()).unwrap_or("".to_string()));
+                        // XXX incorrect : scores are known at the end of the trick
                         // let scores = self.game_state.scores.last().unwrap_or(&empty_scores);
                         // let my_points= scores[state.pos.to_n()];
                         let mut player_classes = vec!["player"];
@@ -101,6 +104,16 @@ impl Component for PlayerList {
                             } else { html!{} }
                         }
                         <div class="nickname withtooltip">
+                            { if state.role == PlayerRole::Taker {
+                                html! {
+                                <span>{str_king} </span>
+                                }
+                            } else {
+                                html! {
+                                <span></span>
+                                }
+                            }
+                            }
                             {&state.player.nickname}
                             <span class="card-info"> {str_card} </span>
                         // {
@@ -121,7 +134,9 @@ impl Component for PlayerList {
                                     <div class="card" style={style}></div>
                                 }
                             } else {
-                                html!{}
+                                html!{
+                                    <div></div>
+                                }
                             }
                         }
                         </div>

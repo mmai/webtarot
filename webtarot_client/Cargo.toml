@@ -1,6 +1,6 @@
 [package]
 name = "webtarot_client"
-version = "0.7.12"
+version = "0.7.13"
 authors = ["Henri Bourcereau <henri@bourcereau.fr>"]
 edition = "2018"
 

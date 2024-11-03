@@ -15,6 +15,10 @@ server:
 	cd webtarot_server && RUST_LOG=debug cargo run
 .PHONY: server
 
+readjson:
+	cd webtarot_bot && cargo run -- --json tests/chasse.json
+.PHONY: readjson
+
 server-reload:
 	cd webtarot_server && RUST_LOG=debug systemfd --no-pid -s http::8002 -- cargo watch -x run
 .PHONY: server-reload

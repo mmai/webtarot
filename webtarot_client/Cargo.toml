@@ -11,7 +11,7 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-yew = "0.17"
+yew = "0.18"
 
 # webgame_protocol = { path = "../../webgame/webgame_protocol" }
 webgame_protocol = { git = "https://github.com/mmai/webgame", tag = "v0.8.0" }

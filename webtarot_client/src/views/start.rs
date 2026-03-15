@@ -1,5 +1,6 @@
 use tr::tr;
 
+use std::borrow::Cow;
 use yew::agent::Bridged;
 use yew::{
     html, Bridge, Callback, Component, ComponentLink, Html, InputData, KeyboardEvent, Properties,
@@ -18,7 +19,7 @@ pub struct Props {
 pub struct StartPage {
     link: ComponentLink<StartPage>,
     api: Box<dyn Bridge<Api>>,
-    nickname: String,
+    nickname: Cow<'static, str>,
     on_authenticate: Callback<PlayerInfo>,
     error: Option<String>,
 }
@@ -54,7 +55,7 @@ impl Component for StartPage {
         match msg {
             Msg::Authenticate => {
                 self.api.send(Command::Authenticate(AuthenticateCommand {
-                    nickname: self.nickname.clone(),
+                    nickname: self.nickname.clone().into(),
                 }));
             }
             Msg::ServerMessage(message) => match message {
@@ -67,7 +68,7 @@ impl Component for StartPage {
                 _ => {}
             },
             Msg::SetNickname(nickname) => {
-                self.nickname = nickname;
+                self.nickname = nickname.into();
             }
             Msg::Ignore => {}
         }

@@ -1,5 +1,5 @@
 use std::rc::Rc;
-
+use std::borrow::Cow;
 use std::mem;
 use im_rc::Vector;
 use web_sys::Element;
@@ -38,7 +38,7 @@ pub struct ChatBox {
     log: Vector<Rc<ChatLine>>,
     link: ComponentLink<ChatBox>,
     log_ref: NodeRef,
-    chat_line: String,
+    chat_line: Cow<'static, str>,
     on_send_chat: Callback<String>,
     on_close: Callback<()>,
 }
@@ -80,13 +80,13 @@ impl Component for ChatBox {
         match msg {
             Msg::SendChat => {
                 let text = mem::replace(&mut self.chat_line, "".into());
-                self.on_send_chat.emit(text);
+                self.on_send_chat.emit(text.into());
             }
             Msg::Close => {
                 self.on_close.emit(());
             }
             Msg::SetChatLine(text) => {
-                self.chat_line = text;
+                self.chat_line = text.into();
             }
             Msg::Ignore => ()
         };

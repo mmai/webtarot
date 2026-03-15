@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use yew::agent::Bridged;
 use yew::{
     html, Bridge, Callback, Component, ComponentLink, Html, InputData, KeyboardEvent, Properties,
@@ -21,7 +22,7 @@ pub struct Props {
 pub struct MenuPage {
     link: ComponentLink<MenuPage>,
     api: Box<dyn Bridge<Api>>,
-    join_code: String,
+    join_code: Cow<'static, str>,
     player_info: PlayerInfo,
     on_game_joined: Callback<GameInfo>,
     error: Option<String>,
@@ -90,7 +91,7 @@ impl Component for MenuPage {
                 _ => {}
             },
             Msg::SetJoinCode(join_code) => {
-                self.join_code = format_join_code(&join_code);
+                self.join_code = format_join_code(&join_code).into();
             }
             Msg::Ignore => {}
         }

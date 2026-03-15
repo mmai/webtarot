@@ -188,15 +188,15 @@ impl Component for App {
                 AppState::Authenticated => {
                     html! {
                         <MenuPage
-                            player_info=self.player_info.as_ref().unwrap().clone(),
+                            player_info=self.player_info.as_ref().unwrap().clone()
                             on_game_joined=self.link.callback(Msg::GameJoined) />
                     }
                 },
                 AppState::InGame => html! {
                     <GamePage
-                        player_info=self.player_info.as_ref().unwrap().clone(),
-                        game_info=self.game_info.as_ref().unwrap().clone(),
-                        language=self.language.clone().unwrap_or(String::from("en")),
+                        player_info=self.player_info.as_ref().unwrap().clone()
+                        game_info=self.game_info.as_ref().unwrap().clone()
+                        language=self.language.clone().unwrap_or(String::from("en"))
                          />
                 }
             }}

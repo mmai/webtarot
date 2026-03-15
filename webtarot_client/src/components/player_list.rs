@@ -1,10 +1,9 @@
 use std::rc::Rc;
 
-use tr::tr;
 
-use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender};
+use yew::{html, Component, Context, Html, Properties};
 
-use crate::protocol::{DealSnapshot, GamePlayerState, GameStateSnapshot, PlayerRole, Turn};
+use crate::protocol::{GamePlayerState, GameStateSnapshot, PlayerRole};
 
 #[derive(Clone, Properties)]
 pub struct Props {
@@ -12,6 +11,12 @@ pub struct Props {
     pub players_chat: Vec<Option<String>>,
     pub game_state: Rc<GameStateSnapshot>,
     pub language: String,
+}
+
+impl PartialEq for Props {
+    fn eq(&self, _other: &Self) -> bool {
+        false
+    }
 }
 
 pub struct PlayerList {
@@ -41,44 +46,40 @@ impl Component for PlayerList {
     type Message = ();
     type Properties = Props;
 
-    fn create(props: Self::Properties, _link: ComponentLink<Self>) -> Self {
+    fn create(ctx: &Context<Self>) -> Self {
         PlayerList {
-            players: props.players,
-            players_chat: props.players_chat,
-            game_state: props.game_state,
+            players: ctx.props().players.clone(),
+            players_chat: ctx.props().players_chat.clone(),
+            game_state: ctx.props().game_state.clone(),
             contract_info: "".into(),
-            language: props.language,
+            language: ctx.props().language.clone(),
         }
     }
 
-    fn update(&mut self, _: Self::Message) -> ShouldRender {
+    fn update(&mut self, _ctx: &Context<Self>, _: Self::Message) -> bool {
         false
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        self.players = props.players;
-        self.players_chat = props.players_chat;
-        self.game_state = props.game_state;
+    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+        self.players = ctx.props().players.clone();
+        self.players_chat = ctx.props().players_chat.clone();
+        self.game_state = ctx.props().game_state.clone();
+        self.language = ctx.props().language.clone();
         self.update_contract_info();
         true
     }
 
-    fn view(&self) -> Html {
-        let nb_players = self.game_state.players[0].pos.count as usize;
-        let empty_scores = vec![0.0; nb_players];
+    fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <section class="players">
                 {
-                    for self.players.iter().map(|state| {
+                    self.players.iter().map(|state| {
                         let chat = &self.players_chat[state.pos.to_n()];
                         let is_my_turn = self.game_state.get_playing_pos() == Some(state.pos);
                         let card_played = self.game_state.deal.last_trick.card_played(state.pos);
                         let str_card: String = if let Some(card) = card_played { format!(" {}", card.to_locale_string(&self.language)) } else { "".into() };
-
                         let str_king: String = format!("{}", self.game_state.deal.king.map(|c| c.suit().to_string()).unwrap_or("".to_string()));
-                        // XXX incorrect : scores are known at the end of the trick
-                        // let scores = self.game_state.scores.last().unwrap_or(&empty_scores);
-                        // let my_points= scores[state.pos.to_n()];
+
                         let mut player_classes = vec!["player"];
                         if is_my_turn {
                             player_classes.push("current-player");
@@ -93,12 +94,11 @@ impl Component for PlayerList {
                         );
 
                         html! {
-
-                        <div class=player_classes>
+                        <div class={player_classes.join(" ")}>
                         { if chat.is_some() {
                                 html!{
                                     <div class="player-chat">
-                                        <div class="player-msg">{{ chat.as_ref().unwrap() }}</div>
+                                        <div class="player-msg">{ chat.as_ref().unwrap() }</div>
                                     </div>
                                 }
                             } else { html!{} }
@@ -116,20 +116,11 @@ impl Component for PlayerList {
                             }
                             {&state.player.nickname}
                             <span class="card-info"> {str_card} </span>
-                        // {
-                        //     if self.game_state.turn != Turn::Pregame {
-                        //         html! {
-                        //             <span class="tooltip">{ tr!("points : {0}", my_points )  }</span>
-                        //         }
-                        //     } else {
-                        //         html!{}
-                        //     }
-                        // }
                         </div>
                         <div class="action">
                         {
                             if let Some(card) = card_played {
-                                let style =format!("cursor: default; --bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                                let style = format!("cursor: default; --bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
                                 html! {
                                     <div class="card" style={style}></div>
                                 }
@@ -141,7 +132,7 @@ impl Component for PlayerList {
                         }
                         </div>
                         </div>
-                    }})
+                    }}).collect::<Html>()
                 }
             </section>
         }

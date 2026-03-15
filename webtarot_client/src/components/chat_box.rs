@@ -2,8 +2,9 @@ use std::rc::Rc;
 use std::borrow::Cow;
 use std::mem;
 use im_rc::Vector;
-use web_sys::Element;
-use yew::{html, Component, ComponentLink, Html, InputData, KeyboardEvent, NodeRef, Properties, ShouldRender, Callback};
+use wasm_bindgen::JsCast;
+use web_sys::{Element, HtmlInputElement, KeyboardEvent};
+use yew::{html, Callback, Component, Context, Html, NodeRef, Properties};
 
 use tr::tr;
 
@@ -34,9 +35,16 @@ pub struct Props {
     pub on_close: Callback<()>,
 }
 
+impl PartialEq for Props {
+    fn eq(&self, other: &Self) -> bool {
+        self.log == other.log
+            && self.on_send_chat == other.on_send_chat
+            && self.on_close == other.on_close
+    }
+}
+
 pub struct ChatBox {
     log: Vector<Rc<ChatLine>>,
-    link: ComponentLink<ChatBox>,
     log_ref: NodeRef,
     chat_line: Cow<'static, str>,
     on_send_chat: Callback<String>,
@@ -61,18 +69,17 @@ impl Component for ChatBox {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(ctx: &Context<Self>) -> Self {
         ChatBox {
-            log: props.log,
-            link,
+            log: ctx.props().log.clone(),
             log_ref: NodeRef::default(),
             chat_line: "".into(),
-            on_send_chat: props.on_send_chat,
-            on_close: props.on_close,
+            on_send_chat: ctx.props().on_send_chat.clone(),
+            on_close: ctx.props().on_close.clone(),
         }
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         if let Some(div) = self.log_ref.cast::<Element>() {
             div.set_scroll_top(div.scroll_height());
         }
@@ -94,43 +101,45 @@ impl Component for ChatBox {
         true
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        if self.log != props.log {
-            self.log = props.log;
-            // self.link.send_message(());
+    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+        if self.log != ctx.props().log {
+            self.log = ctx.props().log.clone();
             true
         } else {
             false
         }
     }
 
-    fn view(&self) -> Html {
-        let input_placeholder_text = tr!("send some text" );
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let input_placeholder_text = tr!("send some text");
         html! {
             <aside class="chat box">
                 <h2>
                     <span class="box-title">{"Chat"}</span>
-                    <button class="btn-link box-close" onclick=self.link.callback(|_| Msg::Close)>{"X"}</button>
-                    </h2>
+                    <button class="btn-link box-close" onclick={ctx.link().callback(|_| Msg::Close)}>{"X"}</button>
+                </h2>
                 <div class="chat-messages">
-                    <ul id="chat-log" ref=self.log_ref.clone()>
+                    <ul id="chat-log" ref={self.log_ref.clone()}>
                     {
-                        for self.log.iter().map(|item| html! {
+                        self.log.iter().map(|item| html! {
                             <li>{item.render()}</li>
-                        })
+                        }).collect::<Html>()
                     }
                     </ul>
                 </div>
                 <div class="toolbar">
-                <input value=&self.chat_line placeholder=input_placeholder_text size="30"
-                       onkeypress=self.link.callback(|event: KeyboardEvent| {
+                <input value={self.chat_line.to_string()} placeholder={input_placeholder_text} size="30"
+                       onkeypress={ctx.link().callback(|event: KeyboardEvent| {
                             if event.key() == "Enter" {
                                 Msg::SendChat
                             } else {
                                 Msg::Ignore
                             }
-                        })
-                       oninput=self.link.callback(|e: InputData| Msg::SetChatLine(e.value)) />
+                        })}
+                       oninput={ctx.link().callback(|e: web_sys::InputEvent| {
+                            let input: HtmlInputElement = e.target().unwrap().unchecked_into();
+                            Msg::SetChatLine(input.value())
+                        })} />
                </div>
             </aside>
         }

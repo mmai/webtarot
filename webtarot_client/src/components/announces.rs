@@ -1,4 +1,4 @@
-use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender, Callback};
+use yew::{html, Callback, Component, Context, Html, Properties};
 use tr::tr;
 use weblog::*;
 
@@ -18,8 +18,13 @@ pub struct Props {
     pub on_announce: Callback<Announce>,
 }
 
+impl PartialEq for Props {
+    fn eq(&self, _other: &Self) -> bool {
+        false
+    }
+}
+
 pub struct Announces {
-    link: ComponentLink<Self>,
     nb_players: usize,
     on_announce: Callback<Announce>,
     announce_type: Option<AnnounceType>,
@@ -33,25 +38,26 @@ impl Component for Announces {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let proof = props.hand.trumps();
+    fn create(ctx: &Context<Self>) -> Self {
+        let proof = ctx.props().hand.trumps();
         Announces {
-            link,
-            nb_players: props.nb_players,
-            on_announce: props.on_announce,
+            nb_players: ctx.props().nb_players,
+            on_announce: ctx.props().on_announce.clone(),
             announce_type: None,
-            hand: props.hand,
+            hand: ctx.props().hand,
             proof,
             keep: cards::Hand::new(),
             done: false,
         }
     }
 
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
+    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+        self.nb_players = ctx.props().nb_players;
+        self.on_announce = ctx.props().on_announce.clone();
         false
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::InitAnnounce(ann_type) => {
                 self.announce_type = Some(ann_type);
@@ -79,44 +85,40 @@ impl Component for Announces {
                 }
 
                 if !self.done {
-                    //TODO message bad number of cards
                     console_error!("bad number of cards");
                 }
-
             },
         }
         true
     }
 
-    fn view(&self) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         if let Some(announce_type) = &self.announce_type {
             let proof_size = self.proof.size();
             let required_size = announce_type.poignee_size(self.nb_players);
             let is_valid_size = proof_size == required_size;
-            let indications_classes = if is_valid_size { vec!["indication-valid"] } else { vec!["indication-invalid"] };
+            let indications_classes = if is_valid_size { "indication-valid" } else { "indication-invalid" };
             html! {
                <div style="width: 90vh; text-align: center;">
-                   <div>{ tr!("Select cards to show") }<span class=indications_classes> { format!("({}/{})", proof_size, required_size)} </span></div>
+                   <div>{ tr!("Select cards to show") }<span class={indications_classes}> { format!("({}/{})", proof_size, required_size)} </span></div>
                    <div class="hand">
                     {
-                        for self.hand.trumps().list().iter().map(|card| {
-                            let style_select =  "";
-                            // let style_select = if self.proof.has(*card) { "; transform: translate(0,-50%)" } else { "" };
-                            let style =format!("--bg-image: url('cards/{}-{}.svg'){}", &card.rank().to_string(), &card.suit().to_safe_string(), style_select.to_string());
+                        self.hand.trumps().list().iter().map(|card| {
+                            let style = format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
                             let mut card_classes = vec!["card"];
-                            if !self.proof.has(*card)  {
+                            if !self.proof.has(*card) {
                                 card_classes.push("card-unselected");
                             }
                             let clicked = card.clone();
                             html! {
-                                <div class=card_classes style={style} onclick=self.link.callback(move |_| Msg::MoveCard(clicked))><div></div></div>
+                                <div class={card_classes.join(" ")} style={style} onclick={ctx.link().callback(move |_| Msg::MoveCard(clicked))}><div></div></div>
                             }
-                        })
+                        }).collect::<Html>()
                     }
                     </div>
                     { if is_valid_size {
                         html!{
-                    <button onclick=self.link.callback(move |_| Msg::Announce)>{ tr!("Announce") }</button>
+                    <button onclick={ctx.link().callback(move |_| Msg::Announce)}>{ tr!("Announce") }</button>
                         }
                     } else { html!{} }
                     }
@@ -128,10 +130,10 @@ impl Component for Announces {
             else {
                 html! {
                   <div>
-                    <button onclick=self.link.callback(move |_| Msg::CancelAnnounce)>{ tr!("No announce") }</button>
-                  { for a_eligibles.into_iter().map(|ann_type| { html! {
-                    <button onclick=self.link.callback(move |_| Msg::InitAnnounce(ann_type))> { tr!("{}", ann_type) }</button>
-                  } }) }
+                    <button onclick={ctx.link().callback(move |_| Msg::CancelAnnounce)}>{ tr!("No announce") }</button>
+                  { a_eligibles.into_iter().map(|ann_type| { html! {
+                    <button onclick={ctx.link().callback(move |_| Msg::InitAnnounce(ann_type))}> { tr!("{}", ann_type) }</button>
+                  } }).collect::<Html>() }
                   </div>
                 }
             }

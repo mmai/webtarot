@@ -1,4 +1,4 @@
-use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender, Callback};
+use yew::{html, Callback, Component, Context, Html, Properties};
 
 use tarotgame::cards;
 
@@ -12,8 +12,13 @@ pub struct Props {
     pub on_call_king: Callback<cards::Card>,
 }
 
+impl PartialEq for Props {
+    fn eq(&self, _other: &Self) -> bool {
+        false
+    }
+}
+
 pub struct CallKingAction {
-    link: ComponentLink<Self>,
     on_call_king: Callback<cards::Card>,
     rank: cards::Rank,
 }
@@ -22,19 +27,20 @@ impl Component for CallKingAction {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(ctx: &Context<Self>) -> Self {
         CallKingAction {
-            link,
-            rank: props.rank,
-            on_call_king: props.on_call_king,
+            rank: ctx.props().rank,
+            on_call_king: ctx.props().on_call_king.clone(),
         }
     }
 
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
+    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+        self.rank = ctx.props().rank;
+        self.on_call_king = ctx.props().on_call_king.clone();
         false
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::CallKing(card) => {
                 self.on_call_king.emit(card);
@@ -43,7 +49,7 @@ impl Component for CallKingAction {
         false
     }
 
-    fn view(&self) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         let mut kings = cards::Hand::new();
         kings.add(cards::Card::new(cards::Suit::Club, self.rank));
         kings.add(cards::Card::new(cards::Suit::Diamond, self.rank));
@@ -51,15 +57,15 @@ impl Component for CallKingAction {
         kings.add(cards::Card::new(cards::Suit::Heart, self.rank));
         html! {
             <div class="hand">
-        {
-            for kings.list().iter().map(|card| {
-                let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
-                let clicked = card.clone();
-                html! {
-                    <div class="card" style={style} onclick=self.link.callback(move |_| Msg::CallKing(clicked))></div>
-                }
-            })
-        }
+            {
+                kings.list().iter().map(|card| {
+                    let style = format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                    let clicked = card.clone();
+                    html! {
+                        <div class="card" style={style} onclick={ctx.link().callback(move |_| Msg::CallKing(clicked))}></div>
+                    }
+                }).collect::<Html>()
+            }
             </div>
         }
     }

@@ -1,8 +1,7 @@
-use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender};
+use yew::{html, Component, Context, Html, Properties};
 
-#[derive(Clone, Properties)]
+#[derive(Clone, PartialEq, Properties)]
 pub struct Props {
-    // pub players: Vec<String>,
     pub players: Vec<String>,
     pub scores: Vec<Vec<f32>>,
 }
@@ -16,24 +15,25 @@ impl Component for Scores {
     type Message = ();
     type Properties = Props;
 
-    fn create(props: Self::Properties, _link: ComponentLink<Self>) -> Self {
+    fn create(ctx: &Context<Self>) -> Self {
         Scores {
-            players: props.players,
-            scores: props.scores,
+            players: ctx.props().players.clone(),
+            scores: ctx.props().scores.clone(),
         }
     }
 
-    fn update(&mut self, _msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, _ctx: &Context<Self>, _msg: Self::Message) -> bool {
         false
     }
 
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
-        false
+    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+        self.players = ctx.props().players.clone();
+        self.scores = ctx.props().scores.clone();
+        true
     }
 
-
-    fn view(&self) -> Html {
-        let mut total = vec![0.0;self.players.len()];
+    fn view(&self, _ctx: &Context<Self>) -> Html {
+        let mut total = vec![0.0; self.players.len()];
         for score in self.scores.iter() {
             for (idx, points) in score.iter().enumerate() {
                 total[idx] = total[idx] + points;
@@ -46,31 +46,31 @@ impl Component for Scores {
                 <tr>
                 <th></th>
                 {
-                    for self.players.iter().map(|nickname| {
+                    self.players.iter().map(|nickname| {
                         html! {
                         <th> {nickname} </th>
                         }
-                    })
+                    }).collect::<Html>()
                 }
                 </tr>
-                { for self.scores.iter().map(|score| {
+                { self.scores.iter().map(|score| {
                     count = count + 1;
                     html! { <tr><td>{count}</td> {
-                            for score.iter().map(|points| {
+                            score.iter().map(|points| {
                                 html! {
                                     <td> {points} </td>
                                 }
-                            })
+                            }).collect::<Html>()
                     } </tr> }
-                 }) }
+                 }).collect::<Html>() }
                 <tr>
                     <th>{"Total"}</th>
                 {
-                    for total.iter().map(|points| {
+                    total.iter().map(|points| {
                         html! {
                         <th> {points} </th>
                         }
-                    })
+                    }).collect::<Html>()
                 }
                 </tr>
             </table>

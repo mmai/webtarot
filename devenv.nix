@@ -3,13 +3,9 @@
 {
   # env.NODE_OPTIONS = "--openssl-legacy-provider";
   packages = with pkgs; [
-    # nodejs
-    # yarn
-    # python2 # for node-sass 
-    # wasm-pack
-    # cargo
-    # pkg-config
     openssl # fix the "failed to run custom build command for openssl-sys" error
+    lld # needed by trunk for webtarot-client
+    trunk # wasm builder
   ];
 
   enterShell = ''

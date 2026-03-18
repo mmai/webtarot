@@ -4,16 +4,14 @@ use std::rc::Rc;
 use std::f32;
 use im_rc::Vector;
 use uuid::Uuid;
-use yew_agent::Bridged;
 use gloo_timers::callback::Interval;
 use yew::{
     html, Component, Context, Html, Properties,
 };
-use yew_agent::Bridge;
 use tr::tr;
 use weblog::*;
 
-use crate::api::Api;
+use crate::api::{Api, ApiBridge};
 use crate::components::chat_box::{ChatBox, ChatLine, ChatLineData};
 use crate::components::player_list::PlayerList;
 use crate::components::bidding_actions::BiddingActions;
@@ -48,7 +46,7 @@ impl PartialEq for Props {
 pub struct GamePage {
     #[allow(dead_code)]
     _keepalive: Interval,
-    api: Box<dyn Bridge<Api>>,
+    api: ApiBridge,
     game_info: GameInfo,
     player_info: PlayerInfo,
     game_state: Rc<GameStateSnapshot>,
@@ -186,7 +184,8 @@ impl GamePage {
     }
 
     fn translate_chat(&self, msg: &String) -> String {
-        console_log!(format!("translating : '{}' in {}", &msg, &self.language));
+        let log_str = format!("translating : '{}' in {}", &msg, &self.language);
+        console_log!(log_str);
 
         let mut parts = msg.split(':').fuse();
         let str_type = parts.next();
@@ -203,7 +202,8 @@ impl GamePage {
                 "*connected*" => tr!("connected"),
                 "Pass" | "pass" => tr!("Pass"),
                 _ => {
-                    console_log!(format!("non trouvé : '{}'", &msg));
+                    let log_str = format!("non trouvé : '{}'", &msg);
+                    console_log!(log_str);
                     msg.to_string()
                 }
             }
@@ -291,7 +291,8 @@ impl GamePage {
                                 });
                                 self.update_needs_confirm = true;
                             } else {
-                                console_log!(format!("result : {:?}", result));
+                                let log_str = format!("result : {:?}", result);
+                                console_log!(log_str);
                             }
                         },
                         PlayEvent::Announce(uuid, announce) => {
@@ -335,8 +336,7 @@ impl Component for GamePage {
             link.send_message(Msg::Ping);
         });
 
-        let on_server_message = ctx.link().callback(Msg::ServerMessage);
-        let mut api = Api::bridge(Rc::new(move |msg| on_server_message.emit(msg)));
+        let mut api = Api::bridge(ctx.link().callback(Msg::ServerMessage));
         let sound_paths = vec![
             ("chat".into(), "sounds/misc_menu.ogg"),
             ("card".into(), "sounds/cardPlace4.ogg"),

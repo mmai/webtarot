@@ -2,35 +2,28 @@
 
 mod api;
 mod components;
+mod sound_player;
 mod utils;
 mod views;
-mod sound_player;
 
-pub(crate) use webtarot_protocol as protocol;
 pub(crate) use webgame_protocol as gprotocol;
+pub(crate) use webtarot_protocol as protocol;
 
-use std::rc::Rc;
-use wasm_bindgen::prelude::*;
-use yew_agent::Bridged;
-use yew::{html, Component, Context, Html};
-use yew_agent::Bridge;
-use gloo_timers::callback::Interval;
 use gloo_storage::{LocalStorage, Storage};
+use gloo_timers::callback::Interval;
+use yew::{html, Component, Context, Html};
 
 use weblog::*;
 
-use crate::api::Api;
-use crate::protocol::{Message, Command};
-use crate::gprotocol::{GameInfo, PlayerInfo, JoinGameCommand};
+use crate::api::{Api, ApiBridge};
+use crate::gprotocol::{GameInfo, JoinGameCommand, PlayerInfo};
+use crate::protocol::{Command, Message};
 use crate::views::game::GamePage;
 use crate::views::menu::MenuPage;
 use crate::views::start::StartPage;
 
+use i18n_embed::{gettext::gettext_language_loader, WebLanguageRequester};
 use rust_embed::RustEmbed;
-use i18n_embed::{
-    gettext::gettext_language_loader,
-    WebLanguageRequester,
-};
 
 const KEY: &str = "webtarot.self";
 const KEY_GAME: &str = "webtarot.game";
@@ -42,7 +35,7 @@ struct Translations;
 static TRANSLATIONS: Translations = Translations;
 
 pub struct App {
-    api: Box<dyn Bridge<Api>>,
+    api: ApiBridge,
     _pinger: Interval,
     state: AppState,
     player_info: Option<PlayerInfo>,
@@ -80,22 +73,24 @@ impl Component for App {
             link.send_message(Msg::Ping);
         });
 
-        let on_server_message = ctx.link().callback(Msg::ServerMessage);
-        let api = Api::bridge(Rc::new(move |msg| on_server_message.emit(msg)));
+        let api = Api::bridge(ctx.link().callback(Msg::ServerMessage));
 
         let player_info: Option<PlayerInfo> = LocalStorage::get(KEY).ok();
         if let Some(ref info) = player_info {
-            console_log!(format!("player info: {:?}", info));
+            let log_str = format!("player info: {:?}", info);
+            console_log!(log_str);
         }
 
         let game_info: Option<GameInfo> = LocalStorage::get(KEY_GAME).ok();
         if let Some(ref info) = game_info {
-            console_log!(format!("game info: {:?}", info));
+            let log_str = format!("game info: {:?}", info);
+            console_log!(log_str);
         }
 
-        let language = requested_languages.first().clone().map(|l| {
-            l.language.as_str().to_owned()
-        });
+        let language = requested_languages
+            .first()
+            .clone()
+            .map(|l| l.language.as_str().to_owned());
 
         App {
             api,
@@ -115,13 +110,20 @@ impl Component for App {
                 self.player_info = Some(player_info);
 
                 // Try to connect to a game if the url contains a gamecode
-                let str_url = web_sys::window().unwrap().document().unwrap().url().unwrap();
-                let game_code: Option<String> = url::Url::parse(&str_url).unwrap()
+                let str_url = web_sys::window()
+                    .unwrap()
+                    .document()
+                    .unwrap()
+                    .url()
+                    .unwrap();
+                let game_code: Option<String> = url::Url::parse(&str_url)
+                    .unwrap()
                     .query_pairs()
                     .find(|(name, _)| name == "game")
                     .map(|pair| pair.1.into());
                 if let Some(join_code) = game_code {
-                    self.api.send(Command::JoinGame(JoinGameCommand { join_code }));
+                    self.api
+                        .send(Command::JoinGame(JoinGameCommand { join_code }));
                 }
             }
             Msg::GameJoined(game_info) => {
@@ -172,8 +174,7 @@ impl Component for App {
     }
 }
 
-#[wasm_bindgen]
-pub fn run_app() {
+pub fn main() {
     console_error_panic_hook::set_once();
     yew::Renderer::<App>::new().render();
 }

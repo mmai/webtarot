@@ -1,16 +1,13 @@
 use tr::tr;
 
 use std::borrow::Cow;
-use std::rc::Rc;
 use wasm_bindgen::JsCast;
-use yew_agent::Bridged;
 use yew::{
     html, Callback, Component, Context, Html, Properties,
 };
-use yew_agent::Bridge;
 use web_sys::{HtmlInputElement, KeyboardEvent};
 
-use crate::api::Api;
+use crate::api::{Api, ApiBridge};
 use crate::protocol::{Command, Message};
 use crate::gprotocol::{AuthenticateCommand, PlayerInfo};
 
@@ -26,7 +23,7 @@ impl PartialEq for Props {
 }
 
 pub struct StartPage {
-    api: Box<dyn Bridge<Api>>,
+    api: ApiBridge,
     nickname: Cow<'static, str>,
     on_authenticate: Callback<PlayerInfo>,
     error: Option<String>,
@@ -44,8 +41,7 @@ impl Component for StartPage {
     type Properties = Props;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let on_server_message = ctx.link().callback(Msg::ServerMessage);
-        let api = Api::bridge(Rc::new(move |msg| on_server_message.emit(msg)));
+        let api = Api::bridge(ctx.link().callback(Msg::ServerMessage));
         StartPage {
             api,
             nickname: "".into(),

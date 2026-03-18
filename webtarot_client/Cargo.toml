@@ -4,12 +4,8 @@ version = "0.7.13"
 authors = ["Henri Bourcereau <henri@bourcereau.fr>"]
 edition = "2018"
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 yew = { version = "0.23", features = ["csr"] }
-yew-agent = "0.2"
 
 # webgame_protocol = { path = "../../webgame/webgame_protocol" }
 webgame_protocol = { git = "https://github.com/mmai/webgame", tag = "v0.8.0" }

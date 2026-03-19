@@ -8,15 +8,22 @@ assemble:
 	cp -R webtarot_client/dist/ dist/public
 	cp target/release/webtarot_server dist/
 
+# start a webtarot container with nixos-container
+# `boot.enableContainers = true` must be set on local nixos system
 local:
 	cd container && nix flake lock --update-input nixpkgs --update-input webtarot && cd -
 	sudo nixos-container destroy webtarot
 	sudo nixos-container create webtarot --flake ./container/
-	sudo nixos-container start webtarot
+	nixos-container start webtarot
+	machinectl
 
-docker:
-	nix build .#webtarot-docker
-	docker push mmai/webtarot
+docker-build:
+  nix build .#webtarot-docker
+docker-run: docker-build
+  docker load < /nix/store/????-docker-image-webtarot.tar.gz
+  docker run mmai/webtarot:0.8.0 -P
+docker-publish: docker-build
+  docker push mmai/webtarot
 
 nixcache: build
 	NIXPKGS_ALLOW_INSECURE=1 nix build --impure .#webtarot

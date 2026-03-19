@@ -9,7 +9,7 @@ The project is playable but the code (and the interface) is not pretty. I am lea
 
 ## Manual installation
 
-Compile application: 
+Compile application:
 
 ```sh
 make
@@ -23,8 +23,8 @@ Start server:
 
 then open [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
 
-
 If you want to see logs:
+
 ```sh
 RUST_LOG=info ./dist/webtarot_server -p 8000 -d dist/public
 ```
@@ -34,9 +34,10 @@ RUST_LOG=info ./dist/webtarot_server -p 8000 -d dist/public
 Start server and client in development mode:
 
 ```sh
-make client
-make server
+just client
+just server
 ```
+
 and open your browser to http://127.0.0.1:8001/
 
 ## Nix flake deployment
@@ -44,17 +45,19 @@ and open your browser to http://127.0.0.1:8001/
 The `container` directory contains an example of a nix configuration.
 
 - build it with `make local`
-- get the ip address of the container : `machinectl`,  which output something like this :
+- get the ip address of the container : `machinectl`, which output something like this :
+
 ```
 MACHINE   CLASS     SERVICE        OS    VERSION ADDRESSES
 webtarot container systemd-nspawn nixos 23.05   10.233.2.2…
 ```
 
-Then browse to the ip  `firefox http://10.233.2.2`
+Then browse to the ip `firefox http://10.233.2.2`
 
 ## Internationalization
 
-Requirements: 
+Requirements:
+
 - gettext
 - xtr (`cargo install xtr`)
 - cargo-i18n (`cargo install cargo-i18n`, tested with cargo-i18n v0.2.10)
@@ -65,7 +68,7 @@ Generate translation files: `cd webtarot_client && cargo i18n` (you can ignore e
 
 Translate strings in webtarot_client/i18n/po/your_language/
 
-Compile translations 
+Compile translations
 
 ```sh
 cd webtarot_client
@@ -75,7 +78,6 @@ cargo build
 
 ## Thanks
 
-* the initial code for the base game server and yew (webassembly) stuff was taken from https://github.com/mitsuhiko/webgame
-* the card game models where inspired by https://github.com/gyscos/libcoinche
-* the cards SVG images come from https://github.com/tarotclub/tarotclub
-
+- the initial code for the base game server and yew (webassembly) stuff was taken from https://github.com/mitsuhiko/webgame
+- the card game models where inspired by https://github.com/gyscos/libcoinche
+- the cards SVG images come from https://github.com/tarotclub/tarotclub

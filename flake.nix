@@ -27,8 +27,7 @@
           src = ./webtarot_client;
           installPhase = ''
             mkdir -p $out
-            cp -R ./static/* $out
-            cp ./dist/*.{css,js,wasm} $out
+            cp -R ./dist/. $out/
           '';
         };
 
@@ -43,7 +42,7 @@
           cargoLock = {
             lockFile = ./Cargo.lock;
             outputHashes = {
-              "webgame_protocol-0.8.0" = "sha256-SoamOZzzZQEOOpHlkYjFZRytqgfacw/iB4aX0JE8JwE=";
+              "webgame_protocol-0.8.0" = "sha256-Igu2w3OJBoYhSJ5LdoWIbt8taSD8VnNiKl8uB4zHeb0=";
             };
           };
 
@@ -60,7 +59,6 @@
           let
             port = "8080";
             data_path = "/var/webtarot";
-            db_uri = "${data_path}/webtarot_db";
             entrypoint = writeScript "entrypoint.sh" ''
               #!${stdenv.shell}
               IP=$(ip route get 1 | awk '{print $NF;exit}')
@@ -70,8 +68,12 @@
           in
           dockerTools.buildImage {
             name = "mmai/webtarot";
-            tag = "0.8.0";
-            contents = [ busybox ];
+            tag = "latest";
+            # contents = [ busybox ];
+            copyToRoot = buildEnv {
+                name = "busybox";
+                paths = [ busybox ];
+              };
             config = {
               Entrypoint = [ entrypoint ];
               ExposedPorts = {

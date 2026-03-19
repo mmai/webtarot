@@ -46,21 +46,21 @@ in
           '';
         };
 
-        dbUri = mkOption {
-          type = types.str;
-          default = "/var/webtarot/webtarot_db";
-          description = ''
-            Webtarot database URI.
-          '';
-        };
+        # dbUri = mkOption {
+        #   type = types.str;
+        #   default = "/var/webtarot/webtarot_db";
+        #   description = ''
+        #     Webtarot database URI.
+        #   '';
+        # };
 
-        archivesDirectory = mkOption {
-          type = types.path;
-          default = "/var/webtarot/archives";
-          description = ''
-            Webtarot directory path where game archives are stored
-          '';
-        };
+        # archivesDirectory = mkOption {
+        #   type = types.path;
+        #   default = "/var/webtarot/archives";
+        #   description = ''
+        #     Webtarot directory path where game archives are stored
+        #   '';
+        # };
 
         archivageCheck = mkOption {
           type = types.int;
@@ -126,10 +126,10 @@ in
         };
       };
 
-      systemd.tmpfiles.rules = [
-        "d ${cfg.archivesDirectory} 0755 ${cfg.user} ${cfg.group} - -"
-        "d ${cfg.dbUri} 0755 ${cfg.user} ${cfg.group} - -"
-      ];
+      # systemd.tmpfiles.rules = [
+      #   "d ${cfg.archivesDirectory} 0755 ${cfg.user} ${cfg.group} - -"
+      #   "d ${cfg.dbUri} 0755 ${cfg.user} ${cfg.group} - -"
+      # ];
 
       systemd.targets.webtarot = {
         description = "Webtarot";
@@ -147,10 +147,7 @@ in
 
           serviceConfig = serviceConfig // { 
             ExecStart = ''${pkgs.webtarot}/bin/webtarot_server -d ${pkgs.webtarot-front}/ \
-              -p ${toString cfg.apiPort} -u ${cfg.dbUri} \
-              --archives-directory ${toString cfg.archivesDirectory} \
-              --archive-check ${toString cfg.archivageCheck} \
-              --archive-delay ${toString cfg.archivageDelay} \
+              -p ${toString cfg.apiPort} \
               '';
           };
 

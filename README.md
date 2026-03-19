@@ -12,7 +12,7 @@ The project is playable but the code (and the interface) is not pretty. I am lea
 Compile application:
 
 ```sh
-make
+just build
 ```
 
 Start server:

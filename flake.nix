@@ -63,6 +63,7 @@
               #!${stdenv.shell}
               IP=$(ip route get 1 | awk '{print $NF;exit}')
               echo "Starting server. Open your client on http://$IP:${port}"
+              mkdir -p /tmp
               ${webtarot}/bin/webtarot_server -d ${webtarot-front}/ -a $IP -p ${port}
             '';
           in
@@ -71,9 +72,9 @@
             tag = "latest";
             # contents = [ busybox ];
             copyToRoot = buildEnv {
-                name = "busybox";
-                paths = [ busybox ];
-              };
+              name = "busybox";
+              paths = [ busybox ];
+            };
             config = {
               Entrypoint = [ entrypoint ];
               ExposedPorts = {

@@ -20,8 +20,8 @@ local:
 docker-build:
   nix build .#webtarot-docker
 docker-run: docker-build
-  docker load < /nix/store/????-docker-image-webtarot.tar.gz
-  docker run mmai/webtarot:0.8.0 -P
+  docker load < ./result
+  docker run mmai/webtarot -P
 docker-publish: docker-build
   docker push mmai/webtarot
 

@@ -1085,6 +1085,7 @@ impl Player {
 
         let vingtetun = Card::new(Suit::Trump, Rank::Rank21);
         let petit = Card::new(Suit::Trump, Rank::Rank1);
+        let excuse = Card::new(Suit::Trump, Rank::Rank22);
 
         if !hand.has(petit) || trick.suit().is_none() {
             return None;
@@ -1105,7 +1106,10 @@ impl Player {
 
         //My partner has played the highest trump
         if self.stats.players[win_pos].is_partner(me) == Some(true) {
-            let trumps_left_highest = self.stats.suit_left[&Suit::Trump].suit_highest(Suit::Trump);
+            let mut trumps_without_excuse = self.stats.suit_left[&Suit::Trump];
+            trumps_without_excuse.remove(excuse);
+            let trumps_left_highest = trumps_without_excuse.suit_highest(Suit::Trump);
+
             if let Some(highest_left) = trumps_left_highest {
                 if highest_left.rank() < winner_card.rank() {
                     return Some(petit);
@@ -1185,6 +1189,120 @@ fn test_assure_petit() {
     // bot.set_test_state_from_snapshot(msg);
     // bot.update_stats();
     assert_eq!("a", "a");
+}
+
+#[test]
+fn test_save_own_petit() {
+    // Regression test: bot (partner) should play the petit when the taker wins
+    // with 21T and no remaining trump can beat it. The bug was that the Excuse
+    // (Rank22) was still in suit_left and its rank is higher than Rank21,
+    // causing the safety check to incorrectly conclude a threat remains.
+
+    let in_out = Box::new(TestInOut {});
+    let delay = time::Duration::from_millis(0);
+    let mut bot = Player::new(in_out, "joincode".to_string(), "bot1".to_string(), delay);
+
+    let nb_players = 5u8;
+    let henri_pos = PlayerPos::from_n(0, nb_players);
+    let olivier_pos = PlayerPos::from_n(1, nb_players);
+    let huynh_pos = PlayerPos::from_n(2, nb_players);
+    let bot1_pos = PlayerPos::from_n(3, nb_players);
+    let bot2_pos = PlayerPos::from_n(4, nb_players);
+
+    let petit = Card::new(Suit::Trump, Rank::Rank1);
+    let t4 = Card::new(Suit::Trump, Rank::Rank4);
+    let t13 = Card::new(Suit::Trump, Rank::Rank13);
+    let t21 = Card::new(Suit::Trump, Rank::Rank21);
+    let king_heart = Card::new(Suit::Heart, Rank::RankK);
+
+    // bot1's hand: only the petit
+    let mut hand = Hand::new();
+    hand.add(petit);
+
+    // Trick: Henri plays 21T first (and wins), then Olivier 4T, Huynh 13T;
+    // bot1 (pos 3) hasn't played yet.
+    let mut trick = Trick::new(henri_pos);
+    trick.play_card(henri_pos, t21);
+    trick.play_card(olivier_pos, t4);
+    trick.play_card(huynh_pos, t13);
+
+    let bot1_id = bot.player_info.id;
+    let mut game_state = GameStateSnapshot::default();
+    game_state.nb_players = nb_players;
+    game_state.turn = Turn::Playing(bot1_pos);
+    game_state.deal.hand = hand;
+    game_state.deal.king = Some(king_heart);
+    game_state.deal.last_trick = trick;
+    game_state.players = vec![
+        GamePlayerState {
+            player: PlayerInfo {
+                id: Uuid::new_v4(),
+                nickname: "Henri".into(),
+            },
+            pos: henri_pos,
+            role: PlayerRole::Taker,
+            ready: true,
+        },
+        GamePlayerState {
+            player: PlayerInfo {
+                id: Uuid::new_v4(),
+                nickname: "Olivier".into(),
+            },
+            pos: olivier_pos,
+            role: PlayerRole::Opponent,
+            ready: true,
+        },
+        GamePlayerState {
+            player: PlayerInfo {
+                id: Uuid::new_v4(),
+                nickname: "Huynh".into(),
+            },
+            pos: huynh_pos,
+            role: PlayerRole::Opponent,
+            ready: true,
+        },
+        GamePlayerState {
+            player: PlayerInfo {
+                id: bot1_id,
+                nickname: "bot1".into(),
+            },
+            pos: bot1_pos,
+            role: PlayerRole::Partner,
+            ready: true,
+        },
+        GamePlayerState {
+            player: PlayerInfo {
+                id: Uuid::new_v4(),
+                nickname: "bot2".into(),
+            },
+            pos: bot2_pos,
+            role: PlayerRole::Opponent,
+            ready: true,
+        },
+    ];
+    bot.game_state = game_state;
+
+    // Init suit_left with all cards except bot1's hand
+    bot.stats.init_state(nb_players as usize, hand);
+    // Remove the three trumps already played in the trick
+    (*bot.stats.suit_left.get_mut(&Suit::Trump).unwrap()).remove(t21);
+    (*bot.stats.suit_left.get_mut(&Suit::Trump).unwrap()).remove(t4);
+    (*bot.stats.suit_left.get_mut(&Suit::Trump).unwrap()).remove(t13);
+    // The Excuse (Rank22) remains in suit_left — this is the crux of the bug.
+
+    // Teams are fully known: Henri is taker, bot1 is partner
+    bot.stats.players[0].is_taker = true;
+    bot.stats.players[0].in_taker_team = Some(true);
+    bot.stats.players[1].in_taker_team = Some(false);
+    bot.stats.players[2].in_taker_team = Some(false);
+    bot.stats.players[3].in_taker_team = Some(true);
+    bot.stats.players[4].in_taker_team = Some(false);
+    bot.stats.teams_known = true;
+    bot.stats.teams_known_by_all = true;
+
+    // bot1 should save the petit: Henri (partner/taker) wins with 21T and
+    // the Excuse cannot capture the petit, so there is no real threat.
+    assert_eq!(bot.play_try_own_petit(), Some(petit));
 }
 
 pub struct TestInOut {}

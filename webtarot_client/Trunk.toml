@@ -1,0 +1,12 @@
+[build]
+dist = "dist"
+
+[serve]
+port = 8001
+address = "0.0.0.0"
+open = false
+
+[[proxy]]
+backend = "ws://127.0.0.1:8002/ws"
+rewrite = "/ws"
+ws = true

@@ -1,21 +1,17 @@
-use std::time::Duration;
 
 use std::str::FromStr;
 use std::rc::Rc;
-use std::ops::Add;
 use std::f32;
 use im_rc::Vector;
 use uuid::Uuid;
-use yew::agent::Bridged;
-use yew::services::{IntervalService, Task, dialog};
+use gloo_timers::callback::Interval;
 use yew::{
-    html, Bridge, Component, ComponentLink, Html, Properties,
-    ShouldRender,
+    html, Component, Context, Html, Properties,
 };
 use tr::tr;
 use weblog::*;
 
-use crate::api::Api;
+use crate::api::{Api, ApiBridge};
 use crate::components::chat_box::{ChatBox, ChatLine, ChatLineData};
 use crate::components::player_list::PlayerList;
 use crate::components::bidding_actions::BiddingActions;
@@ -23,7 +19,7 @@ use crate::components::call_king_action::CallKingAction;
 use crate::components::announces::Announces;
 use crate::components::scores::Scores;
 use crate::gprotocol::{GameInfo, PlayerInfo, SendTextCommand};
-    
+
 use crate::protocol::{
     Command, GamePlayerState, GameStateSnapshot, Message, PlayerAction,
     GamePlayCommand,
@@ -31,8 +27,7 @@ use crate::protocol::{
     Turn,
     PlayEvent,
 };
-use tarotgame::{bid, deal, cards, deal_size, trick, Announce};
-use crate::utils::format_join_code;
+use tarotgame::{bid, deal, cards, Announce};
 use crate::sound_player::SoundPlayer;
 
 #[derive(Clone, Properties)]
@@ -42,15 +37,19 @@ pub struct Props {
     pub language: String,
 }
 
+impl PartialEq for Props {
+    fn eq(&self, _other: &Self) -> bool {
+        false
+    }
+}
+
 pub struct GamePage {
     #[allow(dead_code)]
-    keepalive_job: Box<dyn Task>,
-    link: ComponentLink<GamePage>,
-    api: Box<dyn Bridge<Api>>,
+    _keepalive: Interval,
+    api: ApiBridge,
     game_info: GameInfo,
     player_info: PlayerInfo,
     game_state: Rc<GameStateSnapshot>,
-    // players_chat: Box<Vec<Option<(String, DateTime<Utc>)>>>,
     players_chat: Box<Vec<Option<(String, f64)>>>,
     next_game_messages: Vector<Message>,
     chat_log: Vector<Rc<ChatLine>>,
@@ -92,18 +91,17 @@ impl GamePage {
         let nickname = self.get_nickname(player_id);
         let chat_line = Rc::new(ChatLine { nickname, data });
         let idx = self.player_index(player_id);
-        let msg = chat_line.text().clone();
+        let msg = chat_line.text().to_string();
 
-        self.players_chat[idx] = Some(( self.translate_chat(&msg.to_string()), js_sys::Date::now() + 5000.));
+        self.players_chat[idx] = Some((self.translate_chat(&msg), js_sys::Date::now() + 5000.));
 
         self.chat_log.push_back(chat_line);
         while self.chat_log.len() > 100 {
             self.chat_log.pop_front();
         }
-
     }
 
-    fn clean_chat_messages(&mut self){
+    fn clean_chat_messages(&mut self) {
         for pchat in self.players_chat.iter_mut() {
             if let Some((_, expiration)) = pchat {
                 if *expiration < js_sys::Date::now() {
@@ -114,8 +112,7 @@ impl GamePage {
     }
 
     fn get_nickname(&self, player_id: Uuid) -> String {
-        self
-            .game_state
+        self.game_state
             .players
             .iter()
             .find(|x| x.player.id == player_id)
@@ -125,8 +122,7 @@ impl GamePage {
     }
 
     fn get_game_url(&self) -> url::Url {
-        let str_url = yew::utils::document().url().unwrap();
-
+        let str_url = web_sys::window().unwrap().document().unwrap().url().unwrap();
         let mut game_url = url::Url::parse(&str_url).unwrap();
         if game_url.query_pairs().find(|(name, _)| name == "game").is_none() {
             game_url = url::Url::parse_with_params(&str_url, &[("game", &self.game_info.join_code)]).unwrap();
@@ -141,7 +137,7 @@ impl GamePage {
             .find(|state| state.player.id == self.player_info.id)
             .unwrap()
     }
-    
+
     fn player_index(&self, id: Uuid) -> usize {
         self.game_state
             .players
@@ -151,7 +147,7 @@ impl GamePage {
             .pos.to_n()
     }
 
-    fn apply_snapshot(&mut self, snapshot: GameStateSnapshot){
+    fn apply_snapshot(&mut self, snapshot: GameStateSnapshot) {
         self.game_state = Rc::new(snapshot);
         self.dog = self.game_state.deal.initial_dog;
         self.hand = self.game_state.deal.hand;
@@ -170,12 +166,12 @@ impl GamePage {
             "bid: the auction are still running" => tr!("the auctions are still running"),
             "bid: no contract was offered" => tr!("no contract was offered"),
             "play: invalid turn order" => tr!("invalid turn order"),
-            "play: you can only play cards you have" => tr!("you can only play cards you have" ),
-            "play: wrong suit played" => tr!("wrong suit played" ),
-            "play: you must use trumps" => tr!("you must use trumps" ),
-            "play: too weak trump played" => tr!("too weak trump played" ),
-            "play: you cannot play the suit of the called king in the first trick" => tr!("you cannot play the suit of the called king in the first trick" ),
-            "play: no trick has been played yet" => tr!("no trick has been played yet" ),
+            "play: you can only play cards you have" => tr!("you can only play cards you have"),
+            "play: wrong suit played" => tr!("wrong suit played"),
+            "play: you must use trumps" => tr!("you must use trumps"),
+            "play: too weak trump played" => tr!("too weak trump played"),
+            "play: you cannot play the suit of the called king in the first trick" => tr!("you cannot play the suit of the called king in the first trick"),
+            "play: no trick has been played yet" => tr!("no trick has been played yet"),
             "play: you are not the taker" => tr!("you are not the taker"),
             "play: Wrong number of cards" => tr!("Wrong number of cards"),
             "play: Can't put the same card twice in the dog" => tr!("Can't put the same card twice in the dog"),
@@ -188,14 +184,14 @@ impl GamePage {
     }
 
     fn translate_chat(&self, msg: &String) -> String {
-        console_log!(format!("translating : '{}' in {}", &msg, &self.language));
-
+        let log_str = format!("translating : '{}' in {}", &msg, &self.language);
+        console_log!(log_str);
 
         let mut parts = msg.split(':').fuse();
         let str_type = parts.next();
         let str_val = parts.next();
 
-        match str_type  {
+        match str_type {
             Some("call king") => match str_val {
                 Some(str_card) => {
                     tr!("I call {}", self.translate_card(str_card.trim()))
@@ -206,7 +202,8 @@ impl GamePage {
                 "*connected*" => tr!("connected"),
                 "Pass" | "pass" => tr!("Pass"),
                 _ => {
-                    console_log!(format!("non trouvé : '{}'", &msg));
+                    let log_str = format!("non trouvé : '{}'", &msg);
+                    console_log!(log_str);
                     msg.to_string()
                 }
             }
@@ -218,19 +215,17 @@ impl GamePage {
         cards::Card::from_str(str_card)
             .map(|c| c.to_locale_string(locale))
             .unwrap()
-            // .unwrap_or(str_card.to_owned())
     }
-
 
     fn display_overlay_box(&self) -> Html {
-        let output;
-        if let Some(message) = &self.overlay_box  { 
-            output = message.clone();
-            output
-        } else { html!{} }
+        if let Some(message) = &self.overlay_box {
+            message.clone()
+        } else {
+            html! {}
+        }
     }
 
-    fn manage_game_message(&mut self, msg: Message){
+    fn manage_game_message(&mut self, msg: Message) {
         if self.update_needs_confirm {
             self.next_game_messages.push_front(msg);
         } else {
@@ -253,7 +248,7 @@ impl GamePage {
                                 <div class="results">
                                 { tr!("trick for ") }
                                 <strong>{ winner_name }</strong>
-                                    </div>
+                                </div>
                             });
                             self.update_needs_confirm = true;
                         },
@@ -264,57 +259,53 @@ impl GamePage {
 
                                 let taker_won = self.game_state.deal.taker_diff >= 0.0;
                                 let diff_abs = f32::abs(self.game_state.deal.taker_diff);
-                                //XXX Cargo i18n fails with plurals..
                                 let mut contract_message = if taker_won {
-                                    tr!( "Contract succeded by {} point", diff_abs )
-                                    // tr!( "Contract succeded by {n} point" | "Contract succeded by {n} points" % diff_abs )
+                                    tr!("Contract succeded by {} point", diff_abs)
                                 } else {
-                                    tr!( "Contract failed by {} point", diff_abs )
-                                    // tr!( "Contract failed by {n} point" | "Contract failed by {n} points" % diff_abs )
+                                    tr!("Contract failed by {} point", diff_abs)
                                 };
                                 if diff_abs > 1.0 { contract_message.push('s'); }
 
                                 let mut str_oudlers = tr!("{} oudler", oudlers_count);
-                                // let str_oudlers = tr!("({n} oudler)" | "({n} oudlers)" % oudlers_count);
                                 if oudlers_count > 1 { str_oudlers.push('s'); }
 
                                 contract_message.push_str(" ( ");
                                 contract_message.push_str(&str_oudlers);
                                 contract_message.push_str(" )");
 
-                                let petit_message = if petit_bonus != 0.0 { tr!("Petit au bout bonus: {}", petit_bonus)} else { "".into() };
-                                let poignees_message = if poignees_bonus != 0.0 { tr!("Poignees bonus: {}", poignees_bonus)} else { "".into() };
-                                let slam_message = if slam_bonus != 0.0 { tr!("Slam bonus: {}", slam_bonus)} else { "".into() };
+                                let petit_message = if petit_bonus != 0.0 { tr!("Petit au bout bonus: {}", petit_bonus) } else { "".into() };
+                                let poignees_message = if poignees_bonus != 0.0 { tr!("Poignees bonus: {}", poignees_bonus) } else { "".into() };
+                                let slam_message = if slam_bonus != 0.0 { tr!("Slam bonus: {}", slam_bonus) } else { "".into() };
 
                                 let dog_message = tr!("Dog : {0}", self.game_state.deal.dog.to_string());
                                 self.overlay_box = Some(html! {
                                     <div>
-                                        <div>{{ contract_message }}</div>
-                                        <div>{{ dog_message }}</div>
-                                        <div>{{ petit_message }}</div>
-                                        <div>{{ poignees_message }}</div>
-                                        <div>{{ slam_message }}</div>
+                                        <div>{ contract_message }</div>
+                                        <div>{ dog_message }</div>
+                                        <div>{ petit_message }</div>
+                                        <div>{ poignees_message }</div>
+                                        <div>{ slam_message }</div>
                                         <br/><br/>
-                                        <Scores players=players scores=scores />
-                                        </div>
+                                        <Scores players={players} scores={scores} />
+                                    </div>
                                 });
                                 self.update_needs_confirm = true;
                             } else {
-                                console_log!(format!("result : {:?}", result));
+                                let log_str = format!("result : {:?}", result);
+                                console_log!(log_str);
                             }
                         },
                         PlayEvent::Announce(uuid, announce) => {
-                            // self.add_chat_message(uuid, ChatLineData::Text(format!("announce: {:?}", announce.proof.map(|h| h.to_string()))));
                             let nickname = self.get_nickname(uuid);
                             let proof_html = if let Some(proof_hand) = announce.proof {
-                                html!{
+                                html! {
                                     <div class="hand">
-                                    { for proof_hand.list().iter().map(|card| {
-                                                                                  let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
-                                                                                  html! {
-                                                                                      <div class="card" style={style}></div>
-                                                                                  }
-                                                                              })}
+                                    { proof_hand.list().iter().map(|card| {
+                                        let style = format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                                        html! {
+                                            <div class="card" style={style}></div>
+                                        }
+                                    }).collect::<Html>()}
                                     </div>
                                 }
                             } else { html!() };
@@ -329,47 +320,43 @@ impl GamePage {
                         },
                     }
                 }
-                _ => { } // unknown server messages
+                _ => {}
             }
         }
     }
-
 }
 
 impl Component for GamePage {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
-        // Ping server every 50s in order to keep alive the websocket 
-        let keepalive = IntervalService::spawn(
-            Duration::from_secs(50), 
-            link.callback(|_| Msg::Ping).into()
-            );
+    fn create(ctx: &Context<Self>) -> Self {
+        let link = ctx.link().clone();
+        let keepalive = Interval::new(50_000, move || {
+            link.send_message(Msg::Ping);
+        });
 
-        let on_server_message = link.callback(Msg::ServerMessage);
-        let mut api = Api::bridge(on_server_message);
+        let mut api = Api::bridge(ctx.link().callback(Msg::ServerMessage));
         let sound_paths = vec![
             ("chat".into(), "sounds/misc_menu.ogg"),
             ("card".into(), "sounds/cardPlace4.ogg"),
             ("error".into(), "sounds/negative_2.ogg"),
         ].into_iter().collect();
 
-        //XXX automatically set player ready 
         api.send(Command::MarkReady);
 
+        let props = ctx.props();
         GamePage {
-            keepalive_job: Box::new(keepalive),
-            link,
+            _keepalive: keepalive,
             api,
-            game_info: props.game_info,
-            players_chat: Box::new(vec![None;5]),
+            game_info: props.game_info.clone(),
+            players_chat: Box::new(vec![None; 5]),
             chat_log: Vector::unit(Rc::new(ChatLine {
                 nickname: props.player_info.nickname.clone(),
                 data: ChatLineData::Connected,
             })),
             game_state: Rc::new(GameStateSnapshot::default()),
-            player_info: props.player_info,
+            player_info: props.player_info.clone(),
             dog: cards::Hand::new(),
             hand: cards::Hand::new(),
             is_waiting: false,
@@ -379,16 +366,16 @@ impl Component for GamePage {
             next_game_messages: Vector::new(),
             update_needs_confirm: false,
             overlay_box: None,
-            language: props.language,
+            language: props.language.clone(),
             chatbox_visible: false,
         }
     }
 
-    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
+    fn changed(&mut self, _ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
         false
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::ServerMessage(message) => match message {
                 Message::Pong => {}
@@ -416,7 +403,6 @@ impl Component for GamePage {
             },
             Msg::Ping => {
                 self.api.send(Command::Ping);
-                // log!("ping ?");
             }
             Msg::SetChatLine(text) => {
                 self.api.send(Command::SendText(SendTextCommand { text }));
@@ -441,7 +427,11 @@ impl Component for GamePage {
                 self.api.send(Command::InviteBot);
             }
             Msg::Disconnect => {
-                if dialog::DialogService::confirm(&tr!("Really disconnect ?")) {
+                let confirmed = web_sys::window()
+                    .unwrap()
+                    .confirm_with_message(&tr!("Really disconnect ?"))
+                    .unwrap_or(false);
+                if confirmed {
                     self.api.send(Command::LeaveGame);
                 }
             }
@@ -484,11 +474,10 @@ impl Component for GamePage {
                 self.api.send(Command::GamePlay(GamePlayCommand::Play(PlayCommand { card })));
             }
         }
-        // self.refresh_overlay_box();
         true
     }
 
-    fn view(&self) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         if self.game_state.players.is_empty() {
             return html! {};
         }
@@ -497,24 +486,19 @@ impl Component for GamePage {
         let card_played = self.game_state.deal.last_trick.card_played(my_state.pos);
         let player_action = my_state.get_turn_player_action(self.game_state.turn);
 
-        // display players in order of playing starting from the current player
         let mut others_before = vec![];
         let mut others = vec![];
         let mypos = my_state.pos.to_n();
 
-        // let mut positioned = Vec::from_iter(self.game_state.players.clone());
-        // positioned.sort_by(|a, b| a.pos.to_n().cmp(&b.pos.to_n()));
-        // for pstate in positioned.iter() {
         for pstate in self.game_state.players.iter() {
             let pos = pstate.pos.to_n();
             if pos < mypos {
                 others_before.push(pstate.clone());
-            } else if mypos < pos{
-               others.push(pstate.clone());
+            } else if mypos < pos {
+                others.push(pstate.clone());
             }
         }
 
-        // log!("others: {:?} others_before: {:?}", others, others_before);
         others.append(&mut others_before);
         let players_joined_count = &others.len() + 1;
         let players_left_count = self.game_state.nb_players as usize - players_joined_count;
@@ -528,16 +512,13 @@ impl Component for GamePage {
         }
 
         let is_my_turn = self.game_state.get_playing_pos() == Some(self.my_state().pos);
-        // let is_my_turn = self.game_state.turn.has_player_pos() && self.game_state.deal.current == self.my_state().pos;
         let mut actions_classes = vec!["actions"];
         if is_my_turn {
             actions_classes.push("current-player");
         }
 
-
-        // log::debug!("after message content");
         let player = self.game_state.current_player_name();
-        let turn_info = match self.game_state.turn {
+        let _turn_info = match self.game_state.turn {
             Turn::Pregame => tr!("pre-game"),
             Turn::Intertrick => tr!("inter trick"),
             Turn::Interdeal => tr!("inter deal"),
@@ -547,50 +528,49 @@ impl Component for GamePage {
             Turn::CallingKing => tr!("calling king"),
             Turn::MakingDog => tr!("making dog"),
         };
-        
+
         let players_msg: Vec<Option<String>> = (*self.players_chat.clone())
             .into_iter()
             .map(|chat| chat.map(|c| c.0))
-            .collect()
-            ;
+            .collect();
 
         html! {
-    <div class=game_classes>
+    <div class={game_classes.join(" ")}>
       <header class="header">
       <div class="nav-right">
-      <button class="btn-link" onclick=self.link.callback(|_| Msg::Disconnect)>{"\u{23FB} "} { tr!("disconnect") }</button>
+      <button class="btn-link" onclick={ctx.link().callback(|_| Msg::Disconnect)}>{"\u{23FB} "} { tr!("disconnect") }</button>
       </div>
       </header>
 
-      <PlayerList game_state=self.game_state.clone() players=others players_chat=players_msg language=self.language.clone()/>
+      <PlayerList game_state={self.game_state.clone()} players={others} players_chat={players_msg} language={self.language.clone()}/>
 
-        { if let Some(error) = &self.error  { 
+        { if let Some(error) = &self.error {
             let error_str = self.translate_error(&error);
             html! {
           <div class="notify-wrapper">
             <div class="error notify">
                 <div>
-                { error_str } 
+                { error_str }
                 </div>
                 <div class="toolbar">
-                    <button class="btn-error" onclick=self.link.callback(|_| Msg::CloseError)>{"Ok"}</button>
+                    <button class="btn-error" onclick={ctx.link().callback(|_| Msg::CloseError)}>{"Ok"}</button>
                 </div>
               </div>
             </div>
         }} else { html! {} }}
 
-        { if self.overlay_box.is_some()  { html! {
+        { if self.overlay_box.is_some() { html! {
           <div class="notify-wrapper">
             <div class="notify wrapper">
                 { self.display_overlay_box() }
                 <div class="toolbar">
-                    <button class="primary" onclick=self.link.callback(|_| Msg::Continue)>{"Ok"}</button>
+                    <button class="primary" onclick={ctx.link().callback(|_| Msg::Continue)}>{"Ok"}</button>
                 </div>
             </div>
         </div>
         }} else { html! {} }}
 
-        <section class=actions_classes>
+        <section class={actions_classes.join(" ")}>
             {match self.game_state.turn {
 
                Turn::Pregame => {
@@ -598,26 +578,26 @@ impl Component for GamePage {
                    html! {
                        <div class="wrapper">
                        { tr!("Waiting for") }
-                       <strong>{ " " } {{ players_left_count }}{ " " } </strong>
+                       <strong>{ " " } { players_left_count }{ " " } </strong>
                        { tr!("other player") }
                        { if players_left_count > 1 { html! {"s"} } else { html! {}} }
                        <br/><br/>
                        { if mypos == 0 { html! {
                                <div>
                                    <div class="toolbar">
-                                   {if !self.my_state().ready  {
-                                       html! {<button class="primary" onclick=self.link.callback(|_| Msg::MarkReady)>{ tr!("Ready!")}</button>}
+                                   {if !self.my_state().ready {
+                                       html! {<button class="primary" onclick={ctx.link().callback(|_| Msg::MarkReady)}>{ tr!("Ready!")}</button>}
                                    } else {
                                        html! {}
                                    }}
                                    </div>
-                                   <div>{{ tr!("Share this link to invite players:") }} </div>
-                                   <div><a href={{ url_game.clone() }}>{{ url_game }}</a></div>
+                                   <div>{ tr!("Share this link to invite players:") } </div>
+                                   <div><a href={url_game.clone()}>{ url_game }</a></div>
                                    <br/>
                                    <div>
-                                       <div>{{ tr!("Or you can play with tarot-bots:") }} </div>
+                                       <div>{ tr!("Or you can play with tarot-bots:") } </div>
                                        <br/>
-                                       <button class="primary" onclick=self.link.callback(|_| Msg::InviteBot)>{ tr!("Add a bot player")}</button>
+                                       <button class="primary" onclick={ctx.link().callback(|_| Msg::InviteBot)}>{ tr!("Add a bot player")}</button>
                                    </div>
                                </div>
                            }} else { html! {} }}
@@ -625,11 +605,9 @@ impl Component for GamePage {
                    }
                },
                Turn::CallingKing if player_action == Some(PlayerAction::CallKing) => {
-                   // Choose a queen if player has all kings
-                   // Choose a cavalier if player has all kings and all queens
                    let my_hand = self.game_state.deal.hand;
                    let rank = if my_hand.has_all_rank(cards::Rank::RankK) {
-                       if my_hand.has_all_rank(cards::Rank::RankQ) { cards::Rank::RankC } else { cards::Rank::RankQ } 
+                       if my_hand.has_all_rank(cards::Rank::RankQ) { cards::Rank::RankC } else { cards::Rank::RankQ }
                    } else {
                        cards::Rank::RankK
                    };
@@ -637,10 +615,10 @@ impl Component for GamePage {
                     html! {
                         <div style="width: 90vh;">
                             <CallKingAction
-                                rank=rank
-                                on_call_king=self.link.callback(|card| Msg::CallKing(card))
+                                rank={rank}
+                                on_call_king={ctx.link().callback(|card| Msg::CallKing(card))}
                                 />
-                            <span class="msgkings" >{ tr!("Choose your partner") }</span>
+                            <span class="msgkings">{ tr!("Choose your partner") }</span>
                         </div>
                     }
                },
@@ -649,19 +627,19 @@ impl Component for GamePage {
                        <div style="width: 90vh; text-align: center;">
                            <section class="hand">
                            {
-                               for self.dog.list().iter().map(|card| {
-                                   let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                               self.dog.list().iter().map(|card| {
+                                   let style = format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
                                    if player_action == Some(PlayerAction::MakeDog) {
                                        let clicked = card.clone();
                                        html! {
-                                           <div class="card" style={style} onclick=self.link.callback(move |_| Msg::AddToHand(clicked))></div>
+                                           <div class="card" style={style} onclick={ctx.link().callback(move |_| Msg::AddToHand(clicked))}></div>
                                        }
                                    } else {
                                        html! {
                                            <div class="card" style={style}></div>
                                        }
                                    }
-                               })
+                               }).collect::<Html>()
                            }
                            </section>
                            { if player_action == Some(PlayerAction::MakeDog) {
@@ -671,13 +649,13 @@ impl Component for GamePage {
                                 }
                                html! {
                             <div class="toggle-wrapper">
-                            <div class=slam_classes>
-                               <button onclick=self.link.callback(move |_| Msg::MakeDog)>
-                               {{ tr!("finish") }}
+                            <div class={slam_classes.join(" ")}>
+                               <button onclick={ctx.link().callback(move |_| Msg::MakeDog)}>
+                               { tr!("finish") }
                                </button>
                                 <input type="checkbox" id="slam"
-                                    checked=self.slam_selected
-                                    onclick=self.link.callback(move |_| Msg::ToggleSlam)
+                                    checked={self.slam_selected}
+                                    onclick={ctx.link().callback(move |_| Msg::ToggleSlam)}
                                 />
                                 <label for="slam">{tr!("Slam") }</label>
                             </div>
@@ -689,32 +667,32 @@ impl Component for GamePage {
                        </div>
                    }
                },
-                _ if player_action == Some(PlayerAction::Bid) => 
+                _ if player_action == Some(PlayerAction::Bid) =>
                     html! {
                         <BiddingActions
-                            game_state=self.game_state.clone()
-                            on_bid=self.link.callback(|contract| Msg::Bid(contract))
-                            on_pass=self.link.callback(|contract| Msg::Pass)
+                            game_state={self.game_state.clone()}
+                            on_bid={ctx.link().callback(|contract| Msg::Bid(contract))}
+                            on_pass={ctx.link().callback(|_contract| Msg::Pass)}
                             />
                     },
-                _ => 
+                _ =>
                     html! {
                         <div>
                             {if let Some(card) = card_played {
-                                let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+                                let style = format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
                                 html! {
                                     <div class="card" style={style}></div>
                                 }
                             } else if player_action == Some(PlayerAction::Play) {
                                 html!{
                                     <div>
-                                        <div class="yourturn"> {{ tr!("Your turn to play!") }} </div>
+                                        <div class="yourturn"> { tr!("Your turn to play!") } </div>
                                         { if self.is_first_trick() {
                                             html!{
                                             <Announces
-                                                nb_players=self.game_state.players.len()
-                                                hand=self.hand.clone()
-                                                on_announce=self.link.callback(|announce| Msg::Announce(announce))
+                                                nb_players={self.game_state.players.len()}
+                                                hand={self.hand.clone()}
+                                                on_announce={ctx.link().callback(|announce| Msg::Announce(announce))}
                                                 />
                                             }
                                         } else { html!{} }}
@@ -728,36 +706,35 @@ impl Component for GamePage {
 
         <section class="hand">
         { if self.game_state.turn != Turn::Pregame && self.game_state.turn != Turn::Interdeal {
-            html! {
-              for self.hand.list().iter().map(|card| {
-                let style =format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
+            self.hand.list().iter().map(|card| {
+                let style = format!("--bg-image: url('cards/{}-{}.svg')", &card.rank().to_string(), &card.suit().to_safe_string());
                 let clicked = card.clone();
                 html! {
-                    <div class="card" style={style} 
-                    onclick=self.link.callback(move |_| 
+                    <div class="card" style={style}
+                    onclick={ctx.link().callback(move |_|
                         if player_action == Some(PlayerAction::MakeDog) {
                             Msg::AddToDog(clicked)
                         } else {
                             Msg::Play(clicked)
-                        }) >
+                        })}>
                     </div>
                 }
-            })
-        }} else {
+            }).collect::<Html>()
+        } else {
             html!{}
         }}
         </section>
 
         { if self.chatbox_visible {
             html! {
-               <ChatBox log=self.chat_log.clone()
-                         on_send_chat=self.link.callback(|text| Msg::SetChatLine(text))
-                         on_close=self.link.callback(|_| Msg::ToggleChatbox)
+               <ChatBox log={self.chat_log.clone()}
+                         on_send_chat={ctx.link().callback(|text| Msg::SetChatLine(text))}
+                         on_close={ctx.link().callback(|_| Msg::ToggleChatbox)}
                />
             }
         } else {
             html!{
-              <button class="btn-menu" onclick=self.link.callback(|_| Msg::ToggleChatbox)>{"💬 chat" }</button>
+              <button class="btn-menu" onclick={ctx.link().callback(|_| Msg::ToggleChatbox)}>{"💬 chat" }</button>
            }
         }}
     </div>
@@ -765,8 +742,3 @@ impl Component for GamePage {
         }
     }
 }
-// XXX to restore chat: add following lines before the last </div>
-       // <ChatBox log=self.chat_log.clone()
-       //           on_send_chat=self.link.callback(|text| Msg::SetChatLine(text))
-       //  />
-

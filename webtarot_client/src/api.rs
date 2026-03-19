@@ -1,131 +1,154 @@
-use std::collections::HashSet;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
 
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use web_sys::MessageEvent;
+use yew::Callback;
 use weblog::*;
-use yew::agent::{Agent, AgentLink, Context, HandlerId};
-use yew::format::Json;
-use yew::services::websocket::{WebSocketService, WebSocketStatus, WebSocketTask};
-use yew::services::storage::{Area, StorageService};
+use gloo_storage::{LocalStorage, Storage};
 
 use crate::protocol::{Command, Message};
 use crate::gprotocol::{PlayerInfo, GameInfo};
 
-#[derive(Debug)]
-pub enum ApiState {
-    Connecting,
-    Connected,
-    Disconnected,
-}
-
-pub enum Msg {
-    ServerMessage(Message),
-    Connected,
-    ConnectionLost,
-    Ignore,
-}
-
-#[derive(Debug)]
-pub struct Api {
-    link: AgentLink<Api>,
-    ws: WebSocketTask,
-    subscribers: HashSet<HandlerId>,
-    state: ApiState,
-}
-
-fn get_websocket_location(_uuid: Option<&str>) -> String {
-    let storage = StorageService::new(Area::Local).expect("storage was disabled by the user");
-    let player_info: Option<PlayerInfo> = if let Json(Ok(restored_info)) =  storage.restore("webtarot.self") {
-        Some(restored_info)
-    } else {
-        None
-    };
-    let game_info: Option<GameInfo> = if let Json(Ok(restored_info)) =  storage.restore("webtarot.game") {
-        Some(restored_info)
-    } else {
-        None
-    };
-
+fn get_websocket_location() -> String {
+    let player_info: Option<PlayerInfo> = LocalStorage::get("webtarot.self").ok();
+    let game_info: Option<GameInfo> = LocalStorage::get("webtarot.game").ok();
 
     let location = web_sys::window().unwrap().location();
     format!(
         "{}://{}/ws/{}_{}",
-        if location.protocol().unwrap() == "https:" {
-            "wss"
-        } else {
-            "ws"
-        },
+        if location.protocol().unwrap() == "https:" { "wss" } else { "ws" },
         location.host().unwrap(),
-        game_info.map(|ginfo| ginfo.game_id.to_string()).unwrap_or("new".into()),
-        player_info.map(|pinfo| pinfo.id.to_string()).unwrap_or("new".into()),
+        game_info.map(|i| i.game_id.to_string()).unwrap_or_else(|| "new".into()),
+        player_info.map(|i| i.id.to_string()).unwrap_or_else(|| "new".into()),
     )
 }
 
-impl Agent for Api {
-    type Reach = Context<Self>;
-    type Message = Msg;
-    type Input = Command;
-    type Output = Message;
+struct ApiState {
+    ws: Option<web_sys::WebSocket>,
+    subscribers: HashMap<usize, Callback<Message>>,
+    next_id: usize,
+    _on_message: Option<Closure<dyn FnMut(MessageEvent)>>,
+    _on_open: Option<Closure<dyn FnMut()>>,
+    _on_close: Option<Closure<dyn FnMut()>>,
+}
 
-    fn create(link: AgentLink<Api>) -> Api {
+impl ApiState {
+    fn new() -> Self {
+        Self {
+            ws: None,
+            subscribers: HashMap::new(),
+            next_id: 0,
+            _on_message: None,
+            _on_open: None,
+            _on_close: None,
+        }
+    }
+}
+
+thread_local! {
+    static GLOBAL_API: Rc<RefCell<ApiState>> = Rc::new(RefCell::new(ApiState::new()));
+}
+
+fn ensure_connected() {
+    let already_connected = GLOBAL_API.with(|api| api.borrow().ws.is_some());
+    if already_connected {
+        return;
+    }
+
+    GLOBAL_API.with(|api| {
+        let api_rc = api.clone();
+        let mut state = api.borrow_mut();
+
         console_log!("Connecting to server");
-        let on_message = link.callback(|Json(data)| match data {
-            Ok(message) => Msg::ServerMessage(message),
-            Err(err) => {
-                console_error!(format!("websocket error: {:?}", err));
-                Msg::Ignore
-            }
-        });
-        let on_notification = link.callback(|status| match status {
-            WebSocketStatus::Opened => Msg::Connected,
-            WebSocketStatus::Closed | WebSocketStatus::Error => Msg::ConnectionLost,
-        });
-        let ws = WebSocketService::connect(&get_websocket_location(None), on_message, on_notification)
-            .unwrap();
+        let ws_url = get_websocket_location();
+        let ws = web_sys::WebSocket::new(&ws_url).unwrap();
 
-        Api {
-            link,
-            ws,
-            state: ApiState::Connecting,
-            subscribers: HashSet::new(),
-        }
-    }
-
-    fn handle_input(&mut self, input: Self::Input, _: HandlerId) {
-        console_debug!(format!("Sending command: {:?}", &input));
-        self.ws.send(Json(&input));
-    }
-
-    fn update(&mut self, msg: Self::Message) {
-        match msg {
-            Msg::ServerMessage(msg) => {
-                console_debug!(format!("Server message: {:?}", msg));
-                for sub in self.subscribers.iter() {
-                    self.link.respond(*sub, msg.clone());
+        let api_msg = api_rc.clone();
+        let on_message = Closure::wrap(Box::new(move |e: MessageEvent| {
+            if let Some(text) = e.data().as_string() {
+                let state = api_msg.borrow();
+                match serde_json::from_str::<Message>(&text) {
+                    Ok(msg) => {
+                        for cb in state.subscribers.values() {
+                            cb.emit(msg.clone());
+                        }
+                    }
+                    Err(err) => {
+                        let err_str = format!("websocket parse error: {:?}", err);
+                        console_error!(err_str);
+                    }
                 }
             }
-            Msg::Connected => {
-                console_log!("Connected web socket!");
-                self.state = ApiState::Connected;
-                for sub in self.subscribers.iter() {
-                    self.link.respond(*sub, Message::Connected);
-                }
+        }) as Box<dyn FnMut(MessageEvent)>);
+        ws.set_onmessage(Some(on_message.as_ref().unchecked_ref()));
+
+        let api_open = api_rc.clone();
+        let on_open = Closure::wrap(Box::new(move || {
+            console_log!("Connected web socket!");
+            let state = api_open.borrow();
+            for cb in state.subscribers.values() {
+                cb.emit(Message::Connected);
             }
-            Msg::ConnectionLost => {
-                console_log!("Lost connection on web socket!");
-                self.state = ApiState::Disconnected;
+        }) as Box<dyn FnMut()>);
+        ws.set_onopen(Some(on_open.as_ref().unchecked_ref()));
+
+        let on_close = Closure::wrap(Box::new(move || {
+            console_log!("Lost connection on web socket!");
+        }) as Box<dyn FnMut()>);
+        ws.set_onclose(Some(on_close.as_ref().unchecked_ref()));
+
+        state.ws = Some(ws);
+        state._on_message = Some(on_message);
+        state._on_open = Some(on_open);
+        state._on_close = Some(on_close);
+    });
+}
+
+/// Handle to the shared WebSocket connection. Unsubscribes on drop.
+pub struct ApiBridge {
+    id: usize,
+}
+
+impl ApiBridge {
+    pub fn send(&mut self, cmd: Command) {
+        GLOBAL_API.with(|api| {
+            let state = api.borrow();
+            if let Some(ws) = &state.ws {
+                let text = serde_json::to_string(&cmd).expect("serialize command");
+                let dbg_str = format!("Sending command: {:?}", &cmd);
+                console_debug!(dbg_str);
+                ws.send_with_str(&text).unwrap_or_else(|e| {
+                    let err_str = format!("websocket send error: {:?}", e);
+                    console_error!(err_str);
+                });
             }
-            Msg::Ignore => {}
-        }
+        });
     }
+}
 
-    fn connected(&mut self, id: HandlerId) {
-        self.subscribers.insert(id);
+impl Drop for ApiBridge {
+    fn drop(&mut self) {
+        GLOBAL_API.with(|api| {
+            api.borrow_mut().subscribers.remove(&self.id);
+        });
     }
+}
 
-    fn disconnected(&mut self, id: HandlerId) {
-        self.subscribers.remove(&id);
-    }
+pub struct Api;
 
-    fn destroy(&mut self) {
-        console_log!("destroying API service");
+impl Api {
+    /// Subscribe to WebSocket messages. Opens the connection on first call.
+    pub fn bridge(callback: Callback<Message>) -> ApiBridge {
+        ensure_connected();
+        GLOBAL_API.with(|api| {
+            let mut state = api.borrow_mut();
+            let id = state.next_id;
+            state.next_id += 1;
+            state.subscribers.insert(id, callback);
+            ApiBridge { id }
+        })
     }
 }

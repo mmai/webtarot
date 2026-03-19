@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use strum::IntoEnumIterator;
-use yew::{html, Component, ComponentLink, Html, Properties, ShouldRender, Callback};
+use yew::{html, Callback, Component, Context, Html, Properties};
 
 use tr::tr;
 
@@ -21,8 +21,13 @@ pub struct Props {
     pub on_pass: Callback<()>,
 }
 
+impl PartialEq for Props {
+    fn eq(&self, _other: &Self) -> bool {
+        false
+    }
+}
+
 pub struct BiddingActions {
-    link: ComponentLink<Self>,
     on_bid: Callback<(bid::Target, bool)>,
     on_pass: Callback<()>,
     game_state: Rc<GameStateSnapshot>,
@@ -33,17 +38,16 @@ impl Component for BiddingActions {
     type Message = Msg;
     type Properties = Props;
 
-    fn create(props: Self::Properties, link: ComponentLink<Self>) -> Self {
+    fn create(ctx: &Context<Self>) -> Self {
         BiddingActions {
-            link,
-            game_state: props.game_state,
-            on_bid: props.on_bid,
-            on_pass: props.on_pass,
+            game_state: ctx.props().game_state.clone(),
+            on_bid: ctx.props().on_bid.clone(),
+            on_pass: ctx.props().on_pass.clone(),
             slam_selected: false,
         }
     }
 
-    fn update(&mut self, msg: Self::Message) -> ShouldRender {
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::ToggleSlam => {
                 self.slam_selected = !self.slam_selected;
@@ -59,12 +63,14 @@ impl Component for BiddingActions {
         false
     }
 
-    fn change(&mut self, props: Self::Properties) -> ShouldRender {
-        self.game_state = props.game_state;
+    fn changed(&mut self, ctx: &Context<Self>, _old_props: &Self::Properties) -> bool {
+        self.game_state = ctx.props().game_state.clone();
+        self.on_bid = ctx.props().on_bid.clone();
+        self.on_pass = ctx.props().on_pass.clone();
         true
     }
 
-    fn view(&self) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         let curr_target = self.game_state.deal.contract_target();
         let mut slam_classes = vec!["toggle"];
         if self.slam_selected {
@@ -73,7 +79,7 @@ impl Component for BiddingActions {
 
         html! {
             <section class="bidding">
-                <button onclick=self.link.callback(move |_| Msg::Pass)>
+                <button onclick={ctx.link().callback(move |_| Msg::Pass)}>
                 { tr!("Passe") }
                 </button>
                 {
@@ -81,7 +87,7 @@ impl Component for BiddingActions {
                         .filter(|bidtarget| curr_target.lt(&Some(*bidtarget)))
                         .map(|bidtarget| {
                             html! {
-                                <button onclick=self.link.callback(move |_| Msg::Bid(bidtarget))>
+                                <button onclick={ctx.link().callback(move |_| Msg::Bid(bidtarget))}>
                                     {format!("{}", bidtarget.to_str())}
                                 </button>
                             }
@@ -89,10 +95,10 @@ impl Component for BiddingActions {
 
                 }
                 <div class="toggle-wrapper">
-                <div class=slam_classes>
+                <div class={slam_classes.join(" ")}>
                     <input type="checkbox" id="slam" name="slam"
-                        checked=self.slam_selected
-                        onclick=self.link.callback(move |_| Msg::ToggleSlam)
+                        checked={self.slam_selected}
+                        onclick={ctx.link().callback(move |_| Msg::ToggleSlam)}
                     />
                     <label for="slam">{ tr!("Slam") }</label>
                 </div>

@@ -6,6 +6,7 @@
     openssl # fix the "failed to run custom build command for openssl-sys" error
     lld # needed by trunk for webtarot-client
     trunk # wasm builder
+    dart-sass
   ];
 
   enterShell = ''

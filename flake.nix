@@ -2,7 +2,7 @@
   description = "Webtarot";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
     rust-overlay.url = "github:oxalica/rust-overlay";
     # flake-utils.url  = "github:numtide/flake-utils";
   };
@@ -34,7 +34,7 @@
 
         webtarot = with final; (rustPlatform.buildRustPackage rec {
           name = "webtarot";
-          version = "0.7.9";
+          version = "0.8.0";
           src = ./.;
 
           nativeBuildInputs = [ pkg-config ];
@@ -43,7 +43,7 @@
           cargoLock = {
             lockFile = ./Cargo.lock;
             outputHashes = {
-              "webgame_protocol-0.7.8" = "sha256-SoamOZzzZQEOOpHlkYjFZRytqgfacw/iB4aX0JE8JwE=";
+              "webgame_protocol-0.8.0" = "sha256-SoamOZzzZQEOOpHlkYjFZRytqgfacw/iB4aX0JE8JwE=";
             };
           };
 
@@ -61,19 +61,16 @@
             port = "8080";
             data_path = "/var/webtarot";
             db_uri = "${data_path}/webtarot_db";
-            runAsRoot = ''
-              mkdir -p ${data_path}/archives
-            '';
             entrypoint = writeScript "entrypoint.sh" ''
               #!${stdenv.shell}
               IP=$(ip route get 1 | awk '{print $NF;exit}')
               echo "Starting server. Open your client on http://$IP:${port}"
-              ${webtarot}/bin/webtarot_server -d ${webtarot-front}/ -a $IP -p ${port} -u ${db_uri} --archives-directory ${data_path}/archives
+              ${webtarot}/bin/webtarot_server -d ${webtarot-front}/ -a $IP -p ${port}
             '';
           in
           dockerTools.buildImage {
             name = "mmai/webtarot";
-            tag = "0.7.2";
+            tag = "0.8.0";
             contents = [ busybox ];
             config = {
               Entrypoint = [ entrypoint ];

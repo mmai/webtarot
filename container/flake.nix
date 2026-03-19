@@ -1,5 +1,5 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
   # inputs.webtarot.url = "github:mmai/webtarot";
   inputs.webtarot.url = "..";
 
@@ -21,7 +21,7 @@
             # Let 'nixos-version --json' know about the Git revision
             # of this flake.
             system.configurationRevision = nixpkgs.lib.mkIf (self ? rev) self.rev;
-            system.stateVersion = "23.11";
+            system.stateVersion = "25.11";
 
             # Network configuration.
             networking.useDHCP = false;

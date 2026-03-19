@@ -11,3 +11,5 @@ client:
 compile-client:
   trunk build --release
 compile: compile-server compile-client
+read_debugbot file:
+  cargo run -p webtarot_protocol -- {{file}}

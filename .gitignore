@@ -2,6 +2,7 @@ bacasable
 target
 node_modules
 /dist
+webtarot_client/dist
 result
 .devenv*
 devenv.local.nix

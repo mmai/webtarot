@@ -22,14 +22,75 @@
     {
       overlay = final: prev: {
 
-        webtarot-front = final.stdenv.mkDerivation {
-          name = "webtarot-front";
-          src = ./webtarot_client;
-          installPhase = ''
-            mkdir -p $out
-            cp -R ./dist/. $out/
-          '';
-        };
+        webtarot-front =
+          let
+            rustPlatform = final.rustPlatform;
+            # Use the same version as in Cargo.lock
+            wasm-bindgen-version = "0.2.114";
+            wasm-bindgen-cli = final.buildWasmBindgenCli rec {
+              version = wasm-bindgen-version;
+              src = final.fetchCrate {
+                pname = "wasm-bindgen-cli";
+                inherit version;
+                hash = "sha256-xrCym+rFY6EUQFWyWl6OPA+LtftpUAE5pIaElAIVqW0=";
+              };
+              cargoDeps = rustPlatform.fetchCargoVendor {
+                inherit src;
+                name = "wasm-bindgen-cli-vendor";
+                hash = "sha256-Z8+dUXPQq7S+Q7DWNr2Y9d8GMuEdSnq00quUR0wDNPM=";
+              };
+            };
+
+            frontendCargoDeps = rustPlatform.fetchCargoVendor {
+              src = ./.;
+              name = "webtarot-frontend-vendor";
+              hash = "sha256-J00yzaK80YHAO60aXWWgsHiGCpfXG0u3vAlhD3JY74s=";
+            };
+          in
+          final.stdenv.mkDerivation {
+            name = "webtarot-front";
+            src = ./.;
+
+            nativeBuildInputs = with final; [
+              cargo
+              rustc
+              lld
+              rustPlatform.cargoSetupHook
+              wasm-bindgen-cli
+              trunk
+              dart-sass
+              binaryen
+            ];
+
+            cargoDeps = frontendCargoDeps;
+
+            buildPhase = ''
+              runHook preBuild
+              export HOME=$TMPDIR
+
+              # Tell trunk to use the system-installed tool versions from PATH
+              cat >> webtarot_client/Trunk.toml << 'EOF'
+
+              [tools]
+              wasm-bindgen = { version = "${wasm-bindgen-version}" }
+              wasm-opt = { version = "version_124" }
+              EOF
+
+              pushd webtarot_client
+              sass --style compressed scss/webtarot.scss > static/webtarot.css
+              trunk build --release --offline
+              popd
+
+              runHook postBuild
+            '';
+
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out
+              cp -R webtarot_client/dist/. $out/
+              runHook postInstall
+            '';
+          };
 
         webtarot = with final; (rustPlatform.buildRustPackage rec {
           name = "webtarot";

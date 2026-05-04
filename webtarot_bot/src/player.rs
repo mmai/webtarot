@@ -359,7 +359,7 @@ impl Player {
             self.stats
                 .players
                 .iter_mut()
-                .map(|pstat| pstat.in_taker_team = Some(pstat.is_taker));
+                .for_each(|pstat| pstat.in_taker_team = Some(pstat.is_taker));
             self.stats.teams_known = true;
             self.stats.teams_known_by_all = true;
         }
@@ -520,9 +520,9 @@ impl Player {
         let curr_target = &self.game_state.deal.contract_target();
 
         let points = self.evaluate_hand();
-        let candidate = if points < 46 {
+        let candidate = if points < 48 {
             None
-        } else if points < 58 {
+        } else if points < 55 {
             Some(Target::Prise)
         } else if points < 75 {
             Some(Target::Garde)
@@ -638,7 +638,7 @@ impl Player {
         });
 
         let mut candidates: Vec<Card> = suits
-            .into_iter()
+            .iter()
             .filter(|suit| !hand.has(Card::new(**suit, rank)))
             .map(|suit| Card::new(*suit, rank))
             .collect();
@@ -759,7 +759,7 @@ impl Player {
 
         if let Some(starting_suit) = trick.suit() {
             // Not the first to play
-            // print!("not the first to play..  ");
+            // println!("not the first to play..  ");
             let winner_card = trick.cards[trick.winner.pos as usize].unwrap();
 
             if starting_suit == Suit::Trump {
@@ -801,7 +801,7 @@ impl Player {
                     return Some(mylowest);
                 }
             } else {
-                // print!("no trump asked..  ");
+                // println!("no trump asked..  ");
                 let my_highest = hand.suit_highest(starting_suit);
                 let highest_left = self
                     .stats
@@ -867,6 +867,7 @@ impl Player {
                         }
                     }
                 } else {
+                    println!("I must cut");
                     // I must cut or piss
                     // print!("i have not the color..  ");
                     // Try to save own's petit
@@ -881,6 +882,7 @@ impl Player {
                         && trick.points() > 3.0
                         && self.stats.clone().opponent_is_after(trick, mepos) != Some(false)
                     {
+                        println!("I must cut high");
                         if let Some(highest) = hand.trump_highest() {
                             if highest.rank() > winner_card.rank() {
                                 return Some(highest);
@@ -888,6 +890,7 @@ impl Player {
                         }
                     }
 
+                    println!("I must cut low");
                     // Must be higher trump than other cuts
                     if winner_card.suit() == Suit::Trump {
                         if let Some(mylowest) = hand.suit_lowest_over_card(Suit::Trump, winner_card)
@@ -1156,39 +1159,118 @@ impl Player {
         let suit_left_count = self.stats.suit_left[suit].size();
         let my_count = hand.get_suit_cards(suit).len();
 
-        // println!(
-        //     "fist time played {} : {}",
-        //     suit.to_string(),
-        //     suit_left_count + card_played_count + my_count
-        // );
+        println!(
+            "fist time played {} : {}",
+            suit.to_string(),
+            suit_left_count + card_played_count + my_count
+        );
         suit_left_count + card_played_count + my_count == 14
     }
 }
 
 #[test]
-fn test_assure_petit() {
-    let in_out = Box::new(TestInOut {});
-    let delay = time::Duration::from_millis(1000);
-    let mut bot = Player::new(in_out, "joincode".to_string(), format!("nickname"), delay);
+fn test_cut_with_low_card() {
+    // Regression test: if this is the first time a color is played,
+    // cut with a low trump even if there are points to save.
 
-    // let mut bot = Player {
-    //         delay,
-    //         in_out,
-    //         join_code: "joincode".to_string(),
-    //         game_state: GameStateSnapshot::default(),
-    //         player_info: PlayerInfo {
-    //             id: Uuid::default(),
-    //             nickname,
-    //         },
-    //         stats: DealStats::new(),
-    //         // stats: Rc::new(DealStats::new()),
-    //     }
-    //
-    // TODO
-    // let msg = webtarot_protocol::Message::GameStateSnapshot::default();
-    // bot.set_test_state_from_snapshot(msg);
-    // bot.update_stats();
-    assert_eq!("a", "a");
+    let in_out = Box::new(TestInOut {});
+    let delay = time::Duration::from_millis(0);
+    let mut bot = Player::new(in_out, "joincode".to_string(), "bot1".to_string(), delay);
+
+    let nb_players = 5u8;
+    let henri_pos = PlayerPos::from_n(0, nb_players);
+    let bot1_pos = PlayerPos::from_n(1, nb_players);
+    let huynh_pos = PlayerPos::from_n(2, nb_players);
+    let olivier_pos = PlayerPos::from_n(3, nb_players);
+    let bot2_pos = PlayerPos::from_n(4, nb_players);
+
+    let t4 = Card::new(Suit::Trump, Rank::Rank4);
+    let t13 = Card::new(Suit::Trump, Rank::Rank13);
+    let king_heart = Card::new(Suit::Heart, Rank::RankK);
+
+    // bot1's hand
+    let mut hand = Hand::new();
+    hand.add(t4);
+    hand.add(t13);
+
+    // Trick: Henri plays 21T first (and wins), then Olivier 4T, Huynh 13T;
+    // bot1 (pos 3) hasn't played yet.
+    let mut trick = Trick::new(henri_pos);
+    trick.play_card(henri_pos, king_heart);
+
+    let bot1_id = bot.player_info.id;
+    let mut game_state = GameStateSnapshot::default();
+    game_state.nb_players = nb_players;
+    game_state.turn = Turn::Playing(bot1_pos);
+    game_state.deal.hand = hand;
+    game_state.deal.king = Some(king_heart);
+    game_state.deal.last_trick = trick;
+    game_state.players = vec![
+        GamePlayerState {
+            player: PlayerInfo {
+                id: Uuid::new_v4(),
+                nickname: "Henri".into(),
+            },
+            pos: henri_pos,
+            role: PlayerRole::Partner,
+            ready: true,
+        },
+        GamePlayerState {
+            player: PlayerInfo {
+                id: bot1_id,
+                nickname: "bot1".into(),
+            },
+            pos: bot1_pos,
+            role: PlayerRole::Taker,
+            ready: true,
+        },
+        GamePlayerState {
+            player: PlayerInfo {
+                id: Uuid::new_v4(),
+                nickname: "Huynh".into(),
+            },
+            pos: huynh_pos,
+            role: PlayerRole::Opponent,
+            ready: true,
+        },
+        GamePlayerState {
+            player: PlayerInfo {
+                id: Uuid::new_v4(),
+                nickname: "Olivier".into(),
+            },
+            pos: olivier_pos,
+            role: PlayerRole::Opponent,
+            ready: true,
+        },
+        GamePlayerState {
+            player: PlayerInfo {
+                id: Uuid::new_v4(),
+                nickname: "bot2".into(),
+            },
+            pos: bot2_pos,
+            role: PlayerRole::Opponent,
+            ready: true,
+        },
+    ];
+    bot.game_state = game_state;
+
+    // Init suit_left with all cards except bot1's hand
+    bot.stats.init_state(nb_players as usize, hand);
+    // update stats with last trick
+    bot.update_stats();
+
+    // Teams are fully known: Henri is partner, bot1 is taker
+    bot.stats.players[1].is_taker = true;
+    bot.stats.players[0].in_taker_team = Some(true);
+    bot.stats.players[1].in_taker_team = Some(true);
+    bot.stats.players[2].in_taker_team = Some(false);
+    bot.stats.players[3].in_taker_team = Some(false);
+    bot.stats.players[4].in_taker_team = Some(false);
+    bot.stats.teams_known = true;
+    bot.stats.teams_known_by_all = true;
+
+    // bot1 should cut with the lowest trump
+    assert_eq!(bot.choose_card(), Some(t4));
 }
 
 #[test]

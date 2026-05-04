@@ -94,7 +94,7 @@
 
         webtarot = with final; (rustPlatform.buildRustPackage rec {
           name = "webtarot";
-          version = "0.8.0";
+          version = "0.8.2";
           src = ./.;
 
           nativeBuildInputs = [ pkg-config ];
